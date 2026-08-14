@@ -19,6 +19,7 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["slow: exercises a generator at full production scale"]
 
 [tool.ruff]
 line-length = 100

@@ -238,3 +238,50 @@ DECLINE_RATE_30D_BETA = (3.0, 45.0)  # mean ~0.062
 
 SETTLEMENT_OUTFLOW_LATENCY_H_MEAN = 30.0  # T+1-ish, typical PSP settlement cycle
 SETTLEMENT_OUTFLOW_LATENCY_H_SD = 10.0
+
+# ---------------------------------------------------------------------------
+# Legitimate transaction generation
+# ---------------------------------------------------------------------------
+
+# Mean 12-week transaction count by persona. These are deliberately modest so
+# production scale lands in the 5-10M transaction target when combined with the
+# 220k consumer population. Reasoned assumption; validation checks realised
+# distributions rather than treating these as sourced facts.
+LEGIT_TXN_MEAN_BY_INCOME_TYPE: dict[str, float] = {
+    "salaried": 34.0,
+    "gig": 40.0,
+    "none": 24.0,
+}
+
+# Rail mix for legitimate P2M and P2P outflow. Reasoned India-focused payment
+# mix for a synthetic challenge dataset, not a claim about production shares.
+LEGIT_P2M_RAIL_WEIGHTS: dict[str, float] = {
+    "upi_p2m": 0.72,
+    "card_cnp": 0.12,
+    "card_cp": 0.08,
+    "wallet": 0.08,
+}
+
+LEGIT_P2P_RAIL_WEIGHTS: dict[str, float] = {
+    "upi_p2p": 0.76,
+    "imps": 0.13,
+    "neft": 0.06,
+    "wallet": 0.05,
+}
+
+# Legitimate sessions are usually on a known device, but normal edge cases
+# exist: a borrowed household phone, browser checkout on desktop, or a replaced
+# device before reputation has caught up.
+LEGIT_KNOWN_DEVICE_PROB = 0.985
+
+# Non-fraud operational outcomes: ordinary declines and authentication failures
+# must exist so later models do not learn that all legitimate traffic approves.
+LEGIT_DECLINE_PROB = 0.018
+LEGIT_AUTH_FAILURE_PROB = 0.006
+
+# Beneficiary setup for first-use legitimate payments. These are not regulatory
+# limits; they are behavioural ranges used to make first-use timing plausible.
+LEGIT_FIRST_BENEFICIARY_ADDED_MIN_S = 30
+LEGIT_FIRST_BENEFICIARY_ADDED_MAX_S = 45 * 24 * 60 * 60
+LEGIT_EXISTING_BENEFICIARY_MIN_AGE_S = 7 * 24 * 60 * 60
+LEGIT_EXISTING_BENEFICIARY_MAX_AGE_S = 2 * 365 * 24 * 60 * 60

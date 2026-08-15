@@ -1,4 +1,4 @@
-.PHONY: install test lint
+.PHONY: install test lint data graph
 
 install:
 	uv sync
@@ -9,6 +9,14 @@ test:
 lint:
 	uv run ruff check src tests
 
-# `make data SEED=42` arrives with the legitimate transaction generator
-# (Phase 1, step 3). Not wired up yet -- schema and population generators
-# come first.
+SEED ?= 42
+OUTPUT_DIR ?= data/generated/stage1
+STAGE2_OUTPUT_DIR ?= data/generated/stage2
+N_CONSUMERS ?=
+N_MERCHANTS ?=
+
+data:
+	uv run python -m src.generators.dataset --seed $(SEED) --output-dir $(OUTPUT_DIR) $(if $(N_CONSUMERS),--n-consumers $(N_CONSUMERS),) $(if $(N_MERCHANTS),--n-merchants $(N_MERCHANTS),)
+
+graph:
+	uv run python -m src.dataset.stage2 --input-dir $(OUTPUT_DIR) --output-dir $(STAGE2_OUTPUT_DIR)

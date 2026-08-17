@@ -138,7 +138,13 @@ def _auth_fields(
     rng: np.random.Generator, rail: Rail, decision: Decision
 ) -> tuple[AuthMethod, AuthResult, int | None, str | None, bool | None, ExemptionClaimed | None]:
     if rail == Rail.CARD_CNP:
-        method = AuthMethod.THREE_DS_FRICTIONLESS if rng.random() < 0.65 else AuthMethod.THREE_DS_CHALLENGE_OTP
+        r = rng.random()
+        if r < 0.05:
+            method = AuthMethod.CVV_ONLY
+        elif r < 0.65:
+            method = AuthMethod.THREE_DS_FRICTIONLESS
+        else:
+            method = AuthMethod.THREE_DS_CHALLENGE_OTP
         eci = "05" if method != AuthMethod.CVV_ONLY else "07"
         liability_shift = method != AuthMethod.CVV_ONLY
         exemption = ExemptionClaimed.TRA if method == AuthMethod.THREE_DS_FRICTIONLESS else ExemptionClaimed.NONE
@@ -153,7 +159,10 @@ def _auth_fields(
         liability_shift = None
         exemption = None
     else:
-        method = AuthMethod.UPI_PIN
+        if rail == Rail.UPI_P2M and rng.random() < 0.02:
+            method = AuthMethod.MANDATE_NO_AFA
+        else:
+            method = AuthMethod.UPI_PIN
         eci = None
         liability_shift = None
         exemption = None
@@ -173,14 +182,17 @@ def _auth_fields(
 
 
 def _session_fields(
-    rng: np.random.Generator, amount: Decimal, first_time: bool
+    rng: np.random.Generator, amount: Decimal, first_time: bool, auth_method: AuthMethod
 ) -> tuple[int, float, int, bool, bool, bool, bool]:
     base = 24 + float(np.log1p(float(amount))) * 4
     if first_time:
         base += float(rng.uniform(8, 35))
     duration = int(max(5, rng.normal(base, 18)))
     confirm = float(max(0.4, rng.lognormal(mean=0.75 + (0.35 if first_time else 0.0), sigma=0.55)))
-    pin_attempts = 1 + int(rng.random() < 0.035) + int(rng.random() < 0.004)
+    if auth_method in {AuthMethod.NONE, AuthMethod.THREE_DS_FRICTIONLESS, AuthMethod.THREE_DS_CHALLENGE_OTP, AuthMethod.CVV_ONLY}:
+        pin_attempts = 0
+    else:
+        pin_attempts = 1 + int(rng.random() < 0.035) + int(rng.random() < 0.004)
     screen_share = bool(rng.random() < 0.0015)
     call_active = bool(rng.random() < 0.018)
     accessibility = bool(rng.random() < 0.006)
@@ -292,7 +304,7 @@ def generate_legitimate_transactions(seed: int, population: PopulationBundle) ->
             if decision == Decision.DECLINED:
                 decline_reason = "auth_failed" if auth_result == AuthResult.FAILURE else "issuer_decline"
             session_duration, confirm_time, pin_attempts, screen_share, call_active, accessibility, paste = (
-                _session_fields(txn_rng, amount, first_time)
+                _session_fields(txn_rng, amount, first_time, auth_method)
             )
             score = _issuer_score(txn_rng, known_device, first_time, amount, decision)
 

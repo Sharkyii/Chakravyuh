@@ -62,6 +62,8 @@ def build_stage2_dataset(
 ) -> Stage2ValidationReport:
     """Read Stage 1 data, derive graph_edges, write and validate Stage 2 output."""
     source = load_dataset(input_dir)
+    from src.dataset.loader import clear_dataset_cache
+    clear_dataset_cache(output_dir)
     graph_edges = build_graph_edges(source.transactions, GraphBuildConfig())
 
     if clean and output_dir.exists():

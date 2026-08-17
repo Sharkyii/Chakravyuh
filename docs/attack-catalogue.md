@@ -16,6 +16,41 @@
 
 ---
 
+## Stage 3 attack framework (live in code)
+
+The repo now includes a reusable Stage 3 attack layer built around a common interface:
+
+- `AttackGenerator` defines the common contract each attack family must implement.
+- `AttackSpec` captures seed, intensity, config and temporal scope.
+- `AttackCampaign` records deterministic campaign metadata (`campaign_id`, `attack_id`, affected entities, times and size).
+- The generator returns canonical attack rows and label rows, not direct Parquet writes.
+- A separate output/write step merges the attack rows into a new scenario dataset without mutating the baseline Stage 1/Stage 2 files.
+
+This keeps the attack logic decoupled from dataset persistence and makes future families conform to the same pattern.
+
+### Campaign and intensity model
+
+Every attack supports a deterministic campaign identifier and at least three conceptual intensities:
+
+- `LOW`: narrower entity scope, fewer events, more isolated behaviour.
+- `MEDIUM`: balanced mix of entity spread and temporal concentration.
+- `HIGH`: wider affected population, more concentrated timing and higher attack persistence.
+
+Intensity changes campaign behaviour rather than simply scaling amounts. For example, scam-induced pushes adjust link deception and active session signals; mule networks widen fan-in/fan-out and pass-through structure; card-testing probes increase attempt bursts and decline rates; adversarial evasion keeps signals near the legitimate distribution while tightening the campaign-level coordination.
+
+### Labels and safety boundary
+
+Attack rows are injected into the existing legitimate payment world instead of creating a parallel fake universe. Fraud labels remain separate from transaction features and are written only to the labels table. The label contract is:
+
+- `is_fraud = true`
+- `attack_id = expected generator id`
+- `campaign_id = deterministic campaign id`
+- `pretext` set when appropriate
+- `is_legit_lookalike = false`
+- `detectable_at` populated with a valid schema enum value
+
+This stage remains synthetic and controlled: it does not create phishing infrastructure, malware, deepfakes, real third-party attacks, or operational tooling. It only generates fictional payment events in the same canonical schema as legitimate traffic.
+
 ## Generator merge map — 58 entries → 13 generators
 
 **This is the section Phase 2 reads.** Catalogue rows are for the deck; generators are for the code. Two attacks producing the same data signature are one generator.

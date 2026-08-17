@@ -6,3 +6,16 @@ __pycache__/
 uv.lock.tmp
 
 data/generated/
+
+# Sensitive environment variables
+.env
+
+# Temporary files and scripts
+out.txt
+test_runner.py
+run_tests.py
+scratch_tmp/
+
+# Model pickle artifacts (exceed GitHub size limit)
+stage5/models/*.pkl
+

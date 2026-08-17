@@ -1,0 +1,32 @@
+{
+  "attack_to_idx": {
+    "adversarial_evasion": 0,
+    "agentic_injection": 1,
+    "card_testing_probe": 2,
+    "credential_takeover": 3,
+    "first_party_dispute": 4,
+    "insider_abuse": 5,
+    "mule_network": 6,
+    "scam_induced_push": 7,
+    "stealth_mandate": 8,
+    "subthreshold_fragmentation": 9,
+    "synthetic_identity_bustout": 10,
+    "synthetic_merchant": 11,
+    "transaction_laundering": 12
+  },
+  "idx_to_attack": {
+    "0": "adversarial_evasion",
+    "1": "agentic_injection",
+    "2": "card_testing_probe",
+    "3": "credential_takeover",
+    "4": "first_party_dispute",
+    "5": "insider_abuse",
+    "6": "mule_network",
+    "7": "scam_induced_push",
+    "8": "stealth_mandate",
+    "9": "subthreshold_fragmentation",
+    "10": "synthetic_identity_bustout",
+    "11": "synthetic_merchant",
+    "12": "transaction_laundering"
+  }
+}

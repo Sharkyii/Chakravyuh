@@ -65,6 +65,9 @@ def write_legitimate_dataset(
     clean: bool = True,
 ) -> None:
     """Write Stage 1 tables, manifest and validation report to Parquet/JSON."""
+    from src.dataset.loader import clear_dataset_cache
+    clear_dataset_cache(output_dir)
+
     if clean and output_dir.exists():
         shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)

@@ -7,6 +7,10 @@ dependencies = [
     "numpy==2.1.3",
     "pyarrow==17.0.0",
     "tzdata==2025.2",
+    "pandas==2.2.3",
+    "scikit-learn==1.5.2",
+    "xgboost==2.1.2",
+    "joblib==1.4.2",
 ]
 
 [tool.uv]
@@ -20,6 +24,7 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 markers = ["slow: exercises a generator at full production scale"]
 
 [tool.ruff]

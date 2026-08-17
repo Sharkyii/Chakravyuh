@@ -1,0 +1,435 @@
+import os
+import sys
+import json
+import joblib
+import urllib.request
+import urllib.error
+from pathlib import Path
+import numpy as np
+import pandas as pd
+
+# Setup project root
+project_root = Path(__file__).resolve().parent.parent.parent
+if str(project_root) not in sys.path:
+    sys.path.append(str(project_root))
+
+from stage5.config.settings import MODELS_DIR, ALL_FEATURES
+
+# Helper to load environmental variables manually (pattern from attacks framework)
+def load_env_file() -> None:
+    """Helper to parse a local .env file manually into os.environ."""
+    p = Path(".").resolve()
+    for parent in [p] + list(p.parents):
+        env_path = parent / ".env"
+        if env_path.exists():
+            try:
+                for line in env_path.read_text(encoding="utf-8").splitlines():
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        key, val = line.split("=", 1)
+                        key = key.strip()
+                        val = val.strip()
+                        if len(val) >= 2 and val[0] == val[-1] and val[0] in ('"', "'"):
+                            val = val[1:-1]
+                        if "pytest" in sys.modules and key.lower() == "google_gemini_api_key" and key not in os.environ:
+                            continue
+                        if key.lower() == "google_gemini_api_key" and key not in os.environ:
+                            os.environ[key] = val
+                            os.environ[key.upper()] = val
+                        elif key not in os.environ:
+                            os.environ[key] = val
+                break
+            except Exception:
+                pass
+
+# Global cache for artifacts
+_artifacts = {}
+
+def load_artifacts():
+    """Loads and caches models, preprocessors, and mappings from stage5/models/."""
+    global _artifacts
+    if not _artifacts:
+        preprocessor_path = MODELS_DIR / "preprocessor.pkl"
+        fraud_model_path = MODELS_DIR / "fraud_model.pkl"
+        attack_classifier_path = MODELS_DIR / "attack_classifier.pkl"
+        mapping_path = MODELS_DIR / "attack_class_mapping.json"
+        
+        if not (preprocessor_path.exists() and fraud_model_path.exists() and attack_classifier_path.exists() and mapping_path.exists()):
+            raise FileNotFoundError("One or more Stage 5 model artifacts are missing in stage5/models/.")
+            
+        preprocessor = joblib.load(preprocessor_path)
+        fraud_model = joblib.load(fraud_model_path)
+        attack_classifier = joblib.load(attack_classifier_path)
+        
+        with open(mapping_path, "r", encoding="utf-8") as f:
+            mapping = json.load(f)
+            
+        idx_to_attack = {int(k): v for k, v in mapping["idx_to_attack"].items()}
+        attack_to_idx = {k: int(v) for k, v in mapping["attack_to_idx"].items()}
+        
+        _artifacts = {
+            "preprocessor": preprocessor,
+            "fraud_model": fraud_model,
+            "attack_classifier": attack_classifier,
+            "idx_to_attack": idx_to_attack,
+            "attack_to_idx": attack_to_idx,
+        }
+    return _artifacts
+
+def prepare_transaction_df(transaction: dict) -> pd.DataFrame:
+    """Prepares a single-row DataFrame matching the 75 features expected by the preprocessor."""
+    row_dict = {}
+    for col in ALL_FEATURES:
+        if col in transaction:
+            row_dict[col] = transaction[col]
+        else:
+            # Handle defaults so SimpleImputer can work
+            # Boolean features
+            if col in [
+                "device_is_known_for_payer", "beneficiary_first_time", "screen_share_active",
+                "call_active_during_txn", "accessibility_service_active", "paste_used_in_amount",
+                "is_agent_initiated", "ip_is_proxy", "geo_matches_billing", "geo_matches_payer_home"
+            ]:
+                row_dict[col] = False
+            else:
+                # Use np.nan for numerical and categorical so SimpleImputer imputes them correctly
+                row_dict[col] = np.nan
+                
+    return pd.DataFrame([row_dict], columns=ALL_FEATURES)
+
+def get_fallback_llm_analysis(transaction: dict, risk_assessment: dict, error_msg: str = "") -> dict:
+    """Generates a structured template analyst summary when the LLM API is unavailable."""
+    fraud_prob = risk_assessment["fraud_probability"]
+    risk_score = risk_assessment["risk_score"]
+    risk_level = risk_assessment["risk_level"]
+    top_attack = risk_assessment["top_attack_family"]
+    top_prob = risk_assessment["top_attack_probability"]
+    signals = risk_assessment["contributing_signals"]
+    
+    explanation = (
+        f"The transaction was assessed with a fraud probability of {fraud_prob*100:.1f}%, "
+        f"resulting in a combined risk score of {risk_score:.1f}/100 and a risk level of {risk_level}."
+    )
+    if risk_level in ["HIGH", "CRITICAL"]:
+        explanation += " The transaction triggers multiple anomaly thresholds and should be blocked."
+    elif risk_level == "MEDIUM":
+        explanation += " The transaction shows moderate risk indicators and requires review."
+    else:
+        explanation += " No significant risk was identified."
+        
+    interpretation = (
+        f"The attack classifier predicted '{top_attack}' with a confidence of {top_prob*100:.1f}%. "
+        f"This classification represents the closest matches among known fraud campaign patterns."
+    )
+    
+    key_evidence = list(signals) if signals else ["Model prediction score"]
+    
+    investigation_steps = [
+        "Review payer transaction history for velocity spikes.",
+        "Verify if the device and IP location match the billing address.",
+        "Check graph path to see if payee is associated with known mule accounts."
+    ]
+    
+    caveat = "LLM API is currently unavailable. Using pre-computed rule-based template for analyst notes."
+    if error_msg:
+        caveat += f" (Reason: {error_msg})"
+        
+    return {
+        "fraud_explanation": explanation,
+        "attack_family_interpretation": interpretation,
+        "key_evidence": key_evidence,
+        "investigation_steps": investigation_steps,
+        "uncertainty_caveats": caveat
+    }
+
+def call_gemini_api(prompt: str, api_key: str) -> dict:
+    """Makes a structured JSON request to the Gemini API."""
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={api_key}"
+    
+    response_schema = {
+        "type": "OBJECT",
+        "properties": {
+            "fraud_explanation": {"type": "STRING"},
+            "attack_family_interpretation": {"type": "STRING"},
+            "key_evidence": {
+                "type": "ARRAY",
+                "items": {"type": "STRING"}
+            },
+            "investigation_steps": {
+                "type": "ARRAY",
+                "items": {"type": "STRING"}
+            },
+            "uncertainty_caveats": {"type": "STRING"}
+        },
+        "required": [
+            "fraud_explanation",
+            "attack_family_interpretation",
+            "key_evidence",
+            "investigation_steps",
+            "uncertainty_caveats"
+        ]
+    }
+    
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "responseSchema": response_schema,
+            "temperature": 0.5,
+        }
+    }
+    
+    data_bytes = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=data_bytes,
+        headers={"Content-Type": "application/json"},
+        method="POST"
+    )
+    
+    with urllib.request.urlopen(req, timeout=12) as response:
+        resp_json = json.loads(response.read().decode("utf-8"))
+        text_content = resp_json["candidates"][0]["content"]["parts"][0]["text"]
+        return json.loads(text_content)
+
+def analyze_transaction(transaction: dict) -> dict:
+    """Runs a transaction through the Stage 6 risk fusion & analyst pipeline."""
+    # 1. Load pre-trained models
+    artifacts = load_artifacts()
+    preprocessor = artifacts["preprocessor"]
+    fraud_model = artifacts["fraud_model"]
+    attack_classifier = artifacts["attack_classifier"]
+    idx_to_attack = artifacts["idx_to_attack"]
+    
+    # 2. Build feature DataFrame and preprocess
+    df = prepare_transaction_df(transaction)
+    X_proc = preprocessor.transform(df)
+    
+    # 3. Model Predictions
+    fraud_probs = fraud_model.predict_proba(X_proc)[0]
+    fraud_probability = float(fraud_probs[1])
+    
+    attack_probs = attack_classifier.predict_proba(X_proc)[0]
+    attack_probabilities = {}
+    for idx, prob in enumerate(attack_probs):
+        atk_name = idx_to_attack[idx]
+        attack_probabilities[atk_name] = float(prob)
+        
+    best_idx = int(np.argmax(attack_probs))
+    top_attack_family = idx_to_attack[best_idx]
+    top_attack_probability = float(attack_probs[best_idx])
+    
+    # 4. Risk Fusion Engine
+    base_score = fraud_probability * 100.0
+    
+    # Attack expected severity weighting
+    attack_severity_map = {
+        "adversarial_evasion": 0.80,
+        "agentic_injection": 0.85,
+        "card_testing_probe": 0.60,
+        "credential_takeover": 0.95,
+        "first_party_dispute": 0.40,
+        "insider_abuse": 0.85,
+        "mule_network": 1.00,
+        "scam_induced_push": 0.90,
+        "stealth_mandate": 0.70,
+        "subthreshold_fragmentation": 0.75,
+        "synthetic_identity_bustout": 1.00,
+        "synthetic_merchant": 0.85,
+        "transaction_laundering": 0.85,
+    }
+    
+    expected_severity = sum(prob * attack_severity_map.get(name, 0.5) for name, prob in attack_probabilities.items())
+    
+    # Find contributing risk signals and compute a normalized behavioral/graph anomaly index
+    contributing_signals = []
+    device_risk_flag = 0.0
+    ben_added_flag = 0.0
+    edge_count_flag = 0.0
+    dev_flag = 0.0
+    pin_flag = 0.0
+    proxy_flag = 0.0
+    context_flag = 0.0
+    
+    # Screen sharing / Active calls / Accessibility
+    screen_share = bool(transaction.get("screen_share_active", False))
+    call_active = bool(transaction.get("call_active_during_txn", False))
+    accessibility = bool(transaction.get("accessibility_service_active", False))
+    if screen_share or call_active or accessibility:
+        device_risk_flag = 1.0
+        flags = []
+        if screen_share: flags.append("screen sharing")
+        if call_active: flags.append("active call")
+        if accessibility: flags.append("accessibility service")
+        contributing_signals.append(f"Risky device flags active: {', '.join(flags)}")
+        
+    # Beneficiary age
+    ben_age = transaction.get("beneficiary_added_ago_s")
+    if ben_age is not None and pd.notna(ben_age):
+        ben_age = float(ben_age)
+        if ben_age < 300:
+            ben_added_flag = 1.0
+            contributing_signals.append(f"Beneficiary added very recently ({ben_age:.1f}s ago)")
+        elif ben_age < 3600:
+            ben_added_flag = 0.5
+            contributing_signals.append(f"Beneficiary added recently ({ben_age/60:.1f} minutes ago)")
+            
+    # Graph counts
+    edge_count = transaction.get("edge_count")
+    if edge_count is not None and pd.notna(edge_count):
+        edge_count = float(edge_count)
+        if edge_count > 30:
+            edge_count_flag = 1.0
+            contributing_signals.append(f"Highly elevated graph edge count ({edge_count})")
+        elif edge_count > 10:
+            edge_count_flag = 0.5
+            contributing_signals.append(f"Moderately elevated graph edge count ({edge_count})")
+            
+    # Deviation from historical average
+    amt_dev = transaction.get("amount_deviation")
+    hist_avg = transaction.get("historical_average_amount")
+    if amt_dev is not None and pd.notna(amt_dev) and hist_avg is not None and pd.notna(hist_avg) and float(hist_avg) > 0:
+        ratio = float(amt_dev) / float(hist_avg)
+        if ratio > 4.0:
+            dev_flag = 1.0
+            contributing_signals.append(f"Significant transaction amount deviation ({ratio:.1f}x historical average)")
+        elif ratio > 2.0:
+            dev_flag = 0.5
+            contributing_signals.append(f"Moderate transaction amount deviation ({ratio:.1f}x historical average)")
+            
+    # PIN attempts
+    pin_attempts = transaction.get("pin_attempts")
+    if pin_attempts is not None and pd.notna(pin_attempts):
+        pin_attempts = int(pin_attempts)
+        if pin_attempts > 2:
+            pin_flag = 1.0
+            contributing_signals.append(f"Multiple failed PIN attempts ({pin_attempts})")
+        elif pin_attempts > 1:
+            pin_flag = 0.5
+            contributing_signals.append(f"Elevated PIN attempts ({pin_attempts})")
+            
+    # IP is proxy
+    if bool(transaction.get("ip_is_proxy", False)):
+        proxy_flag = 1.0
+        contributing_signals.append("Transaction routed through a proxy IP")
+        
+    # New device or new IP
+    new_device = bool(transaction.get("new_device_indicator", False))
+    new_ip = bool(transaction.get("new_ip_indicator", False))
+    if new_device or new_ip:
+        context_flag = 0.5
+        contexts = []
+        if new_device: contexts.append("new device")
+        if new_ip: contexts.append("new IP")
+        contributing_signals.append(f"Transaction from new context: {', '.join(contexts)}")
+        
+    # Anomaly Index calculation
+    anomaly_flags = [device_risk_flag, ben_added_flag, edge_count_flag, dev_flag, pin_flag, proxy_flag, context_flag]
+    behavioral_anomaly_score = sum(anomaly_flags) / len(anomaly_flags) if anomaly_flags else 0.0
+    
+    # Mathematical fusion formula: base score + scaled model-specific severity and anomaly index adjustments
+    attack_adjustment = (expected_severity * 10.0) * fraud_probability
+    behavioral_adjustment = (behavioral_anomaly_score * 15.0) * fraud_probability
+    
+    risk_score_raw = base_score + attack_adjustment + behavioral_adjustment
+    risk_score = min(100.0, max(0.0, risk_score_raw))
+    
+    # Map to outputs
+    if risk_score >= 80.0:
+        risk_level = "CRITICAL"
+        action = "BLOCK"
+    elif risk_score >= 60.0:
+        risk_level = "HIGH"
+        action = "BLOCK"
+    elif risk_score >= 30.0:
+        risk_level = "MEDIUM"
+        action = "REVIEW"
+    else:
+        risk_level = "LOW"
+        action = "ALLOW"
+        
+    # Model confidence & uncertainty (derived from probability margins)
+    fraud_uncertainty = 1.0 - abs(fraud_probability - 0.5) * 2.0
+    fraud_confidence = 1.0 - fraud_uncertainty
+    
+    if fraud_probability >= 0.5:
+        overall_confidence = fraud_confidence * 0.7 + top_attack_probability * 0.3
+    else:
+        overall_confidence = fraud_confidence
+        
+    overall_uncertainty = 1.0 - overall_confidence
+    
+    risk_assessment = {
+        "risk_score": float(risk_score),
+        "risk_level": risk_level,
+        "action": action,
+        "recommended_action": action,
+        "fraud_probability": float(fraud_probability),
+        "attack_probabilities": attack_probabilities,
+        "top_attack_family": top_attack_family,
+        "top_attack_probability": float(top_attack_probability),
+        "contributing_signals": contributing_signals,
+        "model_confidence": float(overall_confidence),
+        "model_uncertainty": float(overall_uncertainty),
+    }
+    
+    # 5. LLM Analyst Intelligence Layer
+    load_env_file()
+    api_key = os.environ.get("google_gemini_api_key") or os.environ.get("GOOGLE_GEMINI_API_KEY")
+    
+    llm_analysis = None
+    if api_key:
+        # Build prompt
+        context_lines = [
+            f"Transaction ID: {transaction.get('txn_id', 'unknown')}",
+            f"Amount: {transaction.get('amount', 'unknown')} {transaction.get('currency', 'INR')}",
+            f"Payer ID: {transaction.get('payer_id', 'unknown')}",
+            f"Payee ID: {transaction.get('payee_id', 'unknown')}",
+            f"Rail: {transaction.get('rail', 'unknown')}",
+            f"Channel: {transaction.get('channel', 'unknown')}",
+            f"Auth Method: {transaction.get('auth_method', 'unknown')}",
+            f"MCC: {transaction.get('mcc', 'unknown')}",
+        ]
+        
+        evidence_lines = [
+            f"Fraud Probability: {fraud_probability*100:.2f}%",
+            f"Predicted Attack Family: {top_attack_family} (Classifier Confidence: {top_attack_probability*100:.2f}%)",
+            f"Calculated Risk Score: {risk_score:.1f}/100",
+            f"Recommended Action: {action}",
+            f"Risk Level: {risk_level}",
+            "Active Risk Signals:",
+        ]
+        for signal in contributing_signals:
+            evidence_lines.append(f"  - {signal}")
+        if not contributing_signals:
+            evidence_lines.append("  - None")
+            
+        prompt = (
+            "You are Chakravyuh GenAI Analyst, a specialized AI assistant for Mastercard instant payment fraud detection.\n"
+            "Analyze the following transaction context and ML-derived evidence to generate a structured risk explanation. "
+            "Do NOT invent any facts or override the model's predictions. Your goal is to interpret the model's findings "
+            "for a human analyst.\n\n"
+            "### TRANSACTION CONTEXT\n"
+            + "\n".join(context_lines) + "\n\n"
+            "### MACHINE LEARNING EVIDENCE\n"
+            + "\n".join(evidence_lines) + "\n\n"
+            "Please output a JSON object containing the following keys:\n"
+            "1. 'fraud_explanation': a concise paragraph explaining why this transaction was flagged (or cleared), summarizing the risk.\n"
+            "2. 'attack_family_interpretation': a detailed interpretation of the predicted attack family (e.g. how the signals align with that type of fraud).\n"
+            "3. 'key_evidence': a list of the 2-4 most critical data points supporting this assessment.\n"
+            "4. 'investigation_steps': a list of 3-4 actionable next steps for a human fraud analyst to verify this incident.\n"
+            "5. 'uncertainty_caveats': any limitations, model confidence warnings, or potential false-positive/negative scenarios.\n\n"
+            "Ensure the output is valid JSON matching the schema and contains no markdown block wrapper."
+        )
+        
+        try:
+            llm_analysis = call_gemini_api(prompt, api_key)
+        except Exception as e:
+            # Graceful fallback on API error/timeout
+            llm_analysis = get_fallback_llm_analysis(transaction, risk_assessment, str(e))
+    else:
+        # Fallback when API key is missing
+        llm_analysis = get_fallback_llm_analysis(transaction, risk_assessment, "API key not configured in environment")
+        
+    risk_assessment["llm_analysis"] = llm_analysis
+    return risk_assessment

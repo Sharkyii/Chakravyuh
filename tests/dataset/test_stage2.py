@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import copy
 from dataclasses import asdict
 from datetime import datetime, timedelta
 from decimal import Decimal
-from pathlib import Path
 
 import pyarrow as pa
+import pytest
 
 from src.dataset.leakage import run_leakage_checks
 from src.dataset.loader import EXPECTED_TABLES, PaymentDataset, load_dataset
@@ -28,13 +29,20 @@ def _txn(txn_id: str, ts: datetime, payer: str, payee: str, amount: str) -> dict
     }
 
 
-def _small_stage2(tmp_path: Path) -> PaymentDataset:
+@pytest.fixture(scope="session")
+def _small_stage2_session(tmp_path_factory) -> PaymentDataset:
+    tmp_path = tmp_path_factory.mktemp("small_stage2_data")
     stage1 = tmp_path / "stage1"
     stage2 = tmp_path / "stage2"
     generate_stage1_dataset(seed=42, output_dir=stage1, n_consumers=80, n_merchants=12)
     report = build_stage2_dataset(input_dir=stage1, output_dir=stage2)
     assert report.ok
     return load_dataset(stage2)
+
+
+@pytest.fixture
+def small_stage2(_small_stage2_session) -> PaymentDataset:
+    return copy.deepcopy(_small_stage2_session)
 
 
 def test_graph_construction_generates_schema_valid_edges():
@@ -90,8 +98,8 @@ def test_temporal_split_ordering_and_no_overlap():
     assert not (splits.transaction_ids["train"] & splits.transaction_ids["validation"])
 
 
-def test_stage2_loader_loads_all_expected_tables(tmp_path: Path):
-    dataset = _small_stage2(tmp_path)
+def test_stage2_loader_loads_all_expected_tables(small_stage2: PaymentDataset):
+    dataset = small_stage2
     assert set(dataset.tables) == set(EXPECTED_TABLES)
     metadata = dataset.metadata()
     assert metadata.row_counts["transactions"] > 0
@@ -99,8 +107,8 @@ def test_stage2_loader_loads_all_expected_tables(tmp_path: Path):
     assert metadata.dataset_version == "stage2-graph-harness-v1"
 
 
-def test_label_integrity_and_valid_stage2_validation(tmp_path: Path):
-    dataset = _small_stage2(tmp_path)
+def test_label_integrity_and_valid_stage2_validation(small_stage2: PaymentDataset):
+    dataset = small_stage2
     report = validate_stage2_dataset(dataset)
     assert report.ok
     assert report.summary["label_distribution"]["is_fraud_true"] == 0
@@ -108,24 +116,24 @@ def test_label_integrity_and_valid_stage2_validation(tmp_path: Path):
     assert report.summary["leakage_checks"]["ok"] is True
 
 
-def test_leakage_checks_detect_label_feature_column(tmp_path: Path):
-    dataset = _small_stage2(tmp_path)
+def test_leakage_checks_detect_label_feature_column(small_stage2: PaymentDataset):
+    dataset = small_stage2
     dataset.transactions[0]["is_fraud"] = False
     report = run_leakage_checks(dataset)
     assert not report.ok
     assert any("label-only fields" in error for error in report.errors)
 
 
-def test_leakage_checks_detect_duplicate_labels(tmp_path: Path):
-    dataset = _small_stage2(tmp_path)
+def test_leakage_checks_detect_duplicate_labels(small_stage2: PaymentDataset):
+    dataset = small_stage2
     dataset.labels.append(dict(dataset.labels[0]))
     report = run_leakage_checks(dataset)
     assert not report.ok
     assert any("duplicate labels" in error for error in report.errors)
 
 
-def test_validation_fails_for_corrupted_device_reference(tmp_path: Path):
-    dataset = _small_stage2(tmp_path)
+def test_validation_fails_for_corrupted_device_reference(small_stage2: PaymentDataset):
+    dataset = small_stage2
     dataset.transactions[0]["device_id"] = "missing-device"
     report = validate_stage2_dataset(dataset)
     assert not report.ok

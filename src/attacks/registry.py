@@ -33,6 +33,7 @@ from src.attacks.generators import (
     SyntheticIdentityBustoutAttack,
     SyntheticMerchantAttack,
     TransactionLaunderingAttack,
+    make_legit_lookalike_rows,
 )
 from src.dataset.loader import EXPECTED_TABLES, PaymentDataset, load_dataset
 from src.graph.builder import GraphBuildConfig, build_graph_edges
@@ -124,8 +125,15 @@ def write_attack_dataset(
         shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    combined_transactions = baseline.transactions + result.transactions
-    combined_labels = baseline.labels + result.labels
+    # legit_lookalike rows are additive to the *written* dataset only -- they
+    # are not part of result.transactions/result.labels, which stay pure
+    # attack-only (one campaign, is_fraud=True) for callers that inspect the
+    # AttackDataset return value directly.
+    lookalike_txs, lookalike_labels = make_legit_lookalike_rows(
+        attack_rows=result.transactions, attack_labels=result.labels, seed=result.campaign.seed
+    )
+    combined_transactions = baseline.transactions + result.transactions + lookalike_txs
+    combined_labels = baseline.labels + result.labels + lookalike_labels
     final_graph = build_graph_edges(combined_transactions, GraphBuildConfig())
 
     for table_name in EXPECTED_TABLES:

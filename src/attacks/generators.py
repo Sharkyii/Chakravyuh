@@ -82,7 +82,16 @@ def _random_start_ts(baseline: PaymentDataset, rng: np.random.Generator) -> date
     return valid_ts[int(rng.integers(0, len(valid_ts)))]
 
 
-def _make_legit_lookalike_rows(*, attack_rows: list[dict[str, Any]], attack_labels: list[dict[str, Any]], seed: int) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def make_legit_lookalike_rows(*, attack_rows: list[dict[str, Any]], attack_labels: list[dict[str, Any]], seed: int) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Build the legit_lookalike companion population for one campaign's attack rows.
+
+    Previously defined but never called anywhere -- every generator was
+    silently emitting fraud-only output despite docs/attack-catalogue.md's
+    "a generator without a legit_lookalike population is incomplete" rule.
+    Callers: src.attacks.registry.write_attack_dataset (the make attack CLI
+    path) and stage5.training.generate_training_data (the detector training
+    path) -- both need to call this, not generator.generate() alone.
+    """
     lookalike_rows: list[dict[str, Any]] = []
     lookalike_labels: list[dict[str, Any]] = []
     if not attack_rows:

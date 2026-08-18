@@ -12,13 +12,20 @@ from src.generators.dataset import generate_stage1_dataset
 from src.dataset.stage2 import build_stage2_dataset
 from src.dataset.loader import load_dataset, EXPECTED_TABLES
 from src.attacks.registry import build_attack_generator
+from src.attacks.generators import make_legit_lookalike_rows
 from src.graph.builder import GraphBuildConfig, build_graph_edges
 from src.schema import TABLE_ARROW_SCHEMAS
 import pyarrow as pa
 import pyarrow.parquet as pq
 
 # Load config settings
-from stage5.config.settings import STAGE5_DATA_DIR, STAGE2_OUTPUT_DIR
+from stage5.config.settings import (
+    STAGE5_DATA_DIR,
+    STAGE2_OUTPUT_DIR,
+    STAGE5_N_CONSUMERS,
+    STAGE5_N_MERCHANTS,
+    ATTACK_EXPANSION_FACTOR,
+)
 
 ATTACK_SCENARIOS = [
     {"attack_id": "scam_induced_push", "seed": 101, "intensity": "MEDIUM"},
@@ -35,9 +42,10 @@ ATTACK_SCENARIOS = [
     {"attack_id": "agentic_injection", "seed": 112, "intensity": "MEDIUM"},
     {"attack_id": "insider_abuse", "seed": 113, "intensity": "MEDIUM"},
 ]
-# Expand each attack family to multiple distinct campaigns for richer fraud data.
-# We generate 5 campaigns per attack, varying the seed.
-EXPANSION_FACTOR = 100  # Ensure sufficient fraud samples per attack family
+# Expand each attack family to multiple distinct campaigns for richer fraud data,
+# varying the seed. Factor and baseline population size are both centralised in
+# stage5/config/settings.py -- see the comment there on why this isn't 100.
+EXPANSION_FACTOR = ATTACK_EXPANSION_FACTOR
 expanded_scenarios = []
 for base in ATTACK_SCENARIOS:
     for i in range(EXPANSION_FACTOR):
@@ -73,8 +81,14 @@ def main():
     
     print(f"Checking if baseline Stage 2 exists at {baseline_s2}...")
     if not baseline_s2.exists():
-        print("Generating Stage 1 baseline with n_consumers=3000...")
-        generate_stage1_dataset(seed=42, output_dir=baseline_s1, n_consumers=3000, n_merchants=150, clean=True)
+        print(f"Generating Stage 1 baseline with n_consumers={STAGE5_N_CONSUMERS}...")
+        generate_stage1_dataset(
+            seed=42,
+            output_dir=baseline_s1,
+            n_consumers=STAGE5_N_CONSUMERS,
+            n_merchants=STAGE5_N_MERCHANTS,
+            clean=True,
+        )
         print("Building Stage 2 baseline (generating graph edges)...")
         build_stage2_dataset(input_dir=baseline_s1, output_dir=baseline_s2, clean=True)
         print("Baseline generation complete!")
@@ -109,7 +123,18 @@ def main():
         # Standardize dataclasses/objects to dicts if needed
         txs_dicts = [_row_dict(t) for t in attack_txs]
         labels_dicts = [_row_dict(l) for l in attack_labels]
-        
+
+        # legit_lookalike companion population -- without this the classifier
+        # never has to separate fraud from its legitimate near-neighbour, and
+        # trivially inflates every metric (brief section 6: "the classifier
+        # separates two trivially different distributions... meaningless
+        # within thirty seconds").
+        lookalike_txs, lookalike_labels = make_legit_lookalike_rows(
+            attack_rows=txs_dicts, attack_labels=labels_dicts, seed=seed
+        )
+        txs_dicts = txs_dicts + lookalike_txs
+        labels_dicts = labels_dicts + lookalike_labels
+
         # Inject scenario_id if present/customized, otherwise we have campaign_id
         scenario_id = f"{attack_id}_seed{seed}"
         for t in txs_dicts:
@@ -126,15 +151,24 @@ def main():
             "intensity": intensity,
             "campaign_id": campaign.campaign_id,
             "scenario_id": scenario_id,
-            "n_transactions": len(attack_txs),
-            "n_labels": len(attack_labels),
+            "n_transactions": len(txs_dicts),
+            "n_labels": len(labels_dicts),
             "n_fraud": sum(1 for l in labels_dicts if l["is_fraud"]),
             "n_lookalike": sum(1 for l in labels_dicts if l.get("is_legit_lookalike", False))
         })
         
-    print(f"Total transactions after layering: {len(all_transactions)}")
+    n_fraud = sum(1 for l in all_labels if l.get("is_fraud"))
+    n_lookalike = sum(1 for l in all_labels if l.get("is_legit_lookalike"))
+    n_total = len(all_transactions)
+    print(f"Total transactions after layering: {n_total}")
     print(f"Total labels after layering: {len(all_labels)}")
-    
+    print(
+        f"Fraud prevalence: {n_fraud}/{n_total} ({100 * n_fraud / n_total:.2f}%) -- "
+        f"lookalike: {n_lookalike}/{n_total} ({100 * n_lookalike / n_total:.2f}%). "
+        "Check this against stage5/config/settings.py's reasoning comment; adjust "
+        "ATTACK_EXPANSION_FACTOR or STAGE5_N_CONSUMERS if it drifts far from ~1-5%."
+    )
+
     # 3. Create combined directory and write parquet tables
     if combined_dir.exists():
         shutil.rmtree(combined_dir)
@@ -160,9 +194,13 @@ def main():
     # Write manifest
     manifest = {
         "dataset_version": "stage5-combined-v1",
-        "n_transactions": len(all_transactions),
+        "n_transactions": n_total,
         "n_labels": len(all_labels),
         "n_graph_edges": len(final_graph_dicts),
+        "n_fraud": n_fraud,
+        "n_lookalike": n_lookalike,
+        "fraud_prevalence": n_fraud / n_total if n_total else 0.0,
+        "lookalike_prevalence": n_lookalike / n_total if n_total else 0.0,
         "scenarios": scenarios_summary,
         "baseline_dir": str(baseline_s2.as_posix()),
     }

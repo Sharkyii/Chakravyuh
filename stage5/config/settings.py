@@ -13,10 +13,49 @@ REPORTS_DIR = STAGE5_DIR / "reports"
 os.makedirs(MODELS_DIR, exist_ok=True)
 os.makedirs(REPORTS_DIR, exist_ok=True)
 
-# Splits
-TRAIN_RATIO = 0.70
-VAL_RATIO = 0.15
-TEST_RATIO = 0.15
+# Stage 5 training-data baseline scale. Deliberately smaller than the
+# calibration.py production defaults (220k/9k) to keep the full
+# generate->train loop fast to iterate on, but large enough that layering
+# attack campaigns on top doesn't push fraud+lookalike rows anywhere near
+# baseline volume -- at the previous 3,000/150 scale, 13 families x 100
+# campaigns each pushed fraud-adjacent rows into the same order of magnitude
+# as the legitimate baseline, which alone can make a classifier look
+# artificially good regardless of split methodology.
+STAGE5_N_CONSUMERS = 20_000
+STAGE5_N_MERCHANTS = 800
+
+# Campaigns generated per attack family. Two competing constraints: total
+# fraud+lookalike volume should stay a small minority of the dataset (not
+# swamp it the way EXPANSION_FACTOR=100 against a 3k-consumer baseline did),
+# but each of the 13 families -- especially the one held out entirely for
+# generalisation testing -- needs enough absolute fraud rows that a per-split
+# precision/recall estimate isn't noise. 40 campaigns/family against the 20k
+# consumer baseline lands fraud+lookalike prevalence under ~1%, still well
+# short of IEEE-CIS's ~3.5% enriched benchmark rate. Verify against the
+# printed prevalence in generate_training_data.py's output after any change.
+ATTACK_EXPANSION_FACTOR = 40
+
+# Splits -- temporal, matching docs/master-project-brief.md section 6 rule 2
+# ("split temporally, never randomly"). Windows are derived from
+# src.dataset.splits.split_windows() over the simulation calendar, not by
+# shuffling campaign/party ids.
+TRAIN_RATIO = 0.60
+VAL_RATIO = 0.20
+TEST_RATIO = 0.20
+
+# Held out entirely from train/validation regardless of timestamp, so test
+# performance on it measures generalisation to an unseen attack family
+# rather than memorisation -- brief section 7, risk mitigation table.
+# synthetic_identity_bustout chosen because its signature (credit-building
+# phase then a temporal utilisation spike) is structurally distinct from the
+# other 12 families, and it isn't one of the flagship illustrative examples
+# (scam_induced_push, mule_network) the walkthrough deck leans on.
+HELD_OUT_ATTACK_FAMILY = "synthetic_identity_bustout"
+
+# Headline evaluation operating points -- brief section 6 rule 3 and section 8:
+# "lead with precision at 0.1% and 1% FPR... ROC-AUC secondary only", because
+# UPI credits are final and a detector is a pre-auth control.
+FIXED_FPR_TARGETS = [0.001, 0.01]
 
 # Columns to drop to prevent target leakage
 LEAKAGE_COLUMNS = [

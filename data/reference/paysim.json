@@ -1,0 +1,74 @@
+{
+  "dataset": "PaySim",
+  "description": "Agent-based mobile-money simulator calibrated against one month of aggregated, anonymized real transaction logs from a mobile money service operating in an African country. Kaggle-hosted as \"Synthetic Financial Datasets For Fraud Detection\" (scaled to 1/4 of the original simulation size).",
+  "source": [
+    "Lopez-Rojas, E.A., Elmir, A., Axelsson, S. \"PaySim: A financial mobile money simulator for fraud detection.\" 28th European Modeling and Simulation Symposium (EMSS), Larnaca, Cyprus, 2016.",
+    "https://www.kaggle.com/datasets/ealaxi/paysim1 (dataset card, column descriptions, business-rule notes)"
+  ],
+  "retrieved": "2026-08-18",
+  "applicability_notes": [
+    "`type` (CASH_IN, CASH_OUT, DEBIT, PAYMENT, TRANSFER) is the closest thing to a merchant-category field; it is a transaction-type taxonomy, not an MCC, so it is used here only as a coarse categorical-cardinality reference (5 categories), not mapped onto our MCC codes.",
+    "`step` buckets transactions into simulated hours (1 step = 1 hour, 744 steps = 31x24h), so PaySim IS usable for a coarse hour-of-day proxy (step mod 24) even though it publishes no direct hour-of-day histogram -- treat any such histogram as a derived quantity, not a directly cited one.",
+    "No published network/graph-degree summary exists, even though `nameOrig`/`nameDest` exist per row (computing a real degree distribution would require the raw file, which is not downloaded here).",
+    "Fraud in this dataset is restricted by construction to TRANSFER and CASH_OUT types only -- a well-documented data-generating-process quirk, not something to expect in our generated data (our fraud rows are labelled independently)."
+  ],
+  "stats": {
+    "n_transactions": {
+      "value": 6362620,
+      "unit": "rows",
+      "confidence": "published",
+      "source": "Kaggle dataset card (ealaxi/paysim1)."
+    },
+    "n_steps": {
+      "value": 744,
+      "unit": "hourly steps (~31 days)",
+      "confidence": "published",
+      "source": "Kaggle dataset card; PaySim paper describes step as one simulated hour."
+    },
+    "fraud_count": {
+      "value": 8213,
+      "unit": "rows",
+      "confidence": "published",
+      "source": "Kaggle dataset card / widely repeated in EDA write-ups; 8,213 of 6,362,620 rows have isFraud=1 (~0.129%)."
+    },
+    "fraud_rate": {
+      "value": 0.00129,
+      "unit": "fraction",
+      "confidence": "derived",
+      "source": "Derived from the two published counts above (8213 / 6362620), not itself a directly quoted percentage."
+    },
+    "is_flagged_fraud_threshold": {
+      "value": 200000,
+      "unit": "currency units (simulator's own unit, not INR/USD-pegged)",
+      "confidence": "published",
+      "source": "PaySim paper and dataset card: isFlaggedFraud fires on any single transfer attempt exceeding 200,000, an illustrative hard-coded business rule, not a real-world regulatory limit."
+    },
+    "fraud_restricted_to_types": {
+      "value": ["TRANSFER", "CASH_OUT"],
+      "confidence": "published",
+      "source": "Dataset card and near-universally confirmed in public EDA of this dataset: PAYMENT/CASH_IN/DEBIT rows never have isFraud=1."
+    },
+    "type_distribution_approx": {
+      "value": {"CASH_OUT": 0.35, "PAYMENT": 0.34, "CASH_IN": 0.22, "TRANSFER": 0.08, "DEBIT": 0.01},
+      "unit": "fraction of rows",
+      "confidence": "reasoned_approximation",
+      "source": "Rounded from figures commonly reported across multiple independent public EDA notebooks of this exact dataset. The original paper/dataset card does not publish an exact type-mix table, so treat the precise percentages as approximate; the reliable part is the ordering (CASH_OUT and PAYMENT dominate and are roughly comparable in share, CASH_IN is a distant third, TRANSFER and DEBIT are minority types)."
+    },
+    "amount_shape": {
+      "value": "heavily right-skewed, multiple orders of magnitude range; amounts are simulated from clustered behavior fitted to the source mobile-money logs rather than a single parametric family",
+      "confidence": "reasoned_approximation",
+      "source": "PaySim paper section on amount generation (cluster-based sampling from real log statistics); exact parametric form not reproduced here."
+    }
+  },
+  "usable_for_validation_areas": [
+    "categorical_cardinality (transaction `type`, 5 categories -- coarse proxy, not MCC)",
+    "temporal_patterns (hour-of-day only, via step mod 24; no day-of-week signal since 744 steps do not align to a stated calendar week)",
+    "amount_distribution (overall shape only, scale-invariant comparison -- simulator's currency unit is not INR-pegged)"
+  ],
+  "not_usable_for": [
+    "amount_distribution_per_mcc (type is not an MCC)",
+    "transactions_per_party (nameOrig/nameDest exist per-row but per-party aggregate counts are not published, and we do not download the raw file)",
+    "inter_arrival_time (would require raw per-row timestamps)",
+    "graph_degree_distribution (no published network summary)"
+  ]
+}

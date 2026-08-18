@@ -21,11 +21,36 @@ it's the source of truth for "what's left," not the conversation history.
 | I11 | OPEN | high | deliverable | Closed-loop iteration doc (misses -> new attack variant -> improved detector) doesn't exist |
 | I12 | OPEN | high | deliverable | Web prototype -- mandatory submission artifact -- not started |
 | I13 | OPEN | high | deliverable | Walkthrough deck -- mandatory submission artifact -- not started |
-| I14 | OPEN | low | docs | `docs/attack-catalogue.md`'s "Outstanding before freeze" checklist is stale -- D3 is now resolved (UPI Lite, min-KYC PPI, mandate AFA verified against current NPCI/RBI sources, see `docs/research/d3-regulatory-limits.md`; one soft spot remains, the UPI P2M OC 185-B circular-number attribution, flagged in the catalogue's D3 fix-log row). Still outstanding on that checklist: evidence pass incomplete (D5), and the `legit_lookalike` checkbox should be re-checked against I6 (shallow-copy lookalikes) rather than marked simply done |
+| I14 | FIXED (pending commit) | low | docs | The catalogue's "Outstanding before freeze" checklist now reflects the D3 rail-limit verification, completed D5 evidence pass, remaining UPI P2M primary-circular retrieval, 14 missing expanded cards, and the structural lookalike gap (I6/I7). |
 | I15 | OPEN | medium | generators | Day-of-week histogram is perfectly flat (0.142-0.143 every day) -- `_timestamp()` in `src/generators/legitimate.py` draws uniformly across the 12-week window with an hour-of-day nudge only, no weekday effect. Contradicts the brief's own spec ("salary-day spikes, weekend patterns") and I8's committed reference stats. Found by I8's validation report. |
 | I16 | OPEN | medium | generators | Amount medians are statistically indistinguishable across MCCs (~265-268 INR for grocery, fuel, and hotels alike) -- `_amount_for_rail()` in `src/generators/legitimate.py` conditions amount only on `rail` and `income_type`, never on `mcc`. BankSim's reference data (data/reference/banksim.json) documents category-conditioned amount shape (everyday categories cheap, travel/hotel expensive) that this doesn't reproduce. Found by I8's validation report. |
 
 ## Detail
+
+## Next tasks
+
+Work in this order; each item should be independently tested and committed before moving on.
+
+1. **P0 — Resolve I6/I7:** replace shallow-copy lookalikes with independently plausible
+   counterparties and timing, and rework campaign routing for families whose stated threat model
+   requires ordinary graph/velocity behaviour. Re-run the held-out-family evaluation and record
+   the resulting precision/recall in `docs/model-choice.md`.
+2. **P0 — Build I12, the mandatory web prototype:** wire a demonstrable analyst flow to the
+   Stage 6 inference pipeline using only decision-time fields and a reproducible sample dataset.
+3. **P0 — Build I13, the mandatory walkthrough deck:** include the corrected D2 statistic,
+   the D3 sources, and confidence-tier labels from the evidence pass. Do not quote the UPI P2M
+   higher-limit figures until the primary circular is retrieved.
+4. **P1 — Close I11:** add a closed-loop iteration document showing a detector miss, the
+   corresponding new synthetic variant, retraining, and the measured improvement.
+5. **P1 — Close I9:** make the auxiliary attack classifier split temporally (and document its
+   generalisation protocol) rather than shuffling campaign IDs.
+6. **P1 — Close I15/I16:** calibrate weekday and MCC-conditioned amount distributions, then
+   extend the fidelity report/tests with the target tolerances.
+7. **P2 — Complete catalogue documentation:** retrieve the primary UPI P2M circular; audit
+   remaining catalogue statistics in phased source-backed research notes; append the 14
+   remaining expanded attack cards.
+8. **P2 — Close I10:** document the optional Gemini-backed scenario-generator modes, their
+   required credentials, data-handling constraints, and the deterministic default.
 
 ### I6 -- legit_lookalike rows are structurally shallow
 

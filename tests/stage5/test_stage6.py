@@ -1,21 +1,13 @@
 import os
-import sys
-import pytest
-import numpy as np
-import pandas as pd
-from pathlib import Path
 
-# Setup project root
-project_root = Path(__file__).resolve().parent.parent.parent
-if str(project_root) not in sys.path:
-    sys.path.append(str(project_root))
+import pandas as pd
 
 from stage5.config.settings import ALL_FEATURES
 from stage5.inference.pipeline import (
     analyze_transaction,
+    get_fallback_llm_analysis,
     load_artifacts,
     prepare_transaction_df,
-    get_fallback_llm_analysis
 )
 
 def test_saved_artifacts_load_correctly():
@@ -27,11 +19,8 @@ def test_saved_artifacts_load_correctly():
     assert "idx_to_attack" in artifacts
     assert "attack_to_idx" in artifacts
     
-    # Check that they are the expected types
-    from sklearn.pipeline import Pipeline
+    # Check that the preprocessor has the expected type.
     from sklearn.compose import ColumnTransformer
-    from xgboost import XGBClassifier
-    from sklearn.ensemble import RandomForestClassifier
     
     assert isinstance(artifacts["preprocessor"], ColumnTransformer)
     # The models might be XGBClassifier or RandomForestClassifier depending on best selection, but they must have predict_proba
@@ -57,12 +46,12 @@ def test_prepare_transaction_df():
     
     # Check values mapped
     assert df.loc[0, "amount"] == 5000.0
-    assert df.loc[0, "device_is_known_for_payer"] == True
+    assert df.loc[0, "device_is_known_for_payer"]
     assert df.loc[0, "edge_count"] == 12.0
     
     # Check filled defaults
     assert pd.isna(df.loc[0, "mcc"])
-    assert df.loc[0, "screen_share_active"] == False
+    assert not df.loc[0, "screen_share_active"]
 
 def test_risk_score_and_mapping():
     """Validates the risk score calculations, levels, and actions."""

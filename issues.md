@@ -65,9 +65,10 @@ should look normal.
 
 ## Agents
 
-2026-08-18: four agents dispatched -- I6/I7 (combined, in progress), I8 (done, merged as
-54615a7 -- surfaced I15/I16 as a byproduct), and two research agents (D3 regulatory-limit
-verification, evidence pass on high-confidence catalogue entries) that were killed by
-environment restarts before making any committed progress and will be re-dispatched.
-Check worktree branches (`git branch | grep worktree-agent`) for status before starting
-new work on the same files.
+2026-08-18: I8 done, merged as 54615a7 -- surfaced I15/I16 as a byproduct. I6/I7 in
+progress (worktree agent-a904152c83fccef4d) -- a training run mid-fix still showed
+PR-AUC 0.9999 / 100% held-out-family recall, not yet resolved as of last check.
+Two research agents (D3 regulatory-limit verification, evidence pass on high-confidence
+catalogue entries) re-dispatched after their first attempt was killed by an environment
+restart with zero committed progress. Check worktree branches
+(`git branch | grep worktree-agent`) for status before starting new work on the same files.

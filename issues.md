@@ -21,7 +21,7 @@ it's the source of truth for "what's left," not the conversation history.
 | I11 | OPEN | high | deliverable | Closed-loop iteration doc (misses -> new attack variant -> improved detector) doesn't exist |
 | I12 | OPEN | high | deliverable | Web prototype -- mandatory submission artifact -- not started |
 | I13 | OPEN | high | deliverable | Walkthrough deck -- mandatory submission artifact -- not started |
-| I14 | OPEN | low | docs | `docs/attack-catalogue.md`'s "Outstanding before freeze" checklist is stale (D3 `⚠VERIFY` entries unresolved, evidence pass incomplete, legit_lookalike checkbox now actually true as of I4) |
+| I14 | OPEN | low | docs | `docs/attack-catalogue.md`'s "Outstanding before freeze" checklist is stale -- D3 is now resolved (UPI Lite, min-KYC PPI, mandate AFA verified against current NPCI/RBI sources, see `docs/research/d3-regulatory-limits.md`; one soft spot remains, the UPI P2M OC 185-B circular-number attribution, flagged in the catalogue's D3 fix-log row). Still outstanding on that checklist: evidence pass incomplete (D5), and the `legit_lookalike` checkbox should be re-checked against I6 (shallow-copy lookalikes) rather than marked simply done |
 | I15 | OPEN | medium | generators | Day-of-week histogram is perfectly flat (0.142-0.143 every day) -- `_timestamp()` in `src/generators/legitimate.py` draws uniformly across the 12-week window with an hour-of-day nudge only, no weekday effect. Contradicts the brief's own spec ("salary-day spikes, weekend patterns") and I8's committed reference stats. Found by I8's validation report. |
 | I16 | OPEN | medium | generators | Amount medians are statistically indistinguishable across MCCs (~265-268 INR for grocery, fuel, and hotels alike) -- `_amount_for_rail()` in `src/generators/legitimate.py` conditions amount only on `rail` and `income_type`, never on `mcc`. BankSim's reference data (data/reference/banksim.json) documents category-conditioned amount shape (everyday categories cheap, travel/hotel expensive) that this doesn't reproduce. Found by I8's validation report. |
 
@@ -65,10 +65,17 @@ should look normal.
 
 ## Agents
 
-2026-08-18: I8 done, merged as 54615a7 -- surfaced I15/I16 as a byproduct. I6/I7 in
-progress (worktree agent-a904152c83fccef4d) -- a training run mid-fix still showed
-PR-AUC 0.9999 / 100% held-out-family recall, not yet resolved as of last check.
-Two research agents (D3 regulatory-limit verification, evidence pass on high-confidence
-catalogue entries) re-dispatched after their first attempt was killed by an environment
-restart with zero committed progress. Check worktree branches
-(`git branch | grep worktree-agent`) for status before starting new work on the same files.
+2026-08-18: I8 done, merged as 54615a7 -- surfaced I15/I16 as a byproduct. D3
+regulatory-limit verification done (worktree agent-a28c882b200fc9449, commits 1e5d849/
+81cffa9/d47f577) -- findings in `docs/research/d3-regulatory-limits.md`;
+`docs/attack-catalogue.md`'s `⚠VERIFY` markers resolved (UPI Lite, min-KYC PPI, mandate
+AFA confirmed against dated NPCI/RBI sources; UPI P2M higher-limit circular number is
+the one remaining soft spot, flagged in the D3 fix-log row, not blocking).
+
+I6/I7 in progress (worktree agent-a904152c83fccef4d) -- a training run mid-fix still
+showed PR-AUC 0.9999 / 100% held-out-family recall, not yet resolved as of last check.
+
+Evidence pass on high-confidence catalogue entries (D5) re-dispatched after its first
+attempt was killed by an environment restart with zero committed progress -- still
+running. Check worktree branches (`git branch | grep worktree-agent`) for status before
+starting new work on the same files.

@@ -1,6 +1,6 @@
 # Attack catalogue — GenAI-enabled payment fraud
 
-**Status:** defects D1, D2, D4 fixed. D3 (stale rail parameters) marked inline as `⚠VERIFY` — resolve before any number reaches code or deck.
+**Status:** defects D1, D2, D4 fixed. D3 (stale rail parameters) resolved for UPI Lite, min-KYC PPI, and mandate AFA — see `docs/research/d3-regulatory-limits.md`. One residual gap remains (see D3 row below).
 **Freeze date:** 17 August 2026.
 
 ---
@@ -11,7 +11,7 @@
 |---|---|---|
 | D1 | Four entries treated UPI P2P collect as live; it was discontinued 1 Oct 2025 (NPCI circular 29 Jul 2025) | Entries relabelled `HISTORICAL`. Card 7 rewritten as merchant-collect impersonation |
 | D2 | Card 1 claimed ₹1,750+ cr lost to digital arrest Jan–Apr 2024 | Corrected to **₹120.30 cr**. The ~₹1,776 cr figure was total cyber fraud losses across all categories in that window. Nine-month 2024 digital arrest figure: ₹1,616 cr across 63,481 complaints |
-| D3 | UPI Lite, min-KYC PPI, and mandate AFA thresholds are stale | Marked `⚠VERIFY` at every occurrence. Do not hardcode until checked against current NPCI/RBI pages |
+| D3 | UPI Lite, min-KYC PPI, and mandate AFA thresholds are stale | Verified against current NPCI/RBI sources[^d3]: UPI Lite ₹1,000/txn, ₹5,000 wallet (NPCI OC 169-A, 27 Feb 2025); min-KYC PPI ₹10,000/month, ₹10,000 balance (unchanged since RBI MD-PPI 2021); mandate AFA ₹15,000 general / ₹1,00,000 for MF-insurance-credit card bill (RBI e-mandate framework, 21 Apr 2026). **Outstanding:** the UPI P2M higher-limit circular (NPCI OC 185-B, ~28 Aug 2025, effective 15 Sep 2025 — ₹5 lakh/txn, ₹10 lakh/24hr for capital markets/insurance/travel/loan-repay/GeM) has its figures confirmed by convergent reporting but the OC 185-B circular-number attribution itself is inferred, not read from the primary PDF (NPCI blocks automated fetches) — re-derive if this number appears in the deck |
 | D4 | Five scam entries share identical observable signals | Retained as separate catalogue rows for diversity scoring; merged into one generator with a `pretext` parameter. See merge map below |
 
 ---
@@ -67,7 +67,7 @@ This stage remains synthetic and controlled: it does not create phishing infrast
 | G08 | `transaction_laundering` | CARD-CNP-TRANSLAUND-01, UPI-P2M-MISCODE-01, XBORDER-TRADE-01 | `mcc_declared` ≠ `mcc_inferred_from_basket`; otherwise normal traffic |
 | G09 | `credential_takeover` | 3DSDEEPFAKE-01, PHISHOTP-01, SIMSWAP-01, ATO-DEEPFAKECALL-01, ATO-KYCRESET-01, CARD-CP-RELAY-01 | Auth succeeds but device/session anomalous; high-risk account change precedes transfer |
 | G10 | `synthetic_identity_bustout` | BNPL-SYNTHFARM-01, CARD-CNP-SYNTHID-01, XBORDER-REMIT-SYNTHID-01, WALLET-KYCBOUNCE-01 | Perfect repayment then simultaneous utilisation spike; shared device/phone/address cluster |
-| G11 | `subthreshold_fragmentation` | UPI-P2P-LITESPLIT-01 ⚠VERIFY, WALLET-CARDLOAD-01 | Uniform amounts just under a limit; rapid load-drain cycle; two-hop funnel |
+| G11 | `subthreshold_fragmentation` | UPI-P2P-LITESPLIT-01, WALLET-CARDLOAD-01 | Uniform amounts just under a limit — ₹1,000 UPI Lite per-txn cap / ₹5,000 wallet cap[^d3]; rapid load-drain cycle; two-hop funnel |
 | G12 | `agentic_injection` | AGENT-PROMPTINJECT-01, AGENT-DELEGATED-01, AGENT-AGENT-01, UPI-MANDATE-AGENT-01 | `is_agent_initiated`, beneficiary ≠ seller of record, VPA not in biller directory |
 | G13 | `insider_abuse` | KYB-INSIDER-01, BANK-NEFT-INSIDER-01, CARD-CP-REFUNDABUSE-01, ADVMODEL-POISON-01 | No external anomaly; approval velocity and access-pattern signals only |
 
@@ -99,7 +99,7 @@ DD = detection difficulty 1–5 · NV = novelty 1–5 · E = O observed / EM eme
 | UPI-P2P-KYCEXPIRY-01 | KYC expiry scam | UPI P2P | Authenticate | KYC request is genuine | Synthetic documents | 3 | 3 | O | G01 |
 | UPI-P2P-SIMSWAP-01 | SIM swap + UPI re-registration | UPI P2P | Authenticate | Device + SIM = owner | Synthetic docs | 3 | 2 | O | G09 |
 | UPI-P2P-MULEAI-01 | AI-managed mule network | UPI P2P | Settle | Holder transacts for self | LLM behavioural scripting | 5 | 5 | EM | G02 |
-| UPI-P2P-LITESPLIT-01 ⚠VERIFY | UPI Lite sub-threshold fragmentation | UPI Lite | Authorise | Small txn = low risk | LLM orchestration | 4 | 4 | SP | G11 |
+| UPI-P2P-LITESPLIT-01 | UPI Lite sub-threshold fragmentation (amounts kept under ₹1,000/txn, cumulative under ₹5,000 wallet cap)[^d3] | UPI Lite | Authorise | Small txn = low risk | LLM orchestration | 4 | 4 | SP | G11 |
 | UPI-COLLECT-FLOOD-01 `HISTORICAL` | Mass collect requests | UPI collect | Initiate | Collect is from known payee | LLM text at scale | 3 | 3 | O | — |
 | UPI-COLLECT-MASSPERS-01 `HISTORICAL` | Mass personalised collect | UPI collect | Initiate | Collect from known party | LLM text at scale | 3 | 3 | EM | — |
 | UPI-COLLECT-MANDATEBLUR-01 `HISTORICAL` | Collect disguised as mandate | UPI collect | Initiate | User understands approval | LLM text | 3 | 4 | SP | — |
@@ -110,7 +110,7 @@ DD = detection difficulty 1–5 · NV = novelty 1–5 · E = O observed / EM eme
 | UPI-P2M-CHARGEBACK-01 | Fake dispute, AI evidence | UPI P2M | Dispute | Payer was deceived | LLM text + images | 3 | 3 | EM | G05 |
 | UPI-P2M-REFUNDRING-01 | Refund ring | UPI P2M | Settle | Refund matches original | LLM orchestration | 4 | 3 | EM | — |
 | UPI-MANDATE-SYNTHSETUP-01 | Synthetic e-mandate enrollment | UPI mandate | Initiate | Enrollment is voluntary | Synthetic docs + LLM | 4 | 3 | O | G06 |
-| UPI-MANDATE-STEALTH-01 ⚠VERIFY | Low-amount recurring under threshold | UPI mandate | Settle | Small recurring = legitimate | LLM orchestration | 5 | 4 | EM | G06 |
+| UPI-MANDATE-STEALTH-01 | Low-amount recurring under AFA threshold (≤₹15,000 general; ≤₹1,00,000 for mutual-fund/insurance/credit-card-bill mandates)[^d3] | UPI mandate | Settle | Small recurring = legitimate | LLM orchestration | 5 | 4 | EM | G06 |
 | UPI-MANDATE-CANCELEVADE-01 | Cancellation evasion by re-registration | UPI mandate | Settle | Cancelled stays cancelled | LLM orchestration | 4 | 4 | SP | G06 |
 | UPI-MANDATE-AGENT-01 | Agent mandate enrollment via injection | UPI mandate | Initiate | Agent acts per user intent | Prompt injection | 5 | 5 | SP | G12 |
 | BANK-IMPS-MULESPLIT-01 | IMPS mule splitting | IMPS | Settle | Transfers are legitimate | LLM behavioural scripting | 4 | 4 | O | G02 |
@@ -119,7 +119,7 @@ DD = detection difficulty 1–5 · NV = novelty 1–5 · E = O observed / EM eme
 | XBORDER-REMIT-SYNTHID-01 | Synthetic identity remittance | Cross-border | Initiate | Sender identity is real | Synthetic identity | 4 | 3 | O | G10 |
 | XBORDER-TRADE-01 | Trade-based ML, AI trade docs | Cross-border | Settle | Trade documents genuine | Synthetic documents | 4 | 3 | O | G08 |
 | XBORDER-HAWALA-01 | AI-coordinated hawala layering | Cross-border | Settle | Formal ≠ informal transfer | LLM orchestration | 5 | 4 | SP | G02 |
-| WALLET-CARDLOAD-01 ⚠VERIFY | Stolen card → wallet → UPI offload | Wallet/PPI | Settle | Loader is the cardholder | LLM orchestration | 3 | 2 | O | G11 |
+| WALLET-CARDLOAD-01 | Stolen card → min-KYC wallet (≤₹10,000/month load, ≤₹10,000 balance) → UPI offload[^d3] | Wallet/PPI | Settle | Loader is the cardholder | LLM orchestration | 3 | 2 | O | G11 |
 | WALLET-GIFTCARD-01 | Bulk gift card purchase | Gift card | Authorise | Purchase is genuine | Autonomous browser | 3 | 2 | O | G03 |
 | WALLET-KYCBOUNCE-01 | PPI KYC bypass | Wallet/PPI | Authenticate | KYC docs genuine | Synthetic documents | 3 | 3 | O | G10 |
 | BNPL-SYNTHFARM-01 | Synthetic identity BNPL farming | BNPL | Initiate | Identity real and creditworthy | Synthetic identity | 4 | 4 | EM | G10 |
@@ -222,7 +222,15 @@ Label these honestly in the deck. A judge respects a clearly-marked speculative 
 
 ## Outstanding before freeze
 
-- [ ] Resolve every `⚠VERIFY` against current NPCI/RBI sources, with dated citations
+- [x] Resolve every `⚠VERIFY` against current NPCI/RBI sources, with dated citations — done for
+      UPI Lite, min-KYC PPI, and mandate AFA (see `docs/research/d3-regulatory-limits.md`); the
+      UPI P2M OC 185-B circular-number attribution is the one remaining soft spot, see D3 row
 - [ ] Audit remaining statistics the way D2 was audited
 - [ ] Append the 14 remaining expanded cards from the research output below this line
 - [ ] Confirm each of the 13 generators has a defined `legit_lookalike` population
+
+---
+
+[^d3]: Regulatory limit sourced/verified in `docs/research/d3-regulatory-limits.md` (last
+verified 18 August 2026). See that file for circular numbers, effective dates, and confidence
+tiers per limit.

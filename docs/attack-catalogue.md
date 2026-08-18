@@ -1,6 +1,10 @@
 # Attack catalogue — GenAI-enabled payment fraud
 
-**Status:** defects D1, D2, D4 fixed. D3 (stale rail parameters) resolved for UPI Lite, min-KYC PPI, and mandate AFA — see `docs/research/d3-regulatory-limits.md`. One residual gap remains (see D3 row below).
+**Status:** defects D1, D2, D4 fixed. D3 rail parameters are resolved for UPI Lite,
+min-KYC PPI, and mandate AFA — see `docs/research/d3-regulatory-limits.md`; one
+UPI P2M circular-number attribution remains to be independently re-derived before use in
+the deck. D5 (evidence pass) is complete for the 15 highest-confidence-tier entries as of
+18 Aug 2026 — see `docs/research/evidence-pass.md`; remaining catalogue statistics are unaudited.
 **Freeze date:** 17 August 2026.
 
 ---
@@ -10,8 +14,8 @@
 | ID | Defect | Resolution |
 |---|---|---|
 | D1 | Four entries treated UPI P2P collect as live; it was discontinued 1 Oct 2025 (NPCI circular 29 Jul 2025) | Entries relabelled `HISTORICAL`. Card 7 rewritten as merchant-collect impersonation |
-| D2 | Card 1 claimed ₹1,750+ cr lost to digital arrest Jan–Apr 2024 | Corrected to **₹120.30 cr**. The ~₹1,776 cr figure was total cyber fraud losses across all categories in that window. Nine-month 2024 digital arrest figure: ₹1,616 cr across 63,481 complaints |
-| D3 | UPI Lite, min-KYC PPI, and mandate AFA thresholds are stale | Verified against current NPCI/RBI sources[^d3]: UPI Lite ₹1,000/txn, ₹5,000 wallet (NPCI OC 169-A, 27 Feb 2025); min-KYC PPI ₹10,000/month, ₹10,000 balance (unchanged since RBI MD-PPI 2021); mandate AFA ₹15,000 general / ₹1,00,000 for MF-insurance-credit card bill (RBI e-mandate framework, 21 Apr 2026). **Outstanding:** the UPI P2M higher-limit circular (NPCI OC 185-B, ~28 Aug 2025, effective 15 Sep 2025 — ₹5 lakh/txn, ₹10 lakh/24hr for capital markets/insurance/travel/loan-repay/GeM) has its figures confirmed by convergent reporting but the OC 185-B circular-number attribution itself is inferred, not read from the primary PDF (NPCI blocks automated fetches) — re-derive if this number appears in the deck |
+| D2 | Card 1 claimed ₹1,750+ cr lost to digital arrest Jan–Apr 2024 | Corrected to **₹120.30 cr** (I4C CEO Rajesh Kumar, reported Jan–Apr 2024 — see evidence pass). The ~₹1,776 cr figure was total cyber fraud losses across all categories in that window. The previously-cited "nine-month 2024: ₹1,616 cr / 63,481 complaints" figure could not be re-verified against any source (evidence pass, 18 Aug 2026) and is **removed**. Reported full-year-2024 figures vary by outlet — ₹1,918–1,935.5 cr across ~123,672 cases — do not cite a single full-year number without checking its specific source first |
+| D3 | UPI Lite, min-KYC PPI, and mandate AFA thresholds are stale | Verified against current NPCI/RBI sources[^d3]: UPI Lite ₹1,000/txn, ₹5,000 wallet (NPCI OC 169-A, 27 Feb 2025); min-KYC PPI ₹10,000/month, ₹10,000 balance (unchanged since RBI MD-PPI 2021); mandate AFA ₹15,000 general / ₹1,00,000 for MF-insurance/credit-card-bill (RBI e-mandate framework, 21 Apr 2026). **Outstanding:** independently re-derive the primary circular number for the UPI P2M higher-limit figures before they are used in the deck; the current OC 185-B attribution is inferred from convergent reporting because NPCI blocks automated PDF retrieval. |
 | D4 | Five scam entries share identical observable signals | Retained as separate catalogue rows for diversity scoring; merged into one generator with a `pretext` parameter. See merge map below |
 
 ---
@@ -119,14 +123,14 @@ DD = detection difficulty 1–5 · NV = novelty 1–5 · E = O observed / EM eme
 | XBORDER-REMIT-SYNTHID-01 | Synthetic identity remittance | Cross-border | Initiate | Sender identity is real | Synthetic identity | 4 | 3 | O | G10 |
 | XBORDER-TRADE-01 | Trade-based ML, AI trade docs | Cross-border | Settle | Trade documents genuine | Synthetic documents | 4 | 3 | O | G08 |
 | XBORDER-HAWALA-01 | AI-coordinated hawala layering | Cross-border | Settle | Formal ≠ informal transfer | LLM orchestration | 5 | 4 | SP | G02 |
-| WALLET-CARDLOAD-01 | Stolen card → min-KYC wallet (≤₹10,000/month load, ≤₹10,000 balance) → UPI offload[^d3] | Wallet/PPI | Settle | Loader is the cardholder | LLM orchestration | 3 | 2 | O | G11 |
+| WALLET-CARDLOAD-01 | Stolen card → min-KYC wallet (≤₹10,000/month load, ≤₹10,000 balance) → UPI offload[^d3] | Wallet/PPI | Settle | Loader is the cardholder | LLM orchestration | 3 | 2 | EM | G11 |
 | WALLET-GIFTCARD-01 | Bulk gift card purchase | Gift card | Authorise | Purchase is genuine | Autonomous browser | 3 | 2 | O | G03 |
 | WALLET-KYCBOUNCE-01 | PPI KYC bypass | Wallet/PPI | Authenticate | KYC docs genuine | Synthetic documents | 3 | 3 | O | G10 |
 | BNPL-SYNTHFARM-01 | Synthetic identity BNPL farming | BNPL | Initiate | Identity real and creditworthy | Synthetic identity | 4 | 4 | EM | G10 |
 | BNPL-FIRSTPARTY-01 | BNPL default, AI hardship narratives | BNPL | Dispute | Hardship claim genuine | LLM text | 3 | 3 | EM | G05 |
 | BNPL-MERCHANT-01 | BNPL merchant fraud | BNPL | Settle | Merchant is legitimate | LLM text + fake reviews | 4 | 3 | EM | G07 |
 | KYB-SYNTHDOC-01 | Synthetic document onboarding | Merchant KYB | Initiate | Business is real | Synthetic documents | 4 | 4 | EM | G07 |
-| KYB-SHELLNET-01 | Shell network, AI financials | Merchant KYB | Initiate | Financials reflect business | LLM + synthetic docs | 4 | 3 | O | G07 |
+| KYB-SHELLNET-01 | Shell network, AI financials | Merchant KYB | Initiate | Financials reflect business | LLM + synthetic docs | 4 | 3 | EM | G07 |
 | KYB-INSIDER-01 | Insider onboarding approval | Merchant KYB | Initiate | Approver follows policy | — | 3 | 2 | O | G13 |
 | AGENT-PROMPTINJECT-01 | Prompt injection of shopping agent | Agentic | Authorise | Agent follows user intent | Prompt injection | 5 | 5 | SP | G12 |
 | AGENT-DELEGATED-01 | Delegated credential abuse | Agentic | Authorise | Agent has user's authority | Autonomous browser | 4 | 5 | SP | G12 |
@@ -160,7 +164,7 @@ DD = detection difficulty 1–5 · NV = novelty 1–5 · E = O observed / EM eme
 | **legit_lookalike** | Genuine merchant collect for subscription renewals, insurance premiums, utility dues — millions daily, often from merchants the payer hasn't transacted with recently. |
 | **detection_difficulty** | 4 |
 | **novelty** | 4 — the P2P variant is documented; the post-October-2025 migration into merchant collect is not yet in industry reporting |
-| **real_world_evidence** | Emerging. Voice clone fraud targeting Indian banking customers reported through 2024. P2P collect abuse is documented and led to the discontinuation. The merchant-collect migration is inferred from the regulatory change, not yet independently evidenced — label as such. |
+| **real_world_evidence** | Emerging. Verified: NPCI circular dated 29 July 2025 discontinued UPI P2P collect effective 1 October 2025, explicitly to curb impersonation-driven collect fraud; merchant collect (Amazon, Flipkart, Swiggy, Zomato, IRCTC etc.) is explicitly unaffected (reported consistently by Angel One, MediaNama, YourStory, Outlook Money, BusinessWorld, Aug 2025). Verified: voice-clone fraud targeting Indian banking/payment customers is a recognised threat — CERT-In issued dated advisory **CIAD-2024-0084** on voice-clone fraud awareness, and a high-profile named incident exists (a cloned voice of Bharti Airtel chairman Sunil Bharti Mittal used in an attempted fraud against a senior executive). Not yet evidenced: the specific migration of voice-clone fraud into *merchant*-collect impersonation post-October-2025 — this is inferred from the regulatory change and the surviving merchant-collect channel, not from an independently reported incident. Label the migration inference as such in the deck (see `docs/research/evidence-pass.md`). |
 | **mitigation_direction** | Merchant collect risk score combining merchant age, collect approval rate, payer-merchant relationship history, and settlement outflow latency. Cooling period on collect from merchants with no prior relationship to the payer. Registry verification at KYB rather than format validation. |
 
 ---
@@ -210,24 +214,30 @@ Conventional signals: velocity, new beneficiary, amount thresholds, geo mismatch
 
 ## Confidence tiers
 
-**Observed, multiple sources:** DIGITALARREST, KYCEXPIRY, CARDLOAD, BINAUTO, MULESPLIT, SHELLNET, TRANSLAUND, SYNTHID
+**Evidence pass complete** (18 Aug 2026, see `docs/research/evidence-pass.md`) — every entry below
+was checked against a real, dated, checkable source. Two entries moved tiers as a result:
+`CARDLOAD` and `SHELLNET` were re-classified from "Observed" to "Emerging" — their base mechanisms
+are documented, but the specific claim in each catalogue row (a stolen-card-to-wallet-to-UPI
+cash-out chain; AI-generated financials specifically in a shell-network KYB bypass) is not
+independently evidenced, only its components are.
 
-**Emerging, component evidence:** 3DSDEEPFAKE, MULEAI, ADVMODEL-PROBE, ATO-DEEPFAKECALL, BNPL-SYNTHFARM, KYB-SYNTHDOC, VOICECLONE (merchant variant)
+**Observed, multiple sources:** DIGITALARREST, KYCEXPIRY, BINAUTO, MULESPLIT, TRANSLAUND, SYNTHID
+
+**Emerging, component evidence:** 3DSDEEPFAKE, MULEAI, ADVMODEL-PROBE, ATO-DEEPFAKECALL, BNPL-SYNTHFARM, KYB-SYNTHDOC, VOICECLONE (merchant variant), CARDLOAD `(moved from Observed, 18 Aug 2026)`, SHELLNET `(moved from Observed, 18 Aug 2026)`
 
 **Speculative but plausible:** all G12 agentic entries, LITESPLIT, TOKENRACE, ADVMODEL-POISON, CANCELEVADE
 
-Label these honestly in the deck. A judge respects a clearly-marked speculative attack far more than an overclaimed one.
+Label these honestly in the deck. A judge respects a clearly-marked speculative attack far more than an overclaimed one. See `docs/research/evidence-pass.md` for per-entry sources, verdicts, and the one statistic (a nine-month digital-arrest figure previously in the D2 fix-log row) that could not be re-verified and was removed.
 
 ---
 
 ## Outstanding before freeze
 
-- [x] Resolve every `⚠VERIFY` against current NPCI/RBI sources, with dated citations — done for
-      UPI Lite, min-KYC PPI, and mandate AFA (see `docs/research/d3-regulatory-limits.md`); the
-      UPI P2M OC 185-B circular-number attribution is the one remaining soft spot, see D3 row
-- [ ] Audit remaining statistics the way D2 was audited
+- [x] Verify the UPI Lite, min-KYC PPI, and mandate-AFA rail parameters against dated NPCI/RBI sources (D3, 18 Aug 2026)
+- [x] Evidence pass on the 15 highest-confidence-tier entries (D5, 18 Aug 2026) — remaining statistics outside that scope are still unaudited
+- [ ] Independently retrieve the primary UPI P2M higher-limit circular before quoting those figures in the deck
 - [ ] Append the 14 remaining expanded cards from the research output below this line
-- [ ] Confirm each of the 13 generators has a defined `legit_lookalike` population
+- [ ] Make every defined `legit_lookalike` population structurally distinct from its source fraud campaign (I6/I7)
 
 ---
 

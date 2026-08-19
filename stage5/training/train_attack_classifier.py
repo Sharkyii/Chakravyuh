@@ -1,13 +1,9 @@
-import os
 import sys
 import json
 import joblib
-import numpy as np
-import pandas as pd
 from pathlib import Path
-from datetime import datetime
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report
+from sklearn.metrics import accuracy_score, f1_score, classification_report
 from sklearn.utils.class_weight import compute_sample_weight
 from xgboost import XGBClassifier
 
@@ -15,7 +11,15 @@ from xgboost import XGBClassifier
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
 from src.dataset.loader import load_dataset
-from stage5.config.settings import STAGE5_DATA_DIR, MODELS_DIR, ALL_FEATURES
+from src.dataset.splits import TemporalSplitConfig, assign_split, split_windows
+from stage5.config.settings import (
+    STAGE5_DATA_DIR,
+    MODELS_DIR,
+    ALL_FEATURES,
+    TRAIN_RATIO,
+    VAL_RATIO,
+    TEST_RATIO,
+)
 
 def main():
     print("=== Training Stage 5 Attack Family Classifier ===")
@@ -56,20 +60,21 @@ def main():
         sys.exit(1)
     preprocessor = joblib.load(preprocessor_path)
     
-    # 5. Split train/validation/test ensuring campaign-level isolation
-    # Use a reproducible random seed for shuffling
-    np.random.seed(42)
-    unique_campaigns = sorted(fraud_df["campaign_id"].dropna().unique())
-    np.random.shuffle(unique_campaigns)
-    n_camps = len(unique_campaigns)
-    n_train_camp = int(n_camps * 0.70)
-    n_val_camp = int(n_camps * 0.15)
-    train_camps = set(unique_campaigns[:n_train_camp])
-    val_camps = set(unique_campaigns[n_train_camp:n_train_camp + n_val_camp])
-    test_camps = set(unique_campaigns[n_train_camp + n_val_camp:])
-    train_df = fraud_df[fraud_df["campaign_id"].isin(train_camps)].copy()
-    val_df = fraud_df[fraud_df["campaign_id"].isin(val_camps)].copy()
-    test_df = fraud_df[fraud_df["campaign_id"].isin(test_camps)].copy()
+    # 5. Split train/validation/test temporally, never randomly (issues.md I9 --
+    # same rule as train_fraud_model.py: brief section 6 rule 2, "random splits
+    # leak campaign structure across the boundary and inflate everything." A
+    # campaign's own handful of events span minutes to a few days, well inside
+    # one window, so per-row timestamp assignment doesn't fragment a campaign
+    # across the train/val boundary in practice.
+    windows = split_windows(
+        TemporalSplitConfig(
+            train_fraction=TRAIN_RATIO, validation_fraction=VAL_RATIO, test_fraction=TEST_RATIO
+        )
+    )
+    fraud_df["split"] = fraud_df["timestamp"].apply(lambda ts: assign_split(ts, windows) or "test")
+    train_df = fraud_df[fraud_df["split"] == "train"].copy()
+    val_df = fraud_df[fraud_df["split"] == "validation"].copy()
+    test_df = fraud_df[fraud_df["split"] == "test"].copy()
     
     # Prepare features and targets
     X_train = train_df[ALL_FEATURES]

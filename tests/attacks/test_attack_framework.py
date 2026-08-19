@@ -145,6 +145,41 @@ def test_adversarial_evasion_reduces_obvious_anomalies(baseline_stage2):
     assert all(row["geo_matches_payer_home"] is True for row in attack_txns)
 
 
+def test_adversarial_evasion_adaptive_top_counterparty(baseline_stage2):
+    """issues.md I11 closed loop: config={"adaptive_top_counterparty": True}
+    should route every campaign event through the payer's single busiest
+    existing relationship instead of spreading across a small pool."""
+    generator = build_attack_generator("adversarial_evasion")
+    _campaign, rows, _labels = generator.generate(
+        baseline_stage2, seed=42, intensity="HIGH", config={"adaptive_top_counterparty": True}
+    )
+    payees = {row["payee_id"] for row in rows}
+    assert len(payees) == 1, "adaptive mode should concentrate every event on one counterparty"
+
+
+def test_adversarial_evasion_beneficiary_age_floor_override(baseline_stage2):
+    from src.generators import calibration as cal
+
+    generator = build_attack_generator("adversarial_evasion")
+    floor = cal.LEGIT_EXISTING_BENEFICIARY_MIN_AGE_S + 1_000_000
+    _campaign, rows, _labels = generator.generate(
+        baseline_stage2, seed=7, intensity="MEDIUM", config={"beneficiary_age_floor_s": floor}
+    )
+    assert all(row["beneficiary_added_ago_s"] >= floor for row in rows)
+
+
+def test_adversarial_evasion_default_config_unchanged(baseline_stage2):
+    """No config (or an empty one) must reproduce the pre-I11 pool-based
+    routing -- the adaptive path is opt-in, not a behavior change for
+    existing callers."""
+    generator = build_attack_generator("adversarial_evasion")
+    _campaign, none_cfg_rows, _labels = generator.generate(baseline_stage2, seed=3, intensity="HIGH")
+    _campaign2, empty_cfg_rows, _labels2 = generator.generate(
+        baseline_stage2, seed=3, intensity="HIGH", config={}
+    )
+    assert [r["txn_id"] for r in none_cfg_rows] == [r["txn_id"] for r in empty_cfg_rows]
+
+
 def test_attack_intensity_changes_behavior(baseline_stage2):
     low = generate_attack_dataset("scam_induced_push", seed=99, baseline_dir=baseline_stage2.source_dir, intensity="LOW", clean=True)
     medium = generate_attack_dataset("scam_induced_push", seed=99, baseline_dir=baseline_stage2.source_dir, intensity="MEDIUM", clean=True)

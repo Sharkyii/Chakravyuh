@@ -18,7 +18,7 @@ it's the source of truth for "what's left," not the conversation history.
 | I8 | FIXED (54615a7) | medium | validation | No validation report comparing generated data against IEEE-CIS/PaySim/BankSim/ULB reference marginals -- `data/reference/` is empty |
 | I9 | FIXED (code only) | medium | detector | `train_attack_classifier.py` splits by random shuffled `campaign_id`, not temporally -- same bug class as I1, lower stakes (auxiliary model, not the judged detector). Split logic now temporal; not yet re-run (heavy retrain deferred, see Next tasks P3) |
 | I10 | FIXED | low | attacks | `LLMScenarioGenerator`/`HybridScenarioGenerator` call the Gemini API when `SCENARIO_GENERATOR_MODE` is `llm`/`hybrid` -- off by default but undocumented in AGENTS.md |
-| I11 | OPEN | high | deliverable | Closed-loop iteration doc (misses -> new attack variant -> improved detector) doesn't exist |
+| I11 | IN PROGRESS | high | deliverable | Closed-loop iteration doc (misses -> new attack variant -> improved detector). Diagnosis + adaptive attack-generation code done (`docs/closed-loop.md`), the actual before/after retrain measurement is deferred (heavy task) |
 | I12 | OPEN | high | deliverable | Web prototype -- mandatory submission artifact -- not started |
 | I13 | OPEN | high | deliverable | Walkthrough deck -- mandatory submission artifact -- not started |
 | I14 | FIXED | low | docs | The catalogue's "Outstanding before freeze" checklist now reflects the D3 rail-limit verification, completed D5 evidence pass, remaining UPI P2M primary-circular retrieval, 14 missing expanded cards, and the structural lookalike gap (I6/I7). |
@@ -38,8 +38,11 @@ Work in this order; each item should be independently tested and committed befor
    the D3 sources, confidence-tier labels from the evidence pass, and the post-I6/I7/I17
    detector numbers from `docs/model-choice.md`. Do not quote the UPI P2M higher-limit
    figures until the primary circular is retrieved.
-3. **P1 — Close I11:** add a closed-loop iteration document showing a detector miss, the
-   corresponding new synthetic variant, retraining, and the measured improvement.
+3. **P1 — Finish I11:** `docs/closed-loop.md` has the diagnosis and the adaptive attack code
+   (`build_adaptive_attack_config.py`, `AdversarialEvasionAttack`'s new config keys) is
+   implemented and tested. Still needed: run `generate_training_data` then
+   `train_fraud_model` again and record the actual before/after per-family recall in that
+   doc's part 4 -- heavy task, deliberately deferred, don't fill in a number without running it.
 4. **P1 — Close I15/I16:** calibrate weekday and MCC-conditioned amount distributions, then
    extend the fidelity report/tests with the target tolerances.
 5. **P2 — Complete catalogue documentation:** retrieve the primary UPI P2M circular; audit

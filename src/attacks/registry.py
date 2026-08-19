@@ -174,6 +174,7 @@ def generate_attack_dataset(
     intensity: str | AttackIntensity = AttackIntensity.MEDIUM,
     output_dir: Path | str | None = None,
     clean: bool = True,
+    config: dict[str, Any] | None = None,
 ) -> AttackDataset:
     baseline = load_dataset(Path(baseline_dir))
     generator = build_attack_generator(attack_id)
@@ -181,6 +182,7 @@ def generate_attack_dataset(
         baseline,
         seed=seed,
         intensity=intensity,
+        config=config,
     )
     if output_dir is None:
         output_path = Path("data/generated/attacks") / attack_id.upper() / f"seed-{seed}"

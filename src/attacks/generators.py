@@ -160,6 +160,35 @@ def _existing_consumer_payees_for_payer(
     return chosen or [payer_id]
 
 
+def _top_counterparty_for_payer(
+    baseline: PaymentDataset, payer_id: str, consumer_ids: list[str]
+) -> str | None:
+    """This payer's single most-frequent existing consumer counterparty, or
+    None if they have none on record.
+
+    Used by AdversarialEvasionAttack's adaptive mode (issues.md I11's closed
+    loop): after I6/I7/I17 closed the earlier leaks, `edge_count` became the
+    detector's single most important feature (see docs/model-choice.md).
+    Spreading a campaign across several thin existing relationships (the
+    default -- see `_existing_consumer_payees_for_payer`) still nudges each
+    one's edge_count up measurably. Piggybacking every event on the payer's
+    *already busiest* relationship instead hides the same incremental volume
+    inside a pair whose edge_count was never going to look unusual anyway.
+    """
+    index = _payer_history_index(baseline)
+    consumer_id_set = set(consumer_ids)
+    payees = [
+        pid for pid in index["payer_to_payees"].get(payer_id, [])
+        if pid in consumer_id_set and pid != payer_id
+    ]
+    if not payees:
+        return None
+    counts: dict[str, int] = {}
+    for pid in payees:
+        counts[pid] = counts.get(pid, 0) + 1
+    return max(counts.items(), key=lambda kv: (kv[1], kv[0]))[0]
+
+
 def _lookalike_window(baseline: PaymentDataset) -> tuple[datetime, datetime]:
     """Simulation window to spread independent lookalike timestamps across."""
     sim_start_str = baseline.manifest.get("simulation_start")
@@ -621,14 +650,35 @@ class AdversarialEvasionAttack(AttackGenerator):
         n_events += int(rng.integers(-1, 2))
         n_events = max(2, n_events)
 
-        # Route across a small pool of the payer's genuinely pre-existing
-        # counterparties instead of one fixed brand-new pair -- a single
-        # pair absorbing every event is close to a perfect graph tell
-        # regardless of how slowly events are spread (issues.md I7). The
-        # catalogue's inversion-pass claim for this family requires every
-        # feature, including counterparty structure, to sit inside the
-        # legitimate distribution.
-        payee_pool = _existing_consumer_payees_for_payer(baseline, payer_id, rng, consumer_ids, k=min(3, n_events))
+        cfg = config or {}
+        pretext = "low_and_slow"
+
+        # Adaptive mode (issues.md I11's closed loop): a prior detector
+        # generation's feature importances named edge_count as the strongest
+        # remaining signal. This is the "new attack variant" half of the
+        # loop -- pass config={"adaptive_top_counterparty": True} (see
+        # stage5/training/build_adaptive_attack_config.py, which derives this
+        # from a trained model's feature_importances_) to route every event
+        # through the payer's single busiest existing relationship rather
+        # than spreading across a small pool, hiding the incremental volume
+        # inside a pair whose edge_count was never going to look unusual.
+        if cfg.get("adaptive_top_counterparty"):
+            top = _top_counterparty_for_payer(baseline, payer_id, consumer_ids)
+            payee_pool = [top] if top else _existing_consumer_payees_for_payer(
+                baseline, payer_id, rng, consumer_ids, k=min(3, n_events)
+            )
+            pretext = "low_and_slow_adaptive"
+        else:
+            # Route across a small pool of the payer's genuinely pre-existing
+            # counterparties instead of one fixed brand-new pair -- a single
+            # pair absorbing every event is close to a perfect graph tell
+            # regardless of how slowly events are spread (issues.md I7). The
+            # catalogue's inversion-pass claim for this family requires every
+            # feature, including counterparty structure, to sit inside the
+            # legitimate distribution.
+            payee_pool = _existing_consumer_payees_for_payer(baseline, payer_id, rng, consumer_ids, k=min(3, n_events))
+
+        beneficiary_age_floor_s = int(cfg.get("beneficiary_age_floor_s", cal.LEGIT_EXISTING_BENEFICIARY_MIN_AGE_S))
 
         start_ts = _random_start_ts(baseline, rng)
 
@@ -659,7 +709,7 @@ class AdversarialEvasionAttack(AttackGenerator):
                 session_duration_s=int(23 + i * 7 + rng.integers(-4, 8)),
                 time_on_confirm_screen_s=float(rng.uniform(2.2, 4.5)),
                 beneficiary_first_time=False,
-                beneficiary_added_ago_s=int(rng.integers(cal.LEGIT_EXISTING_BENEFICIARY_MIN_AGE_S, cal.LEGIT_EXISTING_BENEFICIARY_MAX_AGE_S)),
+                beneficiary_added_ago_s=int(rng.integers(beneficiary_age_floor_s, cal.LEGIT_EXISTING_BENEFICIARY_MAX_AGE_S)),
                 pin_attempts=1 + int(rng.random() < 0.03),
                 screen_share_active=False,
                 call_active_during_txn=False,
@@ -670,7 +720,7 @@ class AdversarialEvasionAttack(AttackGenerator):
                 issuer_risk_score=0.07,
             )
             rows.append(txn)
-            labels.append(_label_row(txn["txn_id"], attack_id=self.attack_id, campaign_id="", pretext="low_and_slow", detectable_at=DetectableAt.POST_AUTH))
+            labels.append(_label_row(txn["txn_id"], attack_id=self.attack_id, campaign_id="", pretext=pretext, detectable_at=DetectableAt.POST_AUTH))
             
         campaign = _build_campaign(
             self.attack_id,

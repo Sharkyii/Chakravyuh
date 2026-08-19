@@ -13,6 +13,7 @@ from src.dataset.stage2 import build_stage2_dataset
 from src.dataset.loader import load_dataset, EXPECTED_TABLES
 from src.attacks.registry import build_attack_generator
 from src.attacks.generators import make_legit_lookalike_rows
+from stage5.training.build_adaptive_attack_config import build_adaptive_config
 from src.graph.builder import GraphBuildConfig, build_graph_edges
 from src.schema import TABLE_ARROW_SCHEMAS
 import pyarrow as pa
@@ -113,21 +114,30 @@ def main():
     all_labels = list(baseline.labels)
     
     scenarios_summary = []
-    
+
+    # Closed loop (issues.md I11): if a prior detector generation left a
+    # trained model behind, derive a config targeting whatever feature it
+    # currently relies on most and apply it to this run's adversarial_evasion
+    # campaigns. Empty on a first-ever run -- falls back to static defaults.
+    adaptive_config = build_adaptive_config()
+    if adaptive_config:
+        print(f"Adaptive attack config derived from prior model: {adaptive_config}")
+
     # 2. Layer attack scenarios
     for sc in ATTACK_SCENARIOS:
         attack_id = sc["attack_id"]
         seed = sc["seed"]
         intensity = sc["intensity"]
-        
+
         print(f"Layering attack: {attack_id} (seed={seed}, intensity={intensity})...")
         generator = build_attack_generator(attack_id)
-        
+
         # Generate the attack
         campaign, attack_txs, attack_labels = generator.generate(
             baseline,
             seed=seed,
-            intensity=intensity
+            intensity=intensity,
+            config=adaptive_config if attack_id == "adversarial_evasion" else None,
         )
         
         # Standardize dataclasses/objects to dicts if needed

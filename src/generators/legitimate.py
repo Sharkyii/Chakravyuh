@@ -346,7 +346,7 @@ def generate_legitimate_transactions(seed: int, population: PopulationBundle) ->
                 is_agent_initiated=False,
                 agent_declared_principal=None,
                 ip_country="IN",
-                ip_asn=str(txn_rng.choice(["AS55836", "AS45609", "AS9829", "AS9498", "AS4755"])),
+                ip_asn=str(txn_rng.choice(cal.IP_ASN_POOL)),
                 ip_is_proxy=bool(txn_rng.random() < 0.006),
                 geo_matches_billing=None if rail not in {Rail.CARD_CNP, Rail.CARD_CP} else True,
                 geo_matches_payer_home=bool(txn_rng.random() < 0.94),

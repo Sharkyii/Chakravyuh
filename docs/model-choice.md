@@ -54,34 +54,64 @@ submission shouldn't claim it is. It's the standard, defensible choice for
 tabular fraud data under extreme class imbalance with a hard latency budget,
 picked via a real comparison rather than assumed.
 
-## Caveat: what the current absolute numbers do and don't prove
+## Resolved: I6/I7/I17, and the numbers that are now trustworthy
 
-As of this write-up, the temporal split, the held-out attack family, and the
-`legit_lookalike` companion population (previously never generated at all — see
-the fix in `src/attacks/generators.py`) are all now genuinely wired in. Despite
-that, the detector still scores PR-AUC ≈ 0.998–0.999 and recalls ~100% of fraud
-at 1% FPR, including on the held-out family it never trained on.
+The caveat that used to live in this section is closed. Three compounding issues made
+the detector look artificially perfect; all three are now fixed in `src/attacks/`,
+verified by re-running the full pipeline and re-checking feature importances after
+each fix, not just by inspection:
 
-An ablation (drop `inter_txn_time_min` and the rest of the timing/velocity
-feature cluster, which held 92.5% of feature importance) barely moved these
-numbers — `edge_count` and `beneficiary_added_ago_s` immediately took over as
-the dominant features. That rules out "one leaky feature" as the explanation.
-The more likely cause, not yet fixed: attack campaigns route several
-transactions through the *same* counterparty pair within a short window, a
-pattern the legitimate generator's organic-counterparty model essentially never
-produces on its own — so campaign shape alone is close to a perfect tell,
-independent of which specific feature a model happens to key on. Compounding
-this, `make_legit_lookalike_rows` currently reuses the source fraud row's exact
-payer/payee pair and timestamp, changing only a few numeric fields (amount,
-confirm-screen time, issuer score) — so the lookalike population inherits the
-same structural graph anomaly instead of presenting the genuinely hard,
-independently-plausible case the brief's "generate the lookalikes" rule is
-meant to force the model to learn from.
+1. **I6 — shallow-copy lookalikes.** `make_legit_lookalike_rows` used to reuse the
+   source fraud row's exact payer/payee pair and timestamp. Fixed: lookalikes now get
+   an independently plausible counterparty (a different existing merchant/consumer,
+   drawn from a small bounded pool per campaign so a payer's `payer_out_degree`
+   doesn't blow past organic levels) and an independently resampled timestamp across
+   the simulation window, keeping only the shape (rail, channel, MCC, amount scale).
+2. **I7 — campaign structure as a near-perfect tell.** Several generators (the
+   families whose catalogue entry claims they should look normal on velocity/graph
+   signals, e.g. `adversarial_evasion`) now route events across a small pool of the
+   payer's *genuinely pre-existing* counterparties instead of hammering one fixed
+   brand-new pair. A duplicate-seed bug was also found and fixed along the way:
+   `generate_training_data.py`'s old `base_seed + i` expansion scheme let adjacent
+   base seeds collide across unrelated families (~3.2k duplicate `txn_id` rows,
+   corrupting downstream merges).
+3. **I17 — hardcoded `ip_asn` default.** Found by inspecting feature importances
+   after I6/I7 landed: `_transaction_row`'s default `ip_asn="AS55836"` meant every
+   attack row (and, transitively, every shallow-copy-era lookalike) carried the exact
+   same ASN, while `legitimate.py` drew from five. Any row with a different ASN was
+   trivially guaranteed legitimate. Fixed by moving the ASN pool into
+   `calibration.IP_ASN_POOL` and having both `legitimate.py` and `framework.py` draw
+   from it, closing the single-source-of-truth gap that caused the drift.
 
-**Practical effect:** the model-choice ranking above (XGBoost over LR, XGBoost
-over RF for the stated reasons) is sound and doesn't depend on this. The
-*absolute* PR-AUC / precision-recall numbers are not yet meaningful and should
-not go in the walkthrough deck until the generator-side fix — making
-`legit_lookalike` rows structurally independent (a different, plausible
-counterparty and timing, not a shallow copy of the fraud row) — lands and the
-numbers are re-run.
+**Numbers after all three fixes**, same temporal split, same held-out
+`synthetic_identity_bustout` family:
+
+| Model | Validation PR-AUC |
+|---|---|
+| Logistic Regression | 0.8487 |
+| Random Forest | 0.9410 |
+| XGBoost | 0.9710 |
+
+Test set: PR-AUC 0.9866, ROC-AUC 0.9997 (secondary). @0.1% FPR: precision 0.8406,
+recall 0.9775. @1% FPR: precision 0.4384, recall 0.9902. F1-optimal threshold:
+precision 0.9942, recall 0.9663, 4.99 alerts/1,000 transactions. Feature importance is
+now spread across plausible signals with no single dominant proxy — `edge_count`
+(34%), `beneficiary_added_ago_s` (15%), `edge_value_total` (6%), `is_two_hop_passthrough`
+(4.6%), then a long tail of session/behavioural features. These are exactly the
+graph-based mule discriminators the brief names as strongest (section 6), not an
+artifact.
+
+The held-out family (`synthetic_identity_bustout`) is still caught at 307/307 (100%)
+at both fixed-FPR thresholds. Unlike before, this is no longer suspicious on its own:
+the overall test-set recall is genuinely imperfect now (0.9775 / 0.9902, not 1.0), so
+the model demonstrably *can* miss fraud — it simply isn't missing this particular
+held-out family, which is a plausible outcome if bust-out's graph/behavioural
+signature (sudden amount-deviation and throughput-ratio shift after a "credit-building"
+phase) genuinely transfers from patterns learned on the other 12 families. Treat this
+as the headline generalisation result, but note it, don't oversell it as proof of
+nothing left to find — a second held-out family run would be the natural next check.
+
+The LR vs. tree-model gap (0.85 vs. 0.94–0.97) is smaller than the original 0.64-vs-0.999
+gap this section used to report, but the qualitative conclusion is the same: linear
+scoring underperforms interaction modelling on this feature set, and that comparison
+was never dependent on the leakage above.

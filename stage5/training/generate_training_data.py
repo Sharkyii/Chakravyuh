@@ -51,7 +51,17 @@ for base in ATTACK_SCENARIOS:
     for i in range(EXPANSION_FACTOR):
         expanded_scenarios.append({
             "attack_id": base["attack_id"],
-            "seed": base["seed"] + i,
+            # `* 1000` keeps each family's expanded seed range (base*1000 ..
+            # base*1000+EXPANSION_FACTOR-1) from overlapping any other
+            # family's, as long as EXPANSION_FACTOR stays under 1000. The
+            # previous `base["seed"] + i` scheme used adjacent base seeds
+            # (101, 102, 103, ...) with a wide expansion, so e.g. seed 105
+            # was reused by five different families -- AttackGenerator.generate()
+            # seeds its RNG with this integer alone, so same-seed campaigns
+            # from unrelated families produced colliding txn_id uuids
+            # (confirmed: ~3.2k duplicate transaction rows in a full run),
+            # which corrupted every downstream `merge(on="txn_id")`.
+            "seed": base["seed"] * 1000 + i,
             "intensity": base["intensity"]
         })
 ATTACK_SCENARIOS = expanded_scenarios
@@ -130,7 +140,7 @@ def main():
         # separates two trivially different distributions... meaningless
         # within thirty seconds").
         lookalike_txs, lookalike_labels = make_legit_lookalike_rows(
-            attack_rows=txs_dicts, attack_labels=labels_dicts, seed=seed
+            attack_rows=txs_dicts, attack_labels=labels_dicts, seed=seed, baseline=baseline
         )
         txs_dicts = txs_dicts + lookalike_txs
         labels_dicts = labels_dicts + lookalike_labels

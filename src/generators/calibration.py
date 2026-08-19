@@ -285,3 +285,13 @@ LEGIT_FIRST_BENEFICIARY_ADDED_MIN_S = 30
 LEGIT_FIRST_BENEFICIARY_ADDED_MAX_S = 45 * 24 * 60 * 60
 LEGIT_EXISTING_BENEFICIARY_MIN_AGE_S = 7 * 24 * 60 * 60
 LEGIT_EXISTING_BENEFICIARY_MAX_AGE_S = 2 * 365 * 24 * 60 * 60
+
+# Five representative Indian consumer/mobile ISP ASNs, drawn uniformly. Shared
+# between src/generators/legitimate.py and src/attacks/framework.py so that
+# fraud rows can't be trivially separated from legitimate ones by a single
+# hardcoded ASN value never appearing in the other population (issues.md I17
+# -- found via feature-importance inspection after fixing I6/I7: with the
+# structural campaign-shape leak closed, ip_asn immediately became a new
+# near-perfect proxy at 81% feature importance, because every attack row
+# defaulted to the same one ASN while legitimate rows chose among five).
+IP_ASN_POOL: list[str] = ["AS55836", "AS45609", "AS9829", "AS9498", "AS4755"]

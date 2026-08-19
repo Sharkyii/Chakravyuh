@@ -130,7 +130,7 @@ def write_attack_dataset(
     # attack-only (one campaign, is_fraud=True) for callers that inspect the
     # AttackDataset return value directly.
     lookalike_txs, lookalike_labels = make_legit_lookalike_rows(
-        attack_rows=result.transactions, attack_labels=result.labels, seed=result.campaign.seed
+        attack_rows=result.transactions, attack_labels=result.labels, seed=result.campaign.seed, baseline=baseline
     )
     combined_transactions = baseline.transactions + result.transactions + lookalike_txs
     combined_labels = baseline.labels + result.labels + lookalike_labels

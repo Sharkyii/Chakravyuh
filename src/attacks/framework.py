@@ -15,6 +15,7 @@ import json
 import numpy as np
 
 from src.dataset.loader import PaymentDataset
+from src.generators import calibration as cal
 from src.generators.ids import new_uuid
 from src.schema.enums import DetectableAt
 
@@ -254,11 +255,15 @@ def _transaction_row(
     issuer_risk_score: float = 0.08,
     session_id: str | None = None,
     ip_country: str = "IN",
-    ip_asn: str = "AS55836",
+    ip_asn: str | None = None,
     ip_is_proxy: bool = False,
 ) -> dict[str, Any]:
     if session_id is None:
         session_id = new_uuid(rng)
+    if ip_asn is None:
+        # Same pool legitimate.py draws from -- a fixed default here made
+        # every attack row's ASN a trivial, near-perfect fraud tell (I17).
+        ip_asn = str(rng.choice(cal.IP_ASN_POOL))
     if auth_latency_ms is None:
         if auth_method == "none":
             auth_latency_ms = None

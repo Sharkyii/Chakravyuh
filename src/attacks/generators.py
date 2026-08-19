@@ -82,29 +82,223 @@ def _random_start_ts(baseline: PaymentDataset, rng: np.random.Generator) -> date
     return valid_ts[int(rng.integers(0, len(valid_ts)))]
 
 
-def make_legit_lookalike_rows(*, attack_rows: list[dict[str, Any]], attack_labels: list[dict[str, Any]], seed: int) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+_payer_history_cache: dict[int, dict[str, Any]] = {}
+
+
+def _payer_history_index(baseline: PaymentDataset) -> dict[str, Any]:
+    """Index of who each payer has genuinely transacted with in the baseline,
+    plus overall payee popularity counts.
+
+    Cached by object identity: `load_dataset` already caches `PaymentDataset`
+    instances by resolved path, so within one process (the `make attack` CLI
+    path or the stage5 training-data generator's per-scenario loop) this
+    index is built once per distinct baseline rather than once per campaign.
+    """
+    key = id(baseline)
+    cached = _payer_history_cache.get(key)
+    if cached is not None:
+        return cached
+    payer_to_payees: dict[str, list[str]] = {}
+    payee_counts: dict[str, int] = {}
+    for row in baseline.transactions:
+        payer_to_payees.setdefault(row["payer_id"], []).append(row["payee_id"])
+        payee_counts[row["payee_id"]] = payee_counts.get(row["payee_id"], 0) + 1
+    index = {"payer_to_payees": payer_to_payees, "payee_counts": payee_counts}
+    _payer_history_cache[key] = index
+    return index
+
+
+def _existing_merchant_for_payer(
+    baseline: PaymentDataset, payer_id: str, rng: np.random.Generator, merchants: list[dict[str, Any]]
+) -> dict[str, Any]:
+    """Prefer a merchant this payer has genuinely transacted with before.
+
+    Several attack generators route a campaign through one merchant while
+    labelling every row `beneficiary_first_time=False` with an "existing
+    beneficiary" `beneficiary_added_ago_s` -- but until now that merchant was
+    picked uniformly at random, so the graph itself showed a brand-new pair
+    the row's own metadata claimed wasn't new (issues.md I7). Falls back to a
+    popularity-weighted pick (mirrors `src.generators.legitimate._merchant_choice`'s
+    volume bias) when the payer has no prior transaction on record.
+    """
+    index = _payer_history_index(baseline)
+    merchant_ids = {m["merchant_id"] for m in merchants}
+    prior = sorted({pid for pid in index["payer_to_payees"].get(payer_id, []) if pid in merchant_ids})
+    if prior:
+        chosen_id = prior[int(rng.integers(0, len(prior)))]
+        return next(m for m in merchants if m["merchant_id"] == chosen_id)
+    counts = index["payee_counts"]
+    weights = np.array([counts.get(m["merchant_id"], 0) + 1 for m in merchants], dtype=np.float64)
+    weights = weights / weights.sum()
+    return merchants[int(rng.choice(len(merchants), p=weights))]
+
+
+def _existing_consumer_payees_for_payer(
+    baseline: PaymentDataset,
+    payer_id: str,
+    rng: np.random.Generator,
+    consumer_ids: list[str],
+    *,
+    k: int,
+) -> list[str]:
+    """Up to `k` counterparties this payer has genuinely transacted with
+    before, padded with random distinct consumers if there aren't enough on
+    record. Used to route a campaign across a small pool of plausible peers
+    instead of one fixed brand-new pair (issues.md I7) -- a single pair
+    absorbing every campaign event is close to a perfect graph/velocity tell
+    by itself, independent of how slowly events are spread in time.
+    """
+    index = _payer_history_index(baseline)
+    consumer_id_set = set(consumer_ids)
+    prior = sorted({pid for pid in index["payer_to_payees"].get(payer_id, []) if pid in consumer_id_set and pid != payer_id})
+    rng.shuffle(prior)
+    chosen: list[str] = prior[:k]
+    pool = [pid for pid in consumer_ids if pid != payer_id and pid not in chosen]
+    while len(chosen) < k and pool:
+        pick_idx = int(rng.integers(0, len(pool)))
+        chosen.append(pool.pop(pick_idx))
+    return chosen or [payer_id]
+
+
+def _lookalike_window(baseline: PaymentDataset) -> tuple[datetime, datetime]:
+    """Simulation window to spread independent lookalike timestamps across."""
+    sim_start_str = baseline.manifest.get("simulation_start")
+    sim_end_str = baseline.manifest.get("simulation_end")
+    if sim_start_str and sim_end_str:
+        start = datetime.fromisoformat(sim_start_str)
+        end = datetime.fromisoformat(sim_end_str)
+        if baseline.transactions:
+            first_ts = baseline.transactions[0]["timestamp"]
+            if first_ts.tzinfo is not None and start.tzinfo is None:
+                start = start.replace(tzinfo=first_ts.tzinfo)
+                end = end.replace(tzinfo=first_ts.tzinfo)
+        return start, end
+    timestamps = [row["timestamp"] for row in baseline.transactions]
+    if not timestamps:
+        return cal.SIM_START, cal.SIM_END
+    return min(timestamps), max(timestamps)
+
+
+def _independent_timestamp(rng: np.random.Generator, start: datetime, end: datetime) -> datetime:
+    total_seconds = max(1, int((end - start).total_seconds()) - 1)
+    offset = int(rng.integers(0, total_seconds))
+    return start + timedelta(seconds=offset)
+
+
+def make_legit_lookalike_rows(
+    *,
+    attack_rows: list[dict[str, Any]],
+    attack_labels: list[dict[str, Any]],
+    seed: int,
+    baseline: PaymentDataset,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Build the legit_lookalike companion population for one campaign's attack rows.
 
-    Previously defined but never called anywhere -- every generator was
-    silently emitting fraud-only output despite docs/attack-catalogue.md's
-    "a generator without a legit_lookalike population is incomplete" rule.
+    Each lookalike keeps the source fraud row's rough *shape* -- rail,
+    channel, MCC, amount scale -- but gets its own independently plausible
+    counterparty and timing, instead of being a shallow `dict(row)` copy that
+    lands on the exact same payer/payee pair at the exact same instant as
+    the fraud row it's shadowing (I6: that made it a structural clone, not a
+    hard negative). The payee is drawn from the baseline population -- a
+    different merchant for P2M/card rows, a different consumer for P2P rows
+    -- and the timestamp is resampled independently across the simulation
+    window so lookalikes don't cluster with the fraud campaign or each other.
+
     Callers: src.attacks.registry.write_attack_dataset (the make attack CLI
     path) and stage5.training.generate_training_data (the detector training
-    path) -- both need to call this, not generator.generate() alone.
+    path) -- both call this at the write/combine stage, not as part of
+    generator.generate() itself, so `AttackDataset.transactions/labels`
+    stay pure attack-only (see tests/attacks/test_attack_framework.py).
     """
     lookalike_rows: list[dict[str, Any]] = []
     lookalike_labels: list[dict[str, Any]] = []
     if not attack_rows:
         return lookalike_rows, lookalike_labels
+
+    consumer_ids = [row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"]
+    merchants = baseline.tables["merchants"]
+    window_start, window_end = _lookalike_window(baseline)
+
+    # Route this campaign's lookalikes through a small, bounded pool of
+    # counterparties rather than an independently random pick per row. A
+    # lookalike's payer is the same person as the fraud row it's shadowing
+    # (see docstring), so if every lookalike row picked a brand-new random
+    # payee, a payer touched by a single campaign would rack up as many as
+    # `len(attack_rows)` extra distinct counterparties -- inflating that
+    # payer's `payer_out_degree` far past organic levels (own regression
+    # caught by re-running the metrics after this fix: it briefly became a
+    # bigger structural tell than the original I6 bug). Capped at 3, in line
+    # with `DISTINCT_COUNTERPARTIES_30D_MEAN` (6-14) -- a handful of extra
+    # counterparties over the campaign's lifetime is well inside that range.
+    pool_rng = np.random.default_rng(np.random.SeedSequence([seed, 9002]))
+    pool_size = max(1, min(3, len(attack_rows)))
+    merchant_pool: list[dict[str, Any]] | None = None
+    consumer_pool: list[str] | None = None
+
     for idx, row in enumerate(attack_rows):
+        rng = np.random.default_rng(np.random.SeedSequence([seed, 9001, idx]))
         variant = dict(row)
         variant["txn_id"] = f"lookalike-{seed}-{idx}-{variant['txn_id']}"
-        variant["amount"] = (row["amount"] * Decimal("0.82") + Decimal("5.00")).quantize(Decimal("0.01"))
-        variant["beneficiary_first_time"] = True if idx % 2 == 0 else False
-        variant["time_on_confirm_screen_s"] = max(2.0, float(row["time_on_confirm_screen_s"]) * 0.9)
-        variant["session_duration_s"] = max(20, int(row["session_duration_s"]) - 5)
-        variant["issuer_risk_score"] = min(0.18, max(0.03, float(row["issuer_risk_score"]) * 0.75))
+
+        payer_id = row["payer_id"]
+        if row.get("merchant_id"):
+            if merchant_pool is None:
+                candidates = [m for m in merchants if m["merchant_id"] != row["merchant_id"] and m["mcc_declared"] == row.get("mcc")]
+                if not candidates:
+                    candidates = [m for m in merchants if m["merchant_id"] != row["merchant_id"]] or merchants
+                n = min(pool_size, len(candidates))
+                pick_idxs = pool_rng.choice(len(candidates), size=n, replace=False)
+                merchant_pool = [candidates[int(i)] for i in pick_idxs]
+            chosen = merchant_pool[idx % len(merchant_pool)]
+            variant["payee_id"] = chosen["merchant_id"]
+            variant["merchant_id"] = chosen["merchant_id"]
+            variant["mcc"] = chosen["mcc_declared"]
+        else:
+            if consumer_pool is None:
+                candidates = [pid for pid in consumer_ids if pid != payer_id and pid != row["payee_id"]]
+                if not candidates:
+                    candidates = [pid for pid in consumer_ids if pid != payer_id] or consumer_ids
+                n = min(pool_size, len(candidates))
+                pick_idxs = pool_rng.choice(len(candidates), size=n, replace=False)
+                consumer_pool = [candidates[int(i)] for i in pick_idxs]
+            variant["payee_id"] = consumer_pool[idx % len(consumer_pool)]
+
+        variant["timestamp"] = _independent_timestamp(rng, window_start, window_end)
+
+        # Shape match on amount scale, independent jitter rather than a fixed
+        # deterministic transform of the fraud row's exact amount.
+        scale = float(rng.uniform(0.55, 1.15))
+        variant["amount"] = (row["amount"] * Decimal(str(round(scale, 4))) + Decimal("5.00")).quantize(Decimal("0.01"))
+        variant["amount_is_round"] = variant["amount"] % Decimal("100.00") == Decimal("0.00")
+
+        variant["beneficiary_first_time"] = bool(rng.random() < 0.3)
+        if variant["beneficiary_first_time"]:
+            variant["beneficiary_added_ago_s"] = int(
+                rng.integers(cal.LEGIT_FIRST_BENEFICIARY_ADDED_MIN_S, cal.LEGIT_FIRST_BENEFICIARY_ADDED_MAX_S)
+            )
+        else:
+            variant["beneficiary_added_ago_s"] = int(
+                rng.integers(cal.LEGIT_EXISTING_BENEFICIARY_MIN_AGE_S, cal.LEGIT_EXISTING_BENEFICIARY_MAX_AGE_S)
+            )
+
+        variant["time_on_confirm_screen_s"] = max(0.4, float(row["time_on_confirm_screen_s"]) * float(rng.uniform(0.7, 1.05)))
+        variant["session_duration_s"] = max(15, int(float(row["session_duration_s"]) * float(rng.uniform(0.75, 1.05))))
+        variant["issuer_risk_score"] = min(0.18, max(0.03, float(row["issuer_risk_score"]) * float(rng.uniform(0.5, 0.85))))
+
+        # A legit lookalike is, by construction, not a coerced or compromised
+        # payment -- don't inherit the source fraud row's coercion/automation
+        # signals (screen_share_active etc. are the strongest such fields per
+        # docs/data-schema-v1.md), only its transaction shape.
         variant["decision"] = "approved"
+        variant["auth_result"] = "success"
+        variant["decline_reason"] = None
+        variant["screen_share_active"] = bool(rng.random() < 0.0015)
+        variant["call_active_during_txn"] = bool(rng.random() < 0.018)
+        variant["accessibility_service_active"] = bool(rng.random() < 0.006)
+        variant["paste_used_in_amount"] = bool(rng.random() < 0.028)
+        variant["is_agent_initiated"] = False
+        variant["agent_declared_principal"] = None
+
         lookalike_rows.append(variant)
         lookalike_labels.append({
             "txn_id": variant["txn_id"],
@@ -420,26 +614,33 @@ class AdversarialEvasionAttack(AttackGenerator):
         intensity_value = intensity if isinstance(intensity, AttackIntensity) else AttackIntensity(str(intensity).upper())
         consumer_ids = [row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"]
         payer_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
-        payee_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
-        if payer_id == payee_id:
-            payee_id = consumer_ids[(consumer_ids.index(payer_id) + 1) % len(consumer_ids)]
-            
+
         device_id = _choose_device_for_party(baseline, payer_id) or baseline.tables["devices"][0]["device_id"]
-        
+
         n_events = {AttackIntensity.LOW: 2, AttackIntensity.MEDIUM: 4, AttackIntensity.HIGH: 7}[intensity_value]
         n_events += int(rng.integers(-1, 2))
         n_events = max(2, n_events)
-        
+
+        # Route across a small pool of the payer's genuinely pre-existing
+        # counterparties instead of one fixed brand-new pair -- a single
+        # pair absorbing every event is close to a perfect graph tell
+        # regardless of how slowly events are spread (issues.md I7). The
+        # catalogue's inversion-pass claim for this family requires every
+        # feature, including counterparty structure, to sit inside the
+        # legitimate distribution.
+        payee_pool = _existing_consumer_payees_for_payer(baseline, payer_id, rng, consumer_ids, k=min(3, n_events))
+
         start_ts = _random_start_ts(baseline, rng)
-        
+
         rows: list[dict[str, Any]] = []
         labels: list[dict[str, Any]] = []
-        
+
         for i in range(n_events):
+            payee_id = payee_pool[i % len(payee_pool)]
             amount = _money(210.0 + i * 80.0 + float(rng.normal(0, 30)))
             # Low and slow spread stochastically
             event_ts = start_ts + timedelta(hours=float(rng.uniform(4.0, 20.0)) * i)
-            
+
             txn = _transaction_row(
                 rng=rng,
                 payer_id=payer_id,
@@ -477,7 +678,7 @@ class AdversarialEvasionAttack(AttackGenerator):
             intensity=intensity_value,
             start_time=rows[0]["timestamp"],
             end_time=rows[-1]["timestamp"],
-            affected_entities=[payer_id, payee_id],
+            affected_entities=[payer_id] + sorted(set(payee_pool)),
             event_count=len(rows),
             pretext="low_and_slow",
             config={"low_and_slow": True},
@@ -497,19 +698,23 @@ class FirstPartyDisputeAttack(AttackGenerator):
         
         consumer_ids = [row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"]
         payer_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
-        merchant_row = baseline.tables["merchants"][int(rng.integers(0, len(baseline.tables["merchants"])))]
+        # Prefer a merchant this payer has actually transacted with before
+        # (issues.md I7): the rows below are already labelled as an existing
+        # beneficiary, but a uniformly random merchant made that claim false
+        # in the graph -- a brand-new pair suddenly getting hit N times.
+        merchant_row = _existing_merchant_for_payer(baseline, payer_id, rng, baseline.tables["merchants"])
         merchant_id = merchant_row["merchant_id"]
         device_id = _choose_device_for_party(baseline, payer_id) or baseline.tables["devices"][0]["device_id"]
-        
+
         start_ts = _random_start_ts(baseline, rng)
-        
+
         n_events = _intensity_count(intensity_value, 2, 5, 9)
         n_events += int(rng.integers(-1, 2))
         n_events = max(2, n_events)
-        
+
         rows: list[dict[str, Any]] = []
         labels: list[dict[str, Any]] = []
-        
+
         for i in range(n_events):
             # Friendly fraud: spread stochastically over days
             event_ts = start_ts + timedelta(days=float(rng.uniform(1.0, 4.0)) * i, hours=float(rng.uniform(-3.0, 5.0)))
@@ -558,12 +763,16 @@ class StealthMandateAttack(AttackGenerator):
         intensity_value = intensity if isinstance(intensity, AttackIntensity) else AttackIntensity(str(intensity).upper())
         consumer_ids = [row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"]
         payer_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
-        merchant_row = baseline.tables["merchants"][int(rng.integers(0, len(baseline.tables["merchants"])))]
+        # Prefer a merchant this payer has actually transacted with before
+        # (issues.md I7) -- a recurring mandate to a genuinely established
+        # biller relationship, not a brand-new pair with an "existing
+        # beneficiary" label the graph itself contradicts.
+        merchant_row = _existing_merchant_for_payer(baseline, payer_id, rng, baseline.tables["merchants"])
         merchant_id = merchant_row["merchant_id"]
         device_id = _choose_device_for_party(baseline, payer_id) or baseline.tables["devices"][0]["device_id"]
-        
+
         start_ts = _random_start_ts(baseline, rng)
-        
+
         n_events = _intensity_count(intensity_value, 3, 6, 12)
         n_events += int(rng.integers(-1, 3))
         n_events = max(3, n_events)
@@ -1055,12 +1264,17 @@ class InsiderAbuseAttack(AttackGenerator):
         intensity_value = intensity if isinstance(intensity, AttackIntensity) else AttackIntensity(str(intensity).upper())
         consumer_ids = [row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"]
         payer_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
-        merchant_row = baseline.tables["merchants"][int(rng.integers(0, len(baseline.tables["merchants"])))]
+        # Prefer a merchant this payer has actually transacted with before
+        # (issues.md I7) -- insider abuse "follows internal policy on paper"
+        # per the catalogue, which should include the relationship looking
+        # established rather than a brand-new pair suddenly getting hit N
+        # times with no organic history.
+        merchant_row = _existing_merchant_for_payer(baseline, payer_id, rng, baseline.tables["merchants"])
         merchant_id = merchant_row["merchant_id"]
         device_id = _choose_device_for_party(baseline, payer_id) or baseline.tables["devices"][0]["device_id"]
-        
+
         start_ts = _random_start_ts(baseline, rng)
-        
+
         n_events = _intensity_count(intensity_value, 2, 5, 9)
         n_events += int(rng.integers(-1, 2))
         n_events = max(2, n_events)

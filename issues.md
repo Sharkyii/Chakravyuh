@@ -19,7 +19,7 @@ it's the source of truth for "what's left," not the conversation history.
 | I9 | FIXED (code only) | medium | detector | `train_attack_classifier.py` splits by random shuffled `campaign_id`, not temporally -- same bug class as I1, lower stakes (auxiliary model, not the judged detector). Split logic now temporal; not yet re-run (heavy retrain deferred, see Next tasks P3) |
 | I10 | FIXED | low | attacks | `LLMScenarioGenerator`/`HybridScenarioGenerator` call the Gemini API when `SCENARIO_GENERATOR_MODE` is `llm`/`hybrid` -- off by default but undocumented in AGENTS.md |
 | I11 | IN PROGRESS | high | deliverable | Closed-loop iteration doc (misses -> new attack variant -> improved detector). Diagnosis + adaptive attack-generation code done (`docs/closed-loop.md`), the actual before/after retrain measurement is deferred (heavy task) |
-| I12 | OPEN | high | deliverable | Web prototype -- mandatory submission artifact -- not started |
+| I12 | FIXED | high | deliverable | Web prototype -- mandatory submission artifact. Streamlit app at `web/app.py` (live scoring, closed-loop diagnostics, catalogue browser); needs `stage5/models/*.pkl` trained to actually score (graceful message if not) |
 | I13 | OPEN | high | deliverable | Walkthrough deck -- mandatory submission artifact -- not started |
 | I14 | FIXED | low | docs | The catalogue's "Outstanding before freeze" checklist now reflects the D3 rail-limit verification, completed D5 evidence pass, remaining UPI P2M primary-circular retrieval, 14 missing expanded cards, and the structural lookalike gap (I6/I7). |
 | I15 | OPEN | medium | generators | Day-of-week histogram is perfectly flat (0.142-0.143 every day) -- `_timestamp()` in `src/generators/legitimate.py` draws uniformly across the 12-week window with an hour-of-day nudge only, no weekday effect. Contradicts the brief's own spec ("salary-day spikes, weekend patterns") and I8's committed reference stats. Found by I8's validation report. |
@@ -32,23 +32,22 @@ it's the source of truth for "what's left," not the conversation history.
 
 Work in this order; each item should be independently tested and committed before moving on.
 
-1. **P0 — Build I12, the mandatory web prototype:** wire a demonstrable analyst flow to the
-   Stage 6 inference pipeline using only decision-time fields and a reproducible sample dataset.
-2. **P0 — Build I13, the mandatory walkthrough deck:** include the corrected D2 statistic,
+1. **P0 — Build I13, the mandatory walkthrough deck:** include the corrected D2 statistic,
    the D3 sources, confidence-tier labels from the evidence pass, and the post-I6/I7/I17
    detector numbers from `docs/model-choice.md`. Do not quote the UPI P2M higher-limit
-   figures until the primary circular is retrieved.
-3. **P1 — Finish I11:** `docs/closed-loop.md` has the diagnosis and the adaptive attack code
+   figures until the primary circular is retrieved. Screenshot the web prototype (I12) for
+   the "working prototype" slide once a model is trained and it can score live.
+2. **P1 — Finish I11:** `docs/closed-loop.md` has the diagnosis and the adaptive attack code
    (`build_adaptive_attack_config.py`, `AdversarialEvasionAttack`'s new config keys) is
    implemented and tested. Still needed: run `generate_training_data` then
    `train_fraud_model` again and record the actual before/after per-family recall in that
    doc's part 4 -- heavy task, deliberately deferred, don't fill in a number without running it.
-4. **P1 — Close I15/I16:** calibrate weekday and MCC-conditioned amount distributions, then
+3. **P1 — Close I15/I16:** calibrate weekday and MCC-conditioned amount distributions, then
    extend the fidelity report/tests with the target tolerances.
-5. **P2 — Complete catalogue documentation:** retrieve the primary UPI P2M circular; audit
+4. **P2 — Complete catalogue documentation:** retrieve the primary UPI P2M circular; audit
    remaining catalogue statistics in phased source-backed research notes; append the 14
    remaining expanded attack cards.
-6. **P3 — stage5 artifacts (heavy, deliberately deferred):** `stage5/models/fraud_model.pkl`/
+5. **P3 — stage5 artifacts (heavy, deliberately deferred):** `stage5/models/fraud_model.pkl`/
    `preprocessor.pkl` are current (post-I6/I7/I17), but `attack_classifier.pkl` and
    `attack_class_mapping.json` still reflect the pre-I9 random split and need regenerating
    against the current combined dataset: `uv run python -m stage5.training.train_attack_classifier`.

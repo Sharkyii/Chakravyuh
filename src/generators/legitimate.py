@@ -57,7 +57,7 @@ def _money(value: float) -> Decimal:
     return Decimal(str(max(value, 1.0))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
-def _amount_for_rail(rng: np.random.Generator, rail: Rail, income_type: str) -> Decimal:
+def _amount_for_rail(rng: np.random.Generator, rail: Rail, income_type: str, mcc: int | None) -> Decimal:
     persona_multiplier = {"salaried": 1.15, "gig": 0.95, "none": 0.65}[income_type]
     if rail in {Rail.CARD_CNP, Rail.CARD_CP}:
         value = rng.lognormal(mean=6.35, sigma=0.85) * persona_multiplier
@@ -67,6 +67,11 @@ def _amount_for_rail(rng: np.random.Generator, rail: Rail, income_type: str) -> 
         value = rng.lognormal(mean=4.8, sigma=0.75) * persona_multiplier
     else:
         value = rng.lognormal(mean=5.55, sigma=0.9) * persona_multiplier
+    if mcc is not None:
+        # issues.md I16 -- MCC-conditioned amount shape, sourced qualitatively
+        # against BankSim's documented category-amount relationship (see
+        # calibration.MCC_AMOUNT_MULTIPLIER's comment).
+        value *= cal.MCC_AMOUNT_MULTIPLIER.get(mcc, cal.DEFAULT_MCC_AMOUNT_MULTIPLIER)
     return _money(value)
 
 
@@ -74,10 +79,22 @@ def _is_round_amount(amount: Decimal) -> bool:
     return amount % Decimal("100.00") == Decimal("0.00") or amount % Decimal("500.00") == Decimal("0.00")
 
 
-def _timestamp(rng: np.random.Generator) -> datetime:
-    total_seconds = int((cal.SIM_END - cal.SIM_START).total_seconds())
-    offset = int(rng.integers(0, total_seconds))
-    base = cal.SIM_START + timedelta(seconds=offset)
+def _day_weights(total_days: int) -> np.ndarray:
+    """Per-day sampling weights over the simulation window, following
+    calibration.DAY_OF_WEEK_WEIGHTS (issues.md I15). Computed once per
+    generator run, not per transaction -- see generate_legitimate_transactions.
+    """
+    weights = np.array(
+        [cal.DAY_OF_WEEK_WEIGHTS[(cal.SIM_START + timedelta(days=d)).weekday()] for d in range(total_days)],
+        dtype=np.float64,
+    )
+    return weights / weights.sum()
+
+
+def _timestamp(rng: np.random.Generator, total_days: int, day_weights: np.ndarray) -> datetime:
+    day_offset = int(rng.choice(total_days, p=day_weights))
+    seconds_into_day = int(rng.integers(0, 86_400))
+    base = cal.SIM_START + timedelta(days=day_offset, seconds=seconds_into_day)
     # Human payments cluster outside sleeping hours; retain a small overnight tail.
     if rng.random() < 0.88 and base.hour < 6:
         base = base + timedelta(hours=int(rng.integers(7, 15)))
@@ -245,6 +262,9 @@ def generate_legitimate_transactions(seed: int, population: PopulationBundle) ->
     rows: list[Transaction] = []
     labels: list[Label] = []
 
+    total_days = max(1, (cal.SIM_END - cal.SIM_START).days)
+    day_weights = _day_weights(total_days)
+
     for gp in consumer_parties:
         mean_count = cal.LEGIT_TXN_MEAN_BY_INCOME_TYPE[gp.income_type]
         n_txns = int(max(1, txn_rng.poisson(mean_count)))
@@ -252,10 +272,9 @@ def generate_legitimate_transactions(seed: int, population: PopulationBundle) ->
         seen_payees: set[str] = set()
 
         for _ in range(n_txns):
-            ts = _timestamp(txn_rng)
+            ts = _timestamp(txn_rng, total_days, day_weights)
             is_p2m = bool(txn_rng.random() < gp.party.organic_spend_ratio)
             rail, channel = _rail_and_channel(txn_rng, is_p2m)
-            amount = _amount_for_rail(txn_rng, rail, gp.income_type)
 
             if is_p2m:
                 gm = _merchant_choice(txn_rng, population.merchants)
@@ -268,6 +287,8 @@ def generate_legitimate_transactions(seed: int, population: PopulationBundle) ->
                 payee_id = payee.party.party_id
                 merchant_id = None
                 mcc = None
+
+            amount = _amount_for_rail(txn_rng, rail, gp.income_type, mcc)
 
             first_time = payee_id not in seen_payees
             seen_payees.add(payee_id)

@@ -210,6 +210,47 @@ MCC_WEIGHTS: dict[int, float] = {
     5262: 0.04,  # direct marketing / marketplaces (secondary bucket)
 }
 
+# Multiplier applied to the rail-level amount draw (issues.md I16 -- amounts
+# used to be MCC-independent, contradicting BankSim's documented shape:
+# "high-frequency categories skew toward small amounts; low-frequency
+# categories skew toward much larger amounts" (data/reference/banksim.json,
+# amount_by_category_shape). Everyday/high-frequency MCCs get multipliers
+# below 1.0, travel/insurance/electronics-adjacent low-frequency MCCs above
+# it. Reasoned relative scale, not a per-MCC cited figure -- the shape is
+# what's sourced, not the exact ratios.
+MCC_AMOUNT_MULTIPLIER: dict[int, float] = {
+    5411: 0.55,  # grocery -- frequent, small basket
+    5812: 0.70,  # restaurants
+    5541: 0.90,  # fuel
+    5964: 1.10,  # ecommerce marketplaces
+    4900: 0.65,  # utilities -- regular bill size
+    5912: 0.45,  # pharmacies -- small, frequent
+    5651: 1.30,  # clothing
+    5999: 0.80,  # misc retail
+    4121: 0.50,  # taxi / rideshare
+    5732: 2.20,  # electronics -- BankSim's es_tech is low-frequency/high-value
+    7011: 4.50,  # hotels -- BankSim's es_hotelservices/es_travel are the clearest high-value tail
+    5813: 0.60,  # bars
+    8299: 1.80,  # education services
+    6300: 2.50,  # insurance -- premium-sized, infrequent
+    5983: 1.00,  # fuel dealers (LPG etc.)
+    4814: 0.40,  # telecom -- small, frequent
+    5262: 1.10,  # marketplaces (secondary bucket)
+}
+DEFAULT_MCC_AMOUNT_MULTIPLIER = 1.0
+
+# Day-of-week weights, Monday=0 .. Sunday=6 (Python's datetime.weekday()).
+# issues.md I15 -- the generator previously drew timestamps uniformly across
+# the whole window with only an hour-of-day nudge, producing a perfectly flat
+# day-of-week histogram, contradicting the brief's own spec ("salary-day
+# spikes, weekend patterns"). Weekend lift sized to actually register against
+# src/validation/marginals.py's non-uniformity check (needs max-min > 0.5/7 ≈
+# 0.071) -- an earlier, gentler version of this table was directionally
+# correct but too subtle to clear that bar. Reasoned shape (weekend
+# leisure/grocery spend meaningfully above weekday troughs is a standard,
+# well-documented retail pattern), not fit to a cited per-weekday statistic.
+DAY_OF_WEEK_WEIGHTS: list[float] = [0.11, 0.11, 0.11, 0.12, 0.15, 0.20, 0.20]
+
 # Pareto shape for merchant transaction-volume share: low alpha -> heavier
 # tail -> a few large merchants dominate volume while most are small.
 # Reasoned assumption (typical of retail/payments merchant bases generally),

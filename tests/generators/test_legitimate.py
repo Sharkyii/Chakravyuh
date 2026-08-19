@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from decimal import Decimal
 from pathlib import Path
 
+import numpy as np
 import pyarrow.parquet as pq
 import pytest
 
@@ -127,3 +129,52 @@ def test_stage1_writer_outputs_schema_valid_parquet(tmp_path: Path):
 
     assert (out / "manifest.json").exists()
     assert (out / "validation_report.json").exists()
+
+
+def test_day_of_week_distribution_is_not_flat(small_population):
+    """issues.md I15: timestamps must reflect calibration.DAY_OF_WEEK_WEIGHTS,
+    not a uniform draw across the whole window."""
+    dataset = generate_legitimate_transactions(seed=42, population=small_population)
+    assert len(dataset.transactions) > 500, "need enough rows for a meaningful weekday count"
+
+    from collections import Counter
+
+    counts = Counter(t.timestamp.weekday() for t in dataset.transactions)
+    total = sum(counts.values())
+    shares = {day: counts.get(day, 0) / total for day in range(7)}
+
+    # Same rank ordering as the calibration weights, not exact equality --
+    # sampling noise is expected, a completely different shape is not.
+    weighted_days = sorted(range(7), key=lambda d: cal.DAY_OF_WEEK_WEIGHTS[d])
+    observed_days = sorted(range(7), key=lambda d: shares[d])
+    assert weighted_days[0] in observed_days[:3], "lowest-weighted day should not be the busiest"
+    assert weighted_days[-1] in observed_days[-3:], "highest-weighted day should not be the quietest"
+
+    # Match src/validation/marginals.py's compare_temporal_patterns threshold
+    # exactly (max-min > 0.5/7) -- a weaker spread here passed this rank-order
+    # check but still failed the fidelity report as flat (issues.md I15).
+    assert max(shares.values()) - min(shares.values()) > 0.5 / 7, "too subtle to clear the fidelity report's non-uniformity bar"
+
+
+def test_amount_scales_with_mcc():
+    """issues.md I16: amount must be conditioned on MCC, not just rail/income_type.
+    Same underlying rng draw, only the MCC differs -- hotels (7011, multiplier
+    4.50) must come out larger than groceries (5411, multiplier 0.55)."""
+    from src.generators.legitimate import _amount_for_rail
+    from src.schema.enums import Rail
+
+    grocery = _amount_for_rail(np.random.default_rng(7), Rail.UPI_P2M, "salaried", 5411)
+    hotel = _amount_for_rail(np.random.default_rng(7), Rail.UPI_P2M, "salaried", 7011)
+    assert hotel > grocery * Decimal("3")
+
+
+def test_amount_for_rail_defaults_when_mcc_unknown():
+    from src.generators.legitimate import _amount_for_rail
+    from src.schema.enums import Rail
+
+    # A P2P transaction (mcc=None) and an MCC absent from the multiplier
+    # table both fall back to DEFAULT_MCC_AMOUNT_MULTIPLIER (1.0) rather
+    # than raising or silently zeroing the amount.
+    p2p = _amount_for_rail(np.random.default_rng(3), Rail.UPI_P2P, "gig", None)
+    unknown_mcc = _amount_for_rail(np.random.default_rng(3), Rail.UPI_P2P, "gig", 9999)
+    assert p2p == unknown_mcc

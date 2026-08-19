@@ -653,6 +653,19 @@ class AdversarialEvasionAttack(AttackGenerator):
         cfg = config or {}
         pretext = "low_and_slow"
 
+        # Payee-pool selection uses its own independently seeded rng, not the
+        # shared `rng` used below for amounts/timing/session fields. Without
+        # this, the adaptive branch (which makes zero rng draws) and the
+        # default branch (which shuffles/pads with rng draws) desync the
+        # shared stream's state for everything downstream -- the same seed
+        # produced different amounts, timestamps, and even which events fell
+        # in which temporal split window depending on which branch ran,
+        # confounding any adaptive-vs-default comparison (found while
+        # measuring issues.md I11's before/after: adversarial_evasion's test
+        # sample size shifted from 38 rows to 7 between generations even
+        # though only routing was supposed to change).
+        payee_rng = np.random.default_rng(np.random.SeedSequence([seed, 9101]))
+
         # Adaptive mode (issues.md I11's closed loop): a prior detector
         # generation's feature importances named edge_count as the strongest
         # remaining signal. This is the "new attack variant" half of the
@@ -665,7 +678,7 @@ class AdversarialEvasionAttack(AttackGenerator):
         if cfg.get("adaptive_top_counterparty"):
             top = _top_counterparty_for_payer(baseline, payer_id, consumer_ids)
             payee_pool = [top] if top else _existing_consumer_payees_for_payer(
-                baseline, payer_id, rng, consumer_ids, k=min(3, n_events)
+                baseline, payer_id, payee_rng, consumer_ids, k=min(3, n_events)
             )
             pretext = "low_and_slow_adaptive"
         else:
@@ -676,7 +689,7 @@ class AdversarialEvasionAttack(AttackGenerator):
             # catalogue's inversion-pass claim for this family requires every
             # feature, including counterparty structure, to sit inside the
             # legitimate distribution.
-            payee_pool = _existing_consumer_payees_for_payer(baseline, payer_id, rng, consumer_ids, k=min(3, n_events))
+            payee_pool = _existing_consumer_payees_for_payer(baseline, payer_id, payee_rng, consumer_ids, k=min(3, n_events))
 
         beneficiary_age_floor_s = int(cfg.get("beneficiary_age_floor_s", cal.LEGIT_EXISTING_BENEFICIARY_MIN_AGE_S))
 

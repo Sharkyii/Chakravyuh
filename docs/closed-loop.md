@@ -9,13 +9,9 @@ and the concrete generator-side code that closes it -- `src/attacks/generators.p
 and `stage5/training/build_adaptive_attack_config.py`, which derives them from a trained
 model.
 
-**What's verified vs. what's designed-and-pending:** the diagnosis (part 1) and the code
-(part 3) are real and tested (`tests/attacks/test_attack_framework.py`,
-`tests/stage5/test_build_adaptive_attack_config.py`). The retrain-and-measure step (part 4)
-that would confirm the *quantitative* improvement is deliberately not run in this pass --
-it's a multi-minute pipeline run (`generate_training_data` → `train_fraud_model`), and this
-work was done under an explicit "don't run heavy tasks right now" constraint. Treat part 4
-as the next concrete action, not a claimed result.
+**Status: measured.** Part 4 has real before/after numbers from an actual two-generation
+retrain, not a projection. It also documents a real bug the measurement itself surfaced and
+that's now fixed -- read the confound note before quoting the headline number.
 
 ## 1. Where the current detector is weakest (the "miss")
 
@@ -98,24 +94,58 @@ already, no manual step required.
   `tests/stage5/test_build_adaptive_attack_config.py` (threshold logic against a mocked
   model, no real training required).
 
-## 4. What's next (the measurement step, deferred)
+## 4. Measured: generation 1 → generation 2
 
-To actually close the loop with a number, not just a mechanism:
+**Generation 1** (no prior model -- `build_adaptive_config()` returned `{}`, static defaults):
+per-family recall at fixed FPR, computed directly from the trained model against the test
+set (not the aggregate number -- per family):
 
-1. `uv run python -m stage5.training.generate_training_data` (regenerates the combined
-   dataset; `build_adaptive_config()` will pick up the currently-saved model automatically
-   since one now exists from the I6/I7/I17 work).
-2. `uv run python -m stage5.training.train_fraud_model` (retrain against the
-   adaptive-evasion-augmented dataset).
-3. Compare `adversarial_evasion`'s per-family recall at fixed FPR before vs. after -- the
-   honest expectation is a *drop* in recall specifically for this family immediately after
-   the adaptive variant is introduced (that's the "miss" half of the loop actually landing),
-   followed by a second retrain iteration to see whether the model recovers by learning a
-   feature it wasn't relying on before. That two-step pattern (miss, then recovery on the
-   *next* iteration) is the real evidence for a working closed loop -- a single retrain that
-   already catches everything wouldn't demonstrate anything the earlier suspicious 100%
-   numbers didn't already show was wrong.
+| Family | Recall @ 0.1% FPR | Recall @ 1% FPR |
+|---|---|---|
+| `adversarial_evasion` | **12/38 = 0.316** | **28/38 = 0.737** |
+| every other family (12 total, including held-out `synthetic_identity_bustout`) | 1.000 | 1.000 |
 
-Both steps are multi-minute pipeline runs; run them when heavy tasks are back in scope, and
-update this document's part 4 with the actual before/after numbers once done -- don't
-retrofit a number here without having run it.
+This is the finding the diagnosis in part 1 predicted, landing exactly where expected:
+**`adversarial_evasion` -- the one family explicitly built to probe and evade -- is the
+only family the detector was actually missing anything on**, even before the adaptive
+targeting existed. Overall test recall (0.9775 / 0.9902, `docs/model-choice.md`) being
+imperfect was entirely attributable to this one family, not spread arbitrarily.
+
+**Generation 2**: `build_adaptive_config()` read generation 1's saved model and correctly
+derived `{'adaptive_top_counterparty': True, 'beneficiary_age_floor_s': 50578560}`
+(≈585 days -- both features from part 1's table cleared the 10% threshold). The next
+`generate_training_data` run applied this to every `adversarial_evasion` campaign
+automatically, and the retrained model was evaluated the same way:
+
+| Family | Recall @ 0.1% FPR | Recall @ 1% FPR |
+|---|---|---|
+| `adversarial_evasion` | 7/7 = 1.000 | 7/7 = 1.000 |
+| every other family | 1.000 (unchanged) | 1.000 (unchanged) |
+
+**Read this carefully -- it is not a clean result, and the honest caveat matters more than
+the headline number.** `adversarial_evasion`'s test-window sample dropped from 38 rows to 7
+between generations, which a routing-only change should never cause. Investigating why
+found a real bug: `_top_counterparty_for_payer` (the adaptive path) draws zero random
+numbers, while `_existing_consumer_payees_for_payer` (the default path) shuffles and pads
+with several. Both branches shared the campaign's main `rng`, so which branch ran changed
+every *downstream* random draw in the same campaign for the same seed -- amounts, timing,
+and which temporal-split window a campaign's events fell into, not just counterparty choice.
+That's why the sample size moved. **Fixed** by giving payee-pool selection its own
+independently seeded stream (`payee_rng`, both branches, matching the pattern
+`make_legit_lookalike_rows` already used for exactly this reason) so switching adaptive
+mode on or off no longer perturbs anything else about the campaign.
+
+**What this means for the 0.316 → 1.000 number:** it's real and it's suggestive -- the
+retrained model, having seen the adaptive campaigns in its own training data, did learn to
+catch them within-distribution. But with only 7 test examples (down from 38), it's not
+statistically comparable to the generation-1 baseline, and it doesn't distinguish "the model
+learned a genuinely transferable signal" from "the model memorised this one adaptive
+pattern." A clean generation 1 → generation 2 re-run under the now-fixed rng code (so both
+generations share the same 38-ish sample size) is the concrete next step -- deliberately not
+done in this pass to avoid another ~40 minutes of heavy compute back to back with the
+generator fix itself; see `issues.md` for tracking.
+
+**The part of this that's unambiguous regardless of the confound:** the closed-loop
+mechanism works end to end without a manual step (diagnosis → config derivation → generation
+→ retrain), and using it for real surfaced a genuine correctness bug that's now fixed. That's
+the loop doing its job -- on the generator's own code, not only on the detector.

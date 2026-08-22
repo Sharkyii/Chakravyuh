@@ -592,122 +592,197 @@ export default function AnalystPortal() {
               </div>
 
               {/* Transaction Param overrides */}
-              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5 backdrop-blur-md flex-1 flex flex-col gap-5">
-                <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider border-b border-zinc-800 pb-2">
-                  Override Parameter Signals
-                </h3>
-
-                {/* Amount */}
+              <div className="rounded-2xl border border-zinc-900 bg-zinc-950/40 p-5 backdrop-blur-md flex-1 flex flex-col gap-6">
                 <div>
-                  <div className="flex justify-between text-xs font-medium mb-2">
-                    <span className="text-zinc-400">Transaction Amount (INR)</span>
-                    <span className="text-zinc-200 font-mono">₹{parseFloat(txnOverrides.amount || 0).toLocaleString()}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="150000"
-                    step="100"
-                    value={txnOverrides.amount || 0}
-                    onChange={(e) => updateOverrideField("amount", parseFloat(e.target.value))}
-                    className="w-full accent-orange-500"
-                  />
+                  <h3 className="text-xs font-bold text-white uppercase tracking-widest border-b border-zinc-900 pb-2">
+                    Override Parameter Signals
+                  </h3>
                 </div>
 
-                {/* Graph Edge Count */}
-                <div>
-                  <div className="flex justify-between text-xs font-medium mb-2">
-                    <span className="text-zinc-400">Graph Edge Count (Payer-Payee Linkage)</span>
-                    <span className="text-zinc-200 font-mono">{txnOverrides.edge_count || 0}</span>
+                {/* Category 1: Financial Profile */}
+                <div className="space-y-4">
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">
+                    Financial Profile
+                  </span>
+                  
+                  <div>
+                    <div className="flex justify-between text-xs font-medium mb-1.5">
+                      <span className="text-zinc-400">Transaction Amount (INR)</span>
+                      <span className="text-zinc-200 font-mono font-bold">₹{parseFloat(txnOverrides.amount || 0).toLocaleString()}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="150000"
+                      step="100"
+                      value={txnOverrides.amount || 0}
+                      onChange={(e) => updateOverrideField("amount", parseFloat(e.target.value))}
+                      className="w-full accent-[#ff5f00]"
+                    />
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {[500, 15000, 50000, 120000].map(amt => (
+                        <button
+                          key={amt}
+                          type="button"
+                          onClick={() => updateOverrideField("amount", amt)}
+                          className="px-2 py-0.5 text-[9px] font-semibold rounded bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition"
+                        >
+                          ₹{amt >= 100000 ? `${amt/100000}L` : amt >= 1000 ? `${amt/1000}k` : amt}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="50"
-                    step="1"
-                    value={txnOverrides.edge_count || 0}
-                    onChange={(e) => updateOverrideField("edge_count", parseFloat(e.target.value))}
-                    className="w-full accent-orange-500"
-                  />
                 </div>
 
-                {/* PIN Attempts */}
-                <div>
-                  <div className="flex justify-between text-xs font-medium mb-2">
-                    <span className="text-zinc-400">Failed PIN Attempts</span>
-                    <span className="text-zinc-200 font-mono">{txnOverrides.pin_attempts || 0}</span>
+                {/* Category 2: Behavioral Signals */}
+                <div className="space-y-4 border-t border-zinc-900/60 pt-4">
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">
+                    Behavioral Signals
+                  </span>
+                  
+                  {/* PIN Attempts */}
+                  <div>
+                    <div className="flex justify-between text-xs font-medium mb-1.5">
+                      <span className="text-zinc-400">Failed PIN Attempts</span>
+                      <span className="text-zinc-200 font-mono font-bold">{txnOverrides.pin_attempts || 0}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="5"
+                      step="1"
+                      value={txnOverrides.pin_attempts || 0}
+                      onChange={(e) => updateOverrideField("pin_attempts", parseInt(e.target.value))}
+                      className="w-full accent-[#ff5f00]"
+                    />
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {[0, 1, 3, 5].map(pins => (
+                        <button
+                          key={pins}
+                          type="button"
+                          onClick={() => updateOverrideField("pin_attempts", pins)}
+                          className="px-2 py-0.5 text-[9px] font-semibold rounded bg-zinc-905 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition"
+                        >
+                          {pins} {pins === 1 ? "attempt" : "attempts"}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="5"
-                    step="1"
-                    value={txnOverrides.pin_attempts || 0}
-                    onChange={(e) => updateOverrideField("pin_attempts", parseInt(e.target.value))}
-                    className="w-full accent-orange-500"
-                  />
+
+                  {/* Beneficiary Age */}
+                  <div>
+                    <div className="flex justify-between text-xs font-medium mb-1.5">
+                      <span className="text-zinc-400">Beneficiary Age (Time since addition)</span>
+                      <span className="text-zinc-200 font-mono font-bold">
+                        {Math.floor((txnOverrides.beneficiary_added_ago_s || 0) / 86400)} Days
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="730"
+                      step="1"
+                      value={Math.floor((txnOverrides.beneficiary_added_ago_s || 0) / 86400)}
+                      onChange={(e) => updateOverrideField("beneficiary_added_ago_s", parseInt(e.target.value) * 86400)}
+                      className="w-full accent-[#ff5f00]"
+                    />
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {[0, 1, 7, 30].map(days => (
+                        <button
+                          key={days}
+                          type="button"
+                          onClick={() => updateOverrideField("beneficiary_added_ago_s", days * 86400)}
+                          className="px-2 py-0.5 text-[9px] font-semibold rounded bg-zinc-905 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition"
+                        >
+                          {days === 0 ? "New" : `${days}d`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
-                {/* Beneficiary age (in days) */}
-                <div>
-                  <div className="flex justify-between text-xs font-medium mb-2">
-                    <span className="text-zinc-400">Beneficiary Age (Time since addition)</span>
-                    <span className="text-zinc-200 font-mono">
-                      {Math.floor((txnOverrides.beneficiary_added_ago_s || 0) / 86400)} Days
-                    </span>
+                {/* Category 3: Network Topology */}
+                <div className="space-y-4 border-t border-zinc-900/60 pt-4">
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">
+                    Network Linkages
+                  </span>
+                  
+                  {/* Graph Edge Count */}
+                  <div>
+                    <div className="flex justify-between text-xs font-medium mb-1.5">
+                      <span className="text-zinc-400">Graph Edge Count (Payer-Payee Linkage)</span>
+                      <span className="text-zinc-200 font-mono font-bold">{txnOverrides.edge_count || 0}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="50"
+                      step="1"
+                      value={txnOverrides.edge_count || 0}
+                      onChange={(e) => updateOverrideField("edge_count", parseFloat(e.target.value))}
+                      className="w-full accent-[#ff5f00]"
+                    />
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {[1, 5, 15, 30].map(edges => (
+                        <button
+                          key={edges}
+                          type="button"
+                          onClick={() => updateOverrideField("edge_count", edges)}
+                          className="px-2 py-0.5 text-[9px] font-semibold rounded bg-zinc-905 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition"
+                        >
+                          {edges} {edges === 1 ? "edge" : "edges"}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="730"
-                    step="1"
-                    value={Math.floor((txnOverrides.beneficiary_added_ago_s || 0) / 86400)}
-                    onChange={(e) => updateOverrideField("beneficiary_added_ago_s", parseInt(e.target.value) * 86400)}
-                    className="w-full accent-orange-500"
-                  />
                 </div>
 
-                {/* Toggles Grid */}
-                <div className="grid grid-cols-2 gap-4 mt-2">
-                  <label className="flex items-center gap-3 p-3 rounded-xl bg-zinc-950/60 border border-zinc-800/80 cursor-pointer hover:border-zinc-700 transition">
-                    <input
-                      type="checkbox"
-                      checked={!!txnOverrides.screen_share_active}
-                      onChange={(e) => updateOverrideField("screen_share_active", e.target.checked)}
-                      className="accent-orange-500 h-4 w-4 rounded"
-                    />
-                    <span className="text-xs font-medium text-zinc-300">Screen Sharing</span>
-                  </label>
+                {/* Category 4: Threat Channels */}
+                <div className="space-y-3 border-t border-zinc-900/60 pt-4">
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">
+                    Threat Channels
+                  </span>
+                  <div className="grid grid-cols-2 gap-4">
+                    <label className="flex items-center gap-3 p-3 rounded-xl bg-zinc-950/60 border border-zinc-900 cursor-pointer hover:border-zinc-800 transition">
+                      <input
+                        type="checkbox"
+                        checked={!!txnOverrides.screen_share_active}
+                        onChange={(e) => updateOverrideField("screen_share_active", e.target.checked)}
+                        className="accent-[#ff5f00] h-4 w-4 rounded bg-zinc-950"
+                      />
+                      <span className="text-xs font-medium text-zinc-400">Screen Sharing</span>
+                    </label>
 
-                  <label className="flex items-center gap-3 p-3 rounded-xl bg-zinc-950/60 border border-zinc-800/80 cursor-pointer hover:border-zinc-700 transition">
-                    <input
-                      type="checkbox"
-                      checked={!!txnOverrides.call_active_during_txn}
-                      onChange={(e) => updateOverrideField("call_active_during_txn", e.target.checked)}
-                      className="accent-orange-500 h-4 w-4 rounded"
-                    />
-                    <span className="text-xs font-medium text-zinc-300">Active Call</span>
-                  </label>
+                    <label className="flex items-center gap-3 p-3 rounded-xl bg-zinc-950/60 border border-zinc-900 cursor-pointer hover:border-zinc-800 transition">
+                      <input
+                        type="checkbox"
+                        checked={!!txnOverrides.call_active_during_txn}
+                        onChange={(e) => updateOverrideField("call_active_during_txn", e.target.checked)}
+                        className="accent-[#ff5f00] h-4 w-4 rounded bg-zinc-950"
+                      />
+                      <span className="text-xs font-medium text-zinc-400">Active Call</span>
+                    </label>
 
-                  <label className="flex items-center gap-3 p-3 rounded-xl bg-zinc-950/60 border border-zinc-800/80 cursor-pointer hover:border-zinc-700 transition">
-                    <input
-                      type="checkbox"
-                      checked={!!txnOverrides.accessibility_service_active}
-                      onChange={(e) => updateOverrideField("accessibility_service_active", e.target.checked)}
-                      className="accent-orange-500 h-4 w-4 rounded"
-                    />
-                    <span className="text-xs font-medium text-zinc-300">Accessibility API</span>
-                  </label>
+                    <label className="flex items-center gap-3 p-3 rounded-xl bg-zinc-950/60 border border-zinc-900 cursor-pointer hover:border-zinc-800 transition">
+                      <input
+                        type="checkbox"
+                        checked={!!txnOverrides.accessibility_service_active}
+                        onChange={(e) => updateOverrideField("accessibility_service_active", e.target.checked)}
+                        className="accent-[#ff5f00] h-4 w-4 rounded bg-zinc-950"
+                      />
+                      <span className="text-xs font-medium text-zinc-400">Accessibility API</span>
+                    </label>
 
-                  <label className="flex items-center gap-3 p-3 rounded-xl bg-zinc-950/60 border border-zinc-800/80 cursor-pointer hover:border-zinc-700 transition">
-                    <input
-                      type="checkbox"
-                      checked={!!txnOverrides.ip_is_proxy}
-                      onChange={(e) => updateOverrideField("ip_is_proxy", e.target.checked)}
-                      className="accent-orange-500 h-4 w-4 rounded"
-                    />
-                    <span className="text-xs font-medium text-zinc-300">Proxy/VPN IP</span>
-                  </label>
+                    <label className="flex items-center gap-3 p-3 rounded-xl bg-zinc-950/60 border border-zinc-900 cursor-pointer hover:border-zinc-800 transition">
+                      <input
+                        type="checkbox"
+                        checked={!!txnOverrides.ip_is_proxy}
+                        onChange={(e) => updateOverrideField("ip_is_proxy", e.target.checked)}
+                        className="accent-[#ff5f00] h-4 w-4 rounded bg-zinc-950"
+                      />
+                      <span className="text-xs font-medium text-zinc-400">Proxy/VPN IP</span>
+                    </label>
+                  </div>
                 </div>
 
                 <button
@@ -796,34 +871,51 @@ export default function AnalystPortal() {
                     </div>
 
                     {/* Threat Details */}
-                    <div className="flex flex-col gap-1 md:border-l md:border-zinc-800 md:pl-6">
-                      <span className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">Risk Level</span>
-                      <span className={`text-2xl font-black ${
-                        scoreResult.risk_level === "CRITICAL" || scoreResult.risk_level === "HIGH"
-                          ? "text-red-500 animate-pulse"
-                          : scoreResult.risk_level === "MEDIUM"
-                          ? "text-orange-500"
-                          : "text-emerald-500"
-                      }`}>
-                        {scoreResult.risk_level}
-                      </span>
-                      <span className="text-xs text-zinc-400 mt-1">
-                        Confidence: {(scoreResult.model_confidence * 100).toFixed(0)}%
+                    <div className="flex flex-col gap-2.5 md:border-l md:border-zinc-850 md:pl-6">
+                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Risk Level</span>
+                      <div>
+                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider border ${
+                          scoreResult.risk_level === "CRITICAL" || scoreResult.risk_level === "HIGH"
+                            ? "bg-red-950/40 border-red-500/30 text-red-400"
+                            : scoreResult.risk_level === "MEDIUM"
+                            ? "bg-orange-950/40 border-orange-500/30 text-orange-400"
+                            : "bg-emerald-950/40 border-emerald-500/30 text-emerald-400"
+                        }`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${
+                            scoreResult.risk_level === "CRITICAL" || scoreResult.risk_level === "HIGH"
+                              ? "bg-red-500 animate-pulse"
+                              : scoreResult.risk_level === "MEDIUM"
+                              ? "bg-orange-500"
+                              : "bg-emerald-500"
+                          }`} />
+                          {scoreResult.risk_level}
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-zinc-500 font-mono">
+                        CONFIDENCE: {(scoreResult.model_confidence * 100).toFixed(0)}%
                       </span>
                     </div>
 
                     {/* Decision Action */}
-                    <div className="flex flex-col gap-2 md:border-l md:border-zinc-800 md:pl-6">
-                      <span className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">Recommended Action</span>
-                      <div className={`inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-black border tracking-wider ${
-                        scoreResult.recommended_action === "BLOCK"
-                          ? "bg-red-500/10 border-red-500/30 text-red-400"
-                          : scoreResult.recommended_action === "REVIEW"
-                          ? "bg-orange-500/10 border-orange-500/30 text-orange-400"
-                          : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                      }`}>
-                        <CheckCircle className="h-4 w-4" />
-                        {scoreResult.recommended_action}
+                    <div className="flex flex-col gap-2.5 md:border-l md:border-zinc-850 md:pl-6">
+                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Action Recommendation</span>
+                      <div>
+                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider border ${
+                          scoreResult.recommended_action === "BLOCK"
+                            ? "bg-red-950/20 border-red-900/50 text-red-400"
+                            : scoreResult.recommended_action === "REVIEW"
+                            ? "bg-orange-950/20 border-orange-900/50 text-orange-400"
+                            : "bg-emerald-950/20 border-emerald-900/50 text-emerald-400"
+                        }`}>
+                          {scoreResult.recommended_action === "BLOCK" ? (
+                            <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                          ) : scoreResult.recommended_action === "REVIEW" ? (
+                            <AlertTriangle className="h-3 w-3 text-orange-400" />
+                          ) : (
+                            <CheckCircle className="h-3 w-3 text-emerald-400" />
+                          )}
+                          {scoreResult.recommended_action}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -868,52 +960,97 @@ export default function AnalystPortal() {
                         ))}
                       </div>
                     )}
-                  </div>
-
-                  {/* Analyst Narrative */}
-                  <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-5 mt-auto">
-                    <div className="flex items-center justify-between mb-3 border-b border-zinc-800 pb-2.5">
+                        {/* AI Analyst Decision Audit Timeline */}
+                  <div className="rounded-xl border border-zinc-900 bg-zinc-950/40 p-5 mt-auto">
+                    <div className="flex items-center justify-between mb-4 border-b border-zinc-900 pb-2.5">
                       <div className="flex items-center gap-2">
-                        <Cpu className="h-4 w-4 text-orange-500" />
+                        <Cpu className="h-4 w-4 text-[#ff5f00]" />
                         <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">
                           Chakravyuh AI Analyst Insight
                         </span>
                       </div>
                       {!apiKey && (
-                        <span className="text-[9px] font-semibold bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded">
-                          Mock Simulation
+                        <span className="text-[9px] font-semibold bg-zinc-900 text-zinc-500 px-2 py-0.5 rounded border border-zinc-800">
+                          Simulation Mode
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-zinc-300 leading-relaxed">
-                      {scoreResult.llm_analysis.fraud_explanation}
-                    </p>
-                    <p className="text-xs text-zinc-400 italic mt-3 border-t border-zinc-800/50 pt-2.5">
-                      {scoreResult.llm_analysis.attack_family_interpretation}
-                    </p>
 
-                    {/* Investigation Steps & Caveats */}
-                    <div className="mt-4 border-t border-zinc-800/80 pt-4 space-y-4">
-                      <div>
-                        <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest block mb-2">
-                          Analyst Action Checklist
+                    {/* Vertical Timeline */}
+                    <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-[1px] before:bg-zinc-800">
+                      {/* Step 1: Ingestion */}
+                      <div className="relative">
+                        <span className="absolute -left-6 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-zinc-950 border border-emerald-500">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                         </span>
-                        <ul className="space-y-1.5">
-                          {scoreResult.llm_analysis.investigation_steps.map((step, sIdx) => (
-                            <li key={sIdx} className="flex items-start gap-2 text-xs text-zinc-400">
-                              <ChevronRight className="h-3.5 w-3.5 text-orange-500 shrink-0 mt-0.5" />
-                              <span>{step}</span>
-                            </li>
-                          ))}
-                        </ul>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Step 1: Signal Ingestion</span>
+                          <span className="text-[8px] font-mono text-zinc-600 uppercase">Success</span>
+                        </div>
+                        <p className="text-[11px] text-zinc-400 mt-1">
+                          Analyzed transaction on rail <span className="font-mono text-zinc-300 font-bold uppercase">{txnOverrides.rail || "upi_p2p"}</span>. Amount ₹{parseFloat(txnOverrides.amount || 0).toLocaleString()} ingested.
+                        </p>
                       </div>
 
-                      <div className="text-[10px] text-zinc-500 flex gap-1.5 items-start bg-zinc-950/40 p-2.5 rounded-lg border border-zinc-900">
-                        <Info className="h-3.5 w-3.5 text-zinc-500 shrink-0 mt-0.5" />
-                        <span>{scoreResult.llm_analysis.uncertainty_caveats}</span>
+                      {/* Step 2: Scoring Engine */}
+                      <div className="relative">
+                        <span className="absolute -left-6 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-zinc-950 border border-orange-500">
+                          <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+                        </span>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Step 2: ML Scoring Engine</span>
+                          <span className="text-[8px] font-mono text-orange-500 uppercase font-bold">Passed</span>
+                        </div>
+                        <p className="text-[11px] text-zinc-400 mt-1">
+                          XGBoost model completed evaluation. Base fraud probability scored at <span className="font-mono text-zinc-300 font-bold">{(scoreResult.fraud_probability * 100).toFixed(1)}%</span>. Failed PIN overrides checked.
+                        </p>
+                      </div>
+
+                      {/* Step 3: GenAI Interpretation */}
+                      <div className="relative">
+                        <span className="absolute -left-6 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-zinc-950 border border-violet-500">
+                          <span className="h-1.5 w-1.5 rounded-full bg-violet-500 animate-pulse" />
+                        </span>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Step 3: GenAI Contextual Narrative</span>
+                          <span className="text-[8px] font-mono text-violet-400 uppercase font-bold">Gemini-v1</span>
+                        </div>
+                        <div className="mt-1.5 bg-zinc-950/60 p-3 rounded-lg border border-zinc-900 space-y-2">
+                          <p className="text-xs text-zinc-300 leading-relaxed font-sans">
+                            {scoreResult.llm_analysis.fraud_explanation}
+                          </p>
+                          <p className="text-[11px] text-[#ff5f00] italic font-medium pt-1.5 border-t border-zinc-900/80">
+                            {scoreResult.llm_analysis.attack_family_interpretation}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Step 4: Analyst checklist */}
+                      <div className="relative">
+                        <span className="absolute -left-6 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-zinc-950 border border-amber-500">
+                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                        </span>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Step 4: Remediation Plan</span>
+                          <span className="text-[8px] font-mono text-amber-500 uppercase font-bold">Action Required</span>
+                        </div>
+                        <div className="mt-2 space-y-1.5">
+                          {scoreResult.llm_analysis.investigation_steps.map((step, sIdx) => (
+                            <div key={sIdx} className="flex items-start gap-2 text-[11px] text-zinc-400">
+                              <ChevronRight className="h-3.5 w-3.5 text-[#ff5f00] shrink-0 mt-0.5" />
+                              <span>{step}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
+
+                    {/* Caveats info block */}
+                    <div className="text-[10px] text-zinc-500 flex gap-1.5 items-start bg-zinc-950/40 p-2.5 rounded-lg border border-zinc-900 mt-4">
+                      <Info className="h-3.5 w-3.5 text-zinc-500 shrink-0 mt-0.5" />
+                      <span>{scoreResult.llm_analysis.uncertainty_caveats}</span>
+                    </div>
+                  </div>              </div>
 
                   {/* Closed-Loop Analyst Feedback Loop */}
                   <div className="rounded-xl border border-zinc-900 bg-zinc-950/40 p-4 border-t-2 border-t-orange-600/50">

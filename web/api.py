@@ -129,10 +129,7 @@ async def analyze(request: Request):
             "result": result
         })
         
-        # Keep last 5 transactions in view to avoid SVG canvas overflow
-        if len(SESSION_TRANSACTIONS) > 5:
-            SESSION_TRANSACTIONS.pop(0)
-            
+
         nodes = []
         edges = []
         campaign_alerts = []

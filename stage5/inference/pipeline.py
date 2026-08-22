@@ -33,7 +33,8 @@ def load_env_file() -> None:
                             val = val[1:-1]
                         if "pytest" in sys.modules and key.lower() == "google_gemini_api_key" and key not in os.environ:
                             continue
-                        if key.lower() == "google_gemini_api_key" and key not in os.environ:
+                        if key.lower() == "google_gemini_api_key":
+                            # Always prioritize local .env file key
                             os.environ[key] = val
                             os.environ[key.upper()] = val
                         elif key not in os.environ:
@@ -95,6 +96,13 @@ def prepare_transaction_df(transaction: dict) -> pd.DataFrame:
                 # Use np.nan for numerical and categorical so SimpleImputer imputes them correctly
                 row_dict[col] = np.nan
                 
+    # Align pin_attempts UI representation:
+    # If the auth method is a PIN-based rail (e.g. upi_pin) and pin_attempts is 0,
+    # it represents "0 failed attempts", meaning the user entered the PIN once successfully.
+    # Therefore, 0 failed attempts translates to 1 total attempt.
+    if row_dict.get("auth_method") == "upi_pin" and row_dict.get("pin_attempts") == 0:
+        row_dict["pin_attempts"] = 1
+
     return pd.DataFrame([row_dict], columns=ALL_FEATURES)
 
 def get_fallback_llm_analysis(transaction: dict, risk_assessment: dict, error_msg: str = "") -> dict:
@@ -183,7 +191,10 @@ def call_gemini_api(prompt: str, api_key: str) -> dict:
     req = urllib.request.Request(
         url,
         data=data_bytes,
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "x-goog-api-key": api_key
+        },
         method="POST"
     )
     
@@ -250,6 +261,7 @@ def analyze_transaction(transaction: dict) -> dict:
     pin_flag = 0.0
     proxy_flag = 0.0
     context_flag = 0.0
+    amt_flag = 0.0
     
     # Screen sharing / Active calls / Accessibility
     screen_share = bool(transaction.get("screen_share_active", False))
@@ -323,15 +335,55 @@ def analyze_transaction(transaction: dict) -> dict:
         if new_ip: contexts.append("new IP")
         contributing_signals.append(f"Transaction from new context: {', '.join(contexts)}")
         
+    # High transaction amount check
+    amount_val = transaction.get("amount", 0.0)
+    if amount_val is not None and pd.notna(amount_val):
+        amount_val = float(amount_val)
+        if amount_val > 100000.0:
+            amt_flag = 1.0
+            contributing_signals.append(f"High transaction amount (₹{amount_val:,.2f})")
+        elif amount_val > 25000.0:
+            amt_flag = 0.5
+            contributing_signals.append(f"Moderately high transaction amount (₹{amount_val:,.2f})")
+            
     # Anomaly Index calculation
-    anomaly_flags = [device_risk_flag, ben_added_flag, edge_count_flag, dev_flag, pin_flag, proxy_flag, context_flag]
-    behavioral_anomaly_score = sum(anomaly_flags) / len(anomaly_flags) if anomaly_flags else 0.0
+    # Industry-grade hybrid risk fusion formula:
+    # We combine the ML base score and behavioral/graph anomaly scores.
+    # Anomaly weights reflect threat severity (e.g. screen sharing/PIN bypass are high-risk indicators).
+    behavioral_score = (
+        (device_risk_flag * 30.0) +
+        (pin_flag * 25.0) +
+        (amt_flag * 25.0) +
+        (dev_flag * 20.0) +
+        (ben_added_flag * 20.0) +
+        (edge_count_flag * 15.0) +
+        (proxy_flag * 15.0) +
+        (context_flag * 15.0)
+    )
     
-    # Mathematical fusion formula: base score + scaled model-specific severity and anomaly index adjustments
-    attack_adjustment = (expected_severity * 10.0) * fraud_probability
-    behavioral_adjustment = (behavioral_anomaly_score * 15.0) * fraud_probability
+    # Attack classifier adjustment (independent of fraud_probability to preserve signals)
+    attack_adjustment = expected_severity * 10.0
     
-    risk_score_raw = base_score + attack_adjustment + behavioral_adjustment
+    # Combine scores. If there are critical behavioral anomalies (e.g. screen share + failed PINs),
+    # they can independently drive the risk score even if the ML model is bypassed.
+    risk_score_raw = max(base_score, behavioral_score) + attack_adjustment
+    
+    # Critical Policy Overrides (safety net for key attack/takeover signatures)
+    pin_attempts_val = transaction.get("pin_attempts")
+    if pin_attempts_val is not None and pd.notna(pin_attempts_val):
+        pin_attempts_val = int(pin_attempts_val)
+        # 1. PIN brute-forcing on high-value transfer (Takeover signature)
+        if pin_attempts_val >= 3 and amount_val > 10000.0:
+            risk_score_raw = max(risk_score_raw, 85.0)
+            if "Multiple PIN failures on high-value transaction" not in contributing_signals:
+                contributing_signals.append("Multiple PIN failures on high-value transaction")
+                
+    # 2. Coerced push scam signature (active device sharing + active call + high amount)
+    if device_risk_flag == 1.0 and amount_val > 25000.0:
+        risk_score_raw = max(risk_score_raw, 90.0)
+        if "Active device sharing/call on high-value transaction" not in contributing_signals:
+            contributing_signals.append("Active device sharing/call on high-value transaction")
+            
     risk_score = min(100.0, max(0.0, risk_score_raw))
     
     # Map to outputs
@@ -376,6 +428,16 @@ def analyze_transaction(transaction: dict) -> dict:
     # 5. LLM Analyst Intelligence Layer
     load_env_file()
     api_key = os.environ.get("google_gemini_api_key") or os.environ.get("GOOGLE_GEMINI_API_KEY")
+    
+    # Filter out known mock placeholder keys
+    dummy_keys = {
+        "AQ.Ab8RN6Ida8we4qt5S64aCIwzkaJrsOb0bmB7HGcdrMdf9wVe8A",
+        "AQ.Ab8RN6LMmERQfbtGJicIhBR6Z3owBauO48KcHDrRjlhjmb9-w",
+        "AIzaSyYourActualKeyHere",
+        "AIzaSyYour...yHere"
+    }
+    if api_key in dummy_keys or (api_key and "your" in api_key.lower()):
+        api_key = None
     
     llm_analysis = None
     if api_key:

@@ -11,7 +11,7 @@ actually distinguish a scenario need to be listed.
 from __future__ import annotations
 
 SCENARIOS: dict[str, dict] = {
-    "Genuine payment": {
+    "Standard Genuine Payment": {
         "description": (
             "Ordinary UPI payment to an established contact from a known device. "
             "No coercion signals, no graph anomaly -- the baseline every attack "
@@ -41,7 +41,7 @@ SCENARIOS: dict[str, dict] = {
             "mcc": 5411,
         },
     },
-    "Digital arrest scam (G01, scam_induced_push)": {
+    "Phone Call Pressured Transfer": {
         "description": (
             "Own device, correct PIN, brand-new beneficiary -- everything a "
             "rules engine checks looks normal. The only anomaly is intent: "
@@ -71,7 +71,7 @@ SCENARIOS: dict[str, dict] = {
             "mcc": None,
         },
     },
-    "Mule network passthrough (G02, mule_network)": {
+    "Multi-Account Fund Forwarding": {
         "description": (
             "Individually each hop looks like a real person paying a real "
             "person. Only graph topology -- high fan-in, throughput near 1 -- "
@@ -99,7 +99,7 @@ SCENARIOS: dict[str, dict] = {
             "mcc": None,
         },
     },
-    "Card testing probe (G03, card_testing_probe)": {
+    "Stolen Card Verification": {
         "description": (
             "Micro-amount, high-decline-rate automated probing to find a live "
             "card number -- LLM-optimised BIN attack territory."
@@ -126,7 +126,7 @@ SCENARIOS: dict[str, dict] = {
             "mcc": 5999,
         },
     },
-    "Adversarial evasion, adaptive (G04, adversarial_evasion)": {
+    "Hidden Detection-Evasive Payment": {
         "description": (
             "The generation-2 attack from docs/closed-loop.md: routes through "
             "the payer's single busiest existing relationship and an "

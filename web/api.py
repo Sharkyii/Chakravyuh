@@ -114,15 +114,11 @@ async def analyze(request: Request):
     try:
         result = analyze_transaction(txn)
         
-        # Generate a unique transaction ID for this query if not set
-        txn_id = txn.get("txn_id") or f"TXN_{len(SESSION_TRANSACTIONS) + 1:03d}"
+        # Always generate a new unique transaction ID for each simulation run in this session.
+        # This ensures consecutive runs of the same scenario accumulate as separate nodes.
+        txn_id = f"TXN_{len(SESSION_TRANSACTIONS) + 1:03d}"
         
-        # We also need to capture custom features for similarity calculation
         # Let's save transaction data along with result
-        existing = next((t for t in SESSION_TRANSACTIONS if t["txn_id"] == txn_id), None)
-        if existing:
-            SESSION_TRANSACTIONS.remove(existing)
-            
         SESSION_TRANSACTIONS.append({
             "txn_id": txn_id,
             "transaction": txn,

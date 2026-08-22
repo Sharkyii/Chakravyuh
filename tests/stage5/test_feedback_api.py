@@ -1,6 +1,6 @@
 import pytest
 import asyncio
-from web.api import analyze, submit_feedback, get_metrics, FEEDBACK_STORE, DYNAMIC_METRICS
+from web.api import analyze, submit_feedback, get_metrics, FEEDBACK_STORE, DYNAMIC_METRICS, SESSION_TRANSACTIONS
 
 class MockRequest:
     def __init__(self, data: dict):
@@ -34,7 +34,6 @@ async def test_feedback_api_success():
 
 @pytest.mark.anyio
 async def test_feedback_api_invalid_request():
-    # Missing actual_label should raise exception or error handled by FastAPI/us
     from fastapi import HTTPException
     req = MockRequest({
         "txn_id": "test-txn-123"
@@ -45,6 +44,9 @@ async def test_feedback_api_invalid_request():
 
 @pytest.mark.anyio
 async def test_analyze_injects_graph():
+    # Clear session transactions
+    SESSION_TRANSACTIONS.clear()
+    
     # Submit mock transaction
     mock_txn = {
         "amount": 12500.0,
@@ -53,7 +55,8 @@ async def test_analyze_injects_graph():
         "beneficiary_added_ago_s": 86400 * 2,
         "payer_id": "payer-abc",
         "payee_id": "payee-xyz",
-        "rail": "upi_p2p"
+        "rail": "upi_p2p",
+        "txn_id": "TXN_001"
     }
     
     req = MockRequest({
@@ -66,9 +69,9 @@ async def test_analyze_injects_graph():
     assert len(graph["nodes"]) >= 2
     assert len(graph["edges"]) >= 1
     
-    # Verify node details
-    payer_node = next(n for n in graph["nodes"] if n["id"] == "payer")
-    assert payer_node["label"] == "Payer (payer-abc)"
+    # Verify node details with session suffixes
+    payer_node = next(n for n in graph["nodes"] if n["id"] == "payer_TXN_001")
+    assert payer_node["label"] == "Payer (TXN_001)"
     
-    payee_node = next(n for n in graph["nodes"] if n["id"] == "payee")
-    assert payee_node["label"] == "Payee (payee-xyz)"
+    payee_node = next(n for n in graph["nodes"] if n["id"] == "payee_TXN_001")
+    assert payee_node["label"] == "Payee (TXN_001)"

@@ -49,6 +49,11 @@ interface AnalysisResult {
     investigation_steps: string[];
     uncertainty_caveats: string;
   };
+  network_graph?: {
+    nodes: Array<{ id: string; label: string; type: string; risk: string; details: Record<string, string>; x: number; y: number }>;
+    edges: Array<{ source: string; target: string; label: string; status: string }>;
+  };
+  campaign_alerts?: string[];
 }
 
 interface MetricItem {
@@ -294,6 +299,18 @@ export default function AnalystPortal() {
       console.error("Failed to submit feedback:", err);
     } finally {
       setSubmittingFeedback(false);
+    }
+  };
+
+  const clearGraphHistory = async () => {
+    try {
+      const res = await fetch("http://localhost:8000/api/graph/clear", { method: "POST" });
+      if (res.ok) {
+        setScoreResult(null);
+        setSelectedTransactionNode(null);
+      }
+    } catch (err) {
+      console.error("Failed to clear graph history:", err);
     }
   };
 
@@ -1107,28 +1124,38 @@ export default function AnalystPortal() {
                   </p>
                 </div>
                 
-                {/* View Mode Toggle */}
-                <div className="flex bg-zinc-950 border border-zinc-900 rounded-lg p-1 gap-1">
-                  <button
-                    onClick={() => setGraphViewMode("lifecycle")}
-                    className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded transition-all ${
-                      graphViewMode === "lifecycle"
-                        ? "bg-zinc-800 text-white"
-                        : "text-zinc-500 hover:text-zinc-300"
-                    }`}
-                  >
-                    Lifecycle Map
-                  </button>
-                  <button
-                    onClick={() => setGraphViewMode("transaction")}
-                    className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded transition-all ${
-                      graphViewMode === "transaction"
-                        ? "bg-zinc-800 text-white"
-                        : "text-zinc-500 hover:text-zinc-300"
-                    }`}
-                  >
-                    Transaction Linkage
-                  </button>
+                {/* View Mode Toggle & Clear */}
+                <div className="flex items-center gap-3">
+                  {graphViewMode === "transaction" && scoreResult?.network_graph && (
+                    <button
+                      onClick={clearGraphHistory}
+                      className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-red-400 border border-red-900/30 bg-red-950/10 rounded-lg hover:bg-red-950/20 transition"
+                    >
+                      Clear History
+                    </button>
+                  )}
+                  <div className="flex bg-zinc-950 border border-zinc-900 rounded-lg p-1 gap-1">
+                    <button
+                      onClick={() => setGraphViewMode("lifecycle")}
+                      className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded transition-all ${
+                        graphViewMode === "lifecycle"
+                          ? "bg-zinc-800 text-white"
+                          : "text-zinc-500 hover:text-zinc-300"
+                      }`}
+                    >
+                      Lifecycle Map
+                    </button>
+                    <button
+                      onClick={() => setGraphViewMode("transaction")}
+                      className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded transition-all ${
+                        graphViewMode === "transaction"
+                          ? "bg-zinc-800 text-white"
+                          : "text-zinc-500 hover:text-zinc-300"
+                      }`}
+                    >
+                      Transaction Linkage
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1283,8 +1310,8 @@ export default function AnalystPortal() {
                   </svg>
                 ) : (
                   // Dynamic Transaction Graph
-                  <div className="w-full h-full min-h-[440px] relative animate-fade-in">
-                    {!scoreResult?.network_graph ? (
+                  <div className="w-full h-full min-h-[440px] relative animate-fade-in flex flex-col">
+                    {!scoreResult?.network_graph || scoreResult.network_graph.nodes.length === 0 ? (
                       <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
                         <Network className="h-12 w-12 text-zinc-800 mb-3" />
                         <span className="text-sm font-semibold text-zinc-400">No Transaction Network Loaded</span>
@@ -1293,139 +1320,133 @@ export default function AnalystPortal() {
                         </p>
                       </div>
                     ) : (
-                      <svg className="w-full h-full min-h-[440px]">
-                        <defs>
-                          <marker
-                            id="txn-arrow"
-                            viewBox="0 0 10 10"
-                            refX="18"
-                            refY="5"
-                            markerWidth="6"
-                            markerHeight="6"
-                            orient="auto-start-reverse"
-                          >
-                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#52525b" />
-                          </marker>
-                          <marker
-                            id="txn-arrow-red"
-                            viewBox="0 0 10 10"
-                            refX="18"
-                            refY="5"
-                            markerWidth="6"
-                            markerHeight="6"
-                            orient="auto-start-reverse"
-                          >
-                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444" />
-                          </marker>
-                        </defs>
-
-                        {/* Draw connection edges */}
-                        {scoreResult.network_graph.edges.map((edge, eIdx) => {
-                          const srcNode = scoreResult.network_graph.nodes.find(n => n.id === edge.source);
-                          const destNode = scoreResult.network_graph.nodes.find(n => n.id === edge.target);
-                          if (!srcNode || !destNode) return null;
-                          
-                          const srcIdx = scoreResult.network_graph.nodes.indexOf(srcNode);
-                          const destIdx = scoreResult.network_graph.nodes.indexOf(destNode);
-                          
-                          // Determine positions
-                          const getPos = (node: any, idx: number) => {
-                            if (node.id === "payer") return { x: 20, y: 50 };
-                            if (node.id === "payee") return { x: 80, y: 50 };
-                            if (node.id === "attacker") return { x: 20, y: 15 };
-                            const positions = [
-                              { x: 50, y: 80 },
-                              { x: 55, y: 20 },
-                              { x: 40, y: 70 }
-                            ];
-                            return positions[idx % positions.length] || { x: 50, y: 80 };
-                          };
-                          
-                          const srcPos = getPos(srcNode, srcIdx);
-                          const destPos = getPos(destNode, destIdx);
-                          const isAlert = edge.status === "critical" || edge.status === "high" || edge.status === "critical";
-                          
-                          return (
-                            <g key={eIdx}>
-                              <line
-                                x1={`${srcPos.x}%`}
-                                y1={`${srcPos.y}%`}
-                                x2={`${destPos.x}%`}
-                                y2={`${destPos.y}%`}
-                                stroke={isAlert ? "#ef4444" : edge.status === "medium" || edge.status === "warning" ? "#f97316" : "#27272a"}
-                                strokeWidth={isAlert ? "2" : "1.2"}
-                                strokeDasharray={edge.status === "critical" ? "4 4" : "0"}
-                                markerEnd={`url(#${isAlert ? "txn-arrow-red" : "txn-arrow"})`}
-                                className="transition-all duration-300"
-                              />
-                              {/* Edge text label */}
-                              <text
-                                x={`${(srcPos.x + destPos.x) / 2}%`}
-                                y={`${(srcPos.y + destPos.y) / 2 - 2}%`}
-                                fill="#a1a1aa"
-                                fontSize="8"
-                                fontWeight="bold"
-                                textAnchor="middle"
-                                className="bg-zinc-950 px-1 select-none"
+                      <>
+                        {/* Campaign Alert Banner inside Canvas */}
+                        {scoreResult.campaign_alerts && scoreResult.campaign_alerts.length > 0 && (
+                          <div className="z-10 bg-emerald-950/20 border-b border-emerald-900/30 px-4 py-3 space-y-1.5 max-h-24 overflow-y-auto animate-fade-in">
+                            {scoreResult.campaign_alerts.map((alert, aIdx) => (
+                              <div key={aIdx} className="flex items-start gap-2 text-[10px] font-bold text-emerald-400">
+                                <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-emerald-500 mt-0.5" />
+                                <span>{alert}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        <div className="flex-1 relative">
+                          <svg className="w-full h-full min-h-[350px]">
+                            <defs>
+                              <marker
+                                id="txn-arrow"
+                                viewBox="0 0 10 10"
+                                refX="18"
+                                refY="5"
+                                markerWidth="6"
+                                markerHeight="6"
+                                orient="auto-start-reverse"
                               >
-                                {edge.label}
-                              </text>
-                            </g>
-                          );
-                        })}
-
-                        {/* Draw transaction nodes */}
-                        {scoreResult.network_graph.nodes.map((node, nIdx) => {
-                          const getPos = (n: any, idx: number) => {
-                            if (n.id === "payer") return { x: 20, y: 50 };
-                            if (n.id === "payee") return { x: 80, y: 50 };
-                            if (n.id === "attacker") return { x: 20, y: 15 };
-                            const positions = [
-                              { x: 50, y: 80 },
-                              { x: 55, y: 20 },
-                              { x: 40, y: 70 }
-                            ];
-                            return positions[idx % positions.length] || { x: 50, y: 80 };
-                          };
-                          
-                          const pos = getPos(node, nIdx);
-                          const isSelected = selectedTransactionNode && selectedTransactionNode.id === node.id;
-                          
-                          let strokeColor = "#27272a";
-                          if (node.risk === "critical" || node.risk === "high") strokeColor = "#ef4444";
-                          else if (node.risk === "medium" || node.risk === "warning") strokeColor = "#f97316";
-                          else if (node.risk === "low") strokeColor = "#10b981";
-                          
-                          return (
-                            <g
-                              key={node.id}
-                              onClick={() => setSelectedTransactionNode(node)}
-                              className="cursor-pointer group"
-                            >
-                              <circle
-                                cx={`${pos.x}%`}
-                                cy={`${pos.y}%`}
-                                r={isSelected ? "18" : "14"}
-                                fill="#09090b"
-                                stroke={isSelected ? "#ff5f00" : strokeColor}
-                                strokeWidth={isSelected ? "3" : "2"}
-                                className="transition-all duration-300"
-                              />
-                              <text
-                                x={`${pos.x}%`}
-                                y={`${pos.y + 7}%`}
-                                fill={isSelected ? "#ffffff" : "#a1a1aa"}
-                                fontSize="9"
-                                fontWeight="bold"
-                                textAnchor="middle"
-                                className="transition-colors duration-300 select-none group-hover:fill-white"
+                                <path d="M 0 0 L 10 5 L 0 10 z" fill="#52525b" />
+                              </marker>
+                              <marker
+                                id="txn-arrow-red"
+                                viewBox="0 0 10 10"
+                                refX="18"
+                                refY="5"
+                                markerWidth="6"
+                                markerHeight="6"
+                                orient="auto-start-reverse"
                               >
-                                {node.label}
-                              </text>
-                            </g>
-                          );
-                        })}
-                      </svg>
+                                <path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444" />
+                              </marker>
+                            </defs>
+
+                            {/* Draw connection edges */}
+                            {scoreResult.network_graph.edges.map((edge, eIdx) => {
+                              const srcNode = scoreResult.network_graph.nodes.find(n => n.id === edge.source);
+                              const destNode = scoreResult.network_graph.nodes.find(n => n.id === edge.target);
+                              if (!srcNode || !destNode) return null;
+                              
+                              const srcPos = { x: srcNode.x, y: srcNode.y };
+                              const destPos = { x: destNode.x, y: destNode.y };
+                              
+                              const isAlert = edge.status === "critical" || edge.status === "high";
+                              const isLinkage = edge.status === "linkage";
+                              
+                              let strokeColor = "#27272a";
+                              if (isAlert) strokeColor = "#ef4444";
+                              else if (edge.status === "medium" || edge.status === "warning") strokeColor = "#f97316";
+                              else if (isLinkage) strokeColor = "#10b981"; // Clean green line for campaign links!
+                              
+                              return (
+                                <g key={eIdx}>
+                                  <line
+                                    x1={`${srcPos.x}%`}
+                                    y1={`${srcPos.y}%`}
+                                    x2={`${destPos.x}%`}
+                                    y2={`${destPos.y}%`}
+                                    stroke={strokeColor}
+                                    strokeWidth={isLinkage ? "2" : isAlert ? "2" : "1.2"}
+                                    strokeDasharray={isLinkage ? "4 4" : isAlert ? "4 4" : "0"}
+                                    markerEnd={isLinkage ? undefined : `url(#${isAlert ? "txn-arrow-red" : "txn-arrow"})`}
+                                    className="transition-all duration-300"
+                                  />
+                                  {/* Edge text label */}
+                                  <text
+                                    x={`${(srcPos.x + destPos.x) / 2}%`}
+                                    y={`${(srcPos.y + destPos.y) / 2 - 2}%`}
+                                    fill={isLinkage ? "#10b981" : "#a1a1aa"}
+                                    fontSize="8"
+                                    fontWeight="bold"
+                                    textAnchor="middle"
+                                    className="bg-zinc-950 px-1 select-none"
+                                  >
+                                    {edge.label}
+                                  </text>
+                                </g>
+                              );
+                            })}
+
+                            {/* Draw transaction nodes */}
+                            {scoreResult.network_graph.nodes.map((node) => {
+                              const isSelected = selectedTransactionNode && selectedTransactionNode.id === node.id;
+                              
+                              let strokeColor = "#27272a";
+                              if (node.risk === "critical" || node.risk === "high") strokeColor = "#ef4444";
+                              else if (node.risk === "medium" || node.risk === "warning") strokeColor = "#f97316";
+                              else if (node.risk === "low") strokeColor = "#10b981";
+                              
+                              return (
+                                <g
+                                  key={node.id}
+                                  onClick={() => setSelectedTransactionNode(node)}
+                                  className="cursor-pointer group"
+                                >
+                                  <circle
+                                    cx={`${node.x}%`}
+                                    cy={`${node.y}%`}
+                                    r={isSelected ? "16" : "13"}
+                                    fill="#09090b"
+                                    stroke={isSelected ? "#ff5f00" : strokeColor}
+                                    strokeWidth={isSelected ? "3" : "2"}
+                                    className="transition-all duration-300"
+                                  />
+                                  <text
+                                    x={`${node.x}%`}
+                                    y={`${node.y + 6}%`}
+                                    fill={isSelected ? "#ffffff" : "#a1a1aa"}
+                                    fontSize="8"
+                                    fontWeight="bold"
+                                    textAnchor="middle"
+                                    className="transition-colors duration-300 select-none group-hover:fill-white"
+                                  >
+                                    {node.label}
+                                  </text>
+                                </g>
+                              );
+                            })}
+                          </svg>
+                        </div>
+                      </>
                     )}
                   </div>
                 )}

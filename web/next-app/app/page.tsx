@@ -364,7 +364,7 @@ export default function AnalystPortal() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (username === "admin" && password === "chakravyuh2026") {
+    if (username.trim().toLowerCase() === "admin" && password.trim() === "chakravyuh2026") {
       setIsLoggedIn(true);
       setLoginError("");
     } else {

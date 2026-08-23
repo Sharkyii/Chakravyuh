@@ -1,8 +1,9 @@
 import os
 
 import pandas as pd
+import pytest
 
-from stage5.config.settings import ALL_FEATURES
+from stage5.config.settings import ALL_FEATURES, MODELS_DIR
 from stage5.inference.pipeline import (
     analyze_transaction,
     compute_shap_contributions,
@@ -11,6 +12,16 @@ from stage5.inference.pipeline import (
     prepare_transaction_df,
 )
 
+# stage5/models/*.pkl are gitignored (exceed GitHub's file size limit) and
+# aren't trained in CI, so tests that need real model artifacts skip cleanly
+# there rather than fail -- mirrors the tolerant assertion already used in
+# web/next-app/e2e/portal.spec.ts's risk-assessment test.
+requires_trained_models = pytest.mark.skipif(
+    not (MODELS_DIR / "fraud_model.pkl").exists(),
+    reason="trained model artifacts not present (not generated in CI)",
+)
+
+@requires_trained_models
 def test_saved_artifacts_load_correctly():
     """Verifies that the preprocessor, fraud model, attack classifier, and mappings load correctly."""
     artifacts = load_artifacts()
@@ -88,6 +99,7 @@ def test_risk_score_and_mapping():
     assert len(fallback["investigation_steps"]) == 3
     assert "API Offline Test" in fallback["uncertainty_caveats"]
 
+@requires_trained_models
 def test_pipeline_inference_end_to_end():
     """Runs a complete test with a mock/sample transaction row through the whole pipeline."""
     # Create a realistic transaction dict with all columns
@@ -205,6 +217,7 @@ def test_pipeline_inference_end_to_end():
     assert "investigation_steps" in res["llm_analysis"]
     assert "uncertainty_caveats" in res["llm_analysis"]
 
+@requires_trained_models
 def test_fallback_behavior_explicitly():
     """Verifies fallback behaves perfectly when Gemini API key is missing/removed."""
     # Temporarily remove keys from environment
@@ -241,6 +254,7 @@ def test_fallback_behavior_explicitly():
         if orig_key_upper:
             os.environ["GOOGLE_GEMINI_API_KEY"] = orig_key_upper
 
+@requires_trained_models
 def test_shap_contributions_present_and_signed():
     """analyze_transaction should surface real per-prediction SHAP attribution,
     not just the hand-coded threshold rules -- docs/model-choice.md already
@@ -267,6 +281,7 @@ def test_shap_contributions_present_and_signed():
     assert any("SHAP" in item for item in res["llm_analysis"]["key_evidence"])
 
 
+@requires_trained_models
 def test_shap_contributions_empty_without_explainer(monkeypatch):
     import stage5.inference.pipeline as pipeline_mod
 
@@ -276,6 +291,7 @@ def test_shap_contributions_empty_without_explainer(monkeypatch):
     assert compute_shap_contributions(X_proc) == []
 
 
+@requires_trained_models
 def test_no_model_modification():
     """Asserts that no model training code is run and parameters are not modified."""
     # Verify that the model parameters/hashes don't change

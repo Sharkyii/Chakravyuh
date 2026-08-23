@@ -2,6 +2,7 @@
 import sys
 from pathlib import Path
 import numpy as np
+import pytest
 
 # Add project root to sys.path
 sys.path.append(str(Path(__file__).resolve().parents[2]))
@@ -10,10 +11,16 @@ from src.dataset.loader import load_dataset
 from stage5.config.settings import STAGE5_DATA_DIR, ALL_FEATURES, BEHAVIORAL_FEATURES
 from stage5.features.feature_engineering import build_features
 
+# data/generated/ is gitignored and isn't generated in CI (generation is
+# itself the "slow" work the -m "not slow" marker excludes elsewhere).
+@pytest.mark.skipif(
+    not (STAGE5_DATA_DIR / "combined").exists(),
+    reason="generated Stage 5 dataset not present (not generated in CI)",
+)
 def test_new_features_are_correctly_generated_and_available():
     combined_dir = STAGE5_DATA_DIR / "combined"
     assert combined_dir.exists(), f"Combined data directory not found at {combined_dir}"
-    
+
     dataset = load_dataset(combined_dir)
     # Take a small sample of the transactions for fast test execution
     dataset.tables["transactions"] = dataset.tables["transactions"][:200]

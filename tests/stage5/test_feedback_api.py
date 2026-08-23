@@ -1,5 +1,12 @@
 import pytest
 from web.api import analyze, submit_feedback, FEEDBACK_STORE, DYNAMIC_METRICS, SESSION_TRANSACTIONS
+from stage5.config.settings import MODELS_DIR
+
+# stage5/models/*.pkl are gitignored and aren't trained in CI.
+requires_trained_models = pytest.mark.skipif(
+    not (MODELS_DIR / "fraud_model.pkl").exists(),
+    reason="trained model artifacts not present (not generated in CI)",
+)
 
 class MockRequest:
     def __init__(self, data: dict):
@@ -41,6 +48,7 @@ async def test_feedback_api_invalid_request():
         await submit_feedback(req)
     assert exc_info.value.status_code == 400
 
+@requires_trained_models
 @pytest.mark.anyio
 async def test_analyze_injects_graph():
     # Clear session transactions

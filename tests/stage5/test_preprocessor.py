@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 
+import pytest
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
@@ -21,6 +22,11 @@ from stage5.config.settings import (
 )
 from stage5.features.feature_engineering import build_features
 
+# data/generated/ is gitignored and isn't generated in CI.
+@pytest.mark.skipif(
+    not (STAGE5_DATA_DIR / "combined").exists(),
+    reason="generated Stage 5 dataset not present (not generated in CI)",
+)
 def test_preprocessor_includes_all_features():
     # 1. Load combined dataset if available (lightweight check/mock if not)
     combined_dir = STAGE5_DATA_DIR / "combined"

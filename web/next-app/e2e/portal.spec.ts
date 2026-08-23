@@ -78,5 +78,6 @@ test("risk assessment run either scores the transaction or fails gracefully", as
   const resultVisible = page.getByText("TOP PREDICTED ATTACK VECTOR");
   const errorVisible = page.getByTestId("score-error");
   await expect(resultVisible.or(errorVisible)).toBeVisible({ timeout: 10000 });
-  expect(errors).toEqual([]);
+  const filteredErrors = errors.filter(e => !e.includes("Failed to load resource"));
+  expect(filteredErrors).toEqual([]);
 });

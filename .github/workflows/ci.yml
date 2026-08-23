@@ -80,3 +80,46 @@ jobs:
           name: playwright-report
           path: web/next-app/playwright-report/
           retention-days: 7
+
+  deploy:
+    name: Deploy to Cloudflare
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [playwright]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          
+      - name: Deploy Backend Container (FastAPI)
+        run: |
+          npm ci
+          DEPLOY_OUT=$(npx wrangler deploy)
+          echo "$DEPLOY_OUT"
+          API_URL=$(echo "$DEPLOY_OUT" | grep -Eo 'https://[^ ]+\.workers\.dev' | head -n 1)
+          echo "API_URL=$API_URL" >> $GITHUB_ENV
+        working-directory: backend-worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Inject API URL into Frontend Config
+        run: |
+          if [ -z "$API_URL" ]; then
+            echo "Failed to extract API URL from backend deployment"
+            exit 1
+          fi
+          sed -i "s|http://localhost:8000|$API_URL|g" wrangler.jsonc
+          echo "Injected API URL: $API_URL"
+        working-directory: web/next-app
+
+      - name: Deploy Frontend (Next.js via OpenNext)
+        run: |
+          npm ci
+          npm run deploy
+        working-directory: web/next-app
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

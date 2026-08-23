@@ -19,3 +19,9 @@ scratch_tmp/
 # Model pickle artifacts (exceed GitHub size limit)
 stage5/models/*.pkl
 
+# Next.js frontend
+web/next-app/node_modules/
+web/next-app/.next/
+web/next-app/next-env.d.ts
+web/next-app/tsconfig.tsbuildinfo
+

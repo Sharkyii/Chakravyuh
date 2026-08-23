@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Shield,
   Lock,
-  User,
   Key,
   Settings,
   LogOut,
@@ -244,12 +243,38 @@ const ATTACK_NODES: GraphNode[] = [
   }
 ];
 
+const BOOT_SEQUENCE = [
+  "initializing secure session...",
+  "verifying TLS 1.3 handshake... OK",
+  "loading model artifacts (xgboost v1.8)...",
+  "connecting to fraud detection API... OK",
+  "checking attestation signature... OK",
+  "decrypting analyst workspace...",
+  "access granted.",
+];
+
 export default function AnalystPortal() {
-  // Login State
+  // Boot / access sequence -- replaces a login form with a simulated secure
+  // boot animation (no credentials to demo). "isLoggedIn" name kept as-is
+  // since other effects below key off it.
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
+  const [bootLineCount, setBootLineCount] = useState(0);
+
+  useEffect(() => {
+    if (isLoggedIn) return;
+    if (bootLineCount >= BOOT_SEQUENCE.length) {
+      const finish = setTimeout(() => setIsLoggedIn(true), 500);
+      return () => clearTimeout(finish);
+    }
+    const delay = bootLineCount === 0 ? 400 : 260 + Math.random() * 260;
+    const t = setTimeout(() => setBootLineCount((c) => c + 1), delay);
+    return () => clearTimeout(t);
+  }, [bootLineCount, isLoggedIn]);
+
+  const restartBoot = () => {
+    setBootLineCount(0);
+    setIsLoggedIn(false);
+  };
 
   // App Configuration State
   const [apiKey, setApiKey] = useState("");
@@ -268,6 +293,23 @@ export default function AnalystPortal() {
 
   // Metrics / Feature Importance State
   const [metricsData, setMetricsData] = useState<MetricsResult | null>(null);
+
+  // Lifecycle graph edges are drawn as SVG <path> curves between two
+  // percentage-positioned nodes -- but the `d` attribute doesn't accept
+  // percentage units (unlike <circle cx/cy> or <line x1/y1>, which do), so
+  // the coordinates need converting to real pixels against the SVG's actual
+  // rendered size.
+  const lifecycleSvgRef = useRef<SVGSVGElement>(null);
+  const [lifecycleDims, setLifecycleDims] = useState({ width: 1000, height: 440 });
+  useEffect(() => {
+    const el = lifecycleSvgRef.current;
+    if (!el) return;
+    const update = () => setLifecycleDims({ width: el.clientWidth, height: el.clientHeight });
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [activeTab]);
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
 
   // Graph tab State
@@ -362,16 +404,6 @@ export default function AnalystPortal() {
     }
   };
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (username.trim().toLowerCase() === "admin" && password.trim() === "chakravyuh2026") {
-      setIsLoggedIn(true);
-      setLoginError("");
-    } else {
-      setLoginError("Invalid credentials. Access Denied.");
-    }
-  };
-
   const runScoringAssessment = async () => {
     setIsScoring(true);
     setScoreError("");
@@ -411,6 +443,7 @@ export default function AnalystPortal() {
   };
 
   if (!isLoggedIn) {
+    const bootDone = bootLineCount >= BOOT_SEQUENCE.length;
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-950 p-6 relative overflow-hidden">
         {/* Abstract Cyber Grid Background */}
@@ -419,62 +452,40 @@ export default function AnalystPortal() {
 
         <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-900/80 p-8 shadow-2xl backdrop-blur-xl relative z-10 animate-fade-in">
           <div className="flex flex-col items-center mb-8">
-            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-orange-600/20">
-              <Shield className="h-7 w-7 text-white" />
+            <div className="relative mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-orange-600/20">
+              {!bootDone && (
+                <span className="absolute inset-0 rounded-2xl bg-orange-500 animate-ping opacity-30" />
+              )}
+              {bootDone ? (
+                <CheckCircle className="h-8 w-8 text-white relative" />
+              ) : (
+                <Lock className="h-8 w-8 text-white relative animate-pulse" />
+              )}
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-white">CHAKRAVYUH</h1>
             <p className="text-sm text-zinc-400 mt-1 text-center">Mastercard Fraud Prevention Analyst Portal</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-2">Username</label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-zinc-500">
-                  <User className="h-4 w-4" />
+          <div className="rounded-xl border border-zinc-800 bg-black/60 p-4 font-mono text-xs text-emerald-400 min-h-[168px]">
+            {BOOT_SEQUENCE.slice(0, bootLineCount).map((line, i) => (
+              <div key={i} className="flex items-start gap-2 py-0.5">
+                <span className="text-zinc-600 shrink-0">[{String(i + 1).padStart(2, "0")}]</span>
+                <span className={i === bootLineCount - 1 && line.startsWith("access granted") ? "text-orange-400 font-semibold" : ""}>
+                  {"> "}{line}
                 </span>
-                <input
-                  type="text"
-                  required
-                  placeholder="admin"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-700 bg-zinc-950 pl-10 pr-4 py-3 text-zinc-200 placeholder-zinc-600 outline-none transition focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
-                />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-2">Security Password</label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-zinc-500">
-                  <Lock className="h-4 w-4" />
-                </span>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-700 bg-zinc-950 pl-10 pr-4 py-3 text-zinc-200 placeholder-zinc-600 outline-none transition focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
-                />
-              </div>
-            </div>
-
-            {loginError && (
-              <div className="flex items-center gap-2 rounded-xl bg-red-950/50 border border-red-800/60 p-3 text-sm text-red-400">
-                <AlertTriangle className="h-4 w-4 shrink-0" />
-                <span>{loginError}</span>
-              </div>
+            ))}
+            {!bootDone && (
+              <span className="inline-block w-2 h-3.5 bg-emerald-400 animate-pulse align-middle ml-6" />
             )}
+          </div>
 
-            <button
-              type="submit"
-              className="w-full rounded-xl bg-[#ff5f00] py-3.5 font-bold text-white transition hover:bg-[#ff5f00]/90 active:scale-98 shadow-sm border border-[#ff5f00]"
-            >
-              Sign In to Portal
-            </button>
-          </form>
+          <div className="mt-5 h-1 w-full rounded-full bg-zinc-800 overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-amber-500 to-orange-600 transition-all duration-300 ease-out"
+              style={{ width: `${Math.min(100, (bootLineCount / BOOT_SEQUENCE.length) * 100)}%` }}
+            />
+          </div>
         </div>
       </div>
     );
@@ -541,7 +552,7 @@ export default function AnalystPortal() {
             <Settings className="h-4 w-4" />
           </button>
           <button
-            onClick={() => setIsLoggedIn(false)}
+            onClick={restartBoot}
             className="flex items-center gap-2 px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-red-400 hover:bg-red-950/20 hover:border-red-900/50 transition text-xs font-semibold"
           >
             <LogOut className="h-3.5 w-3.5" />
@@ -1302,7 +1313,7 @@ export default function AnalystPortal() {
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#16161a_1px,transparent_1px),linear-gradient(to_bottom,#16161a_1px,transparent_1px)] bg-[size:2rem_2rem] pointer-events-none" />
 
                 {graphViewMode === "lifecycle" ? (
-                  <svg className="w-full h-full min-h-[440px]">
+                  <svg ref={lifecycleSvgRef} className="w-full h-full min-h-[440px]">
                     {/* Markers */}
                     <defs>
                       <marker
@@ -1337,7 +1348,7 @@ export default function AnalystPortal() {
                         return (
                           <path
                             key={`${src.id}-${dest.id}`}
-                            d={`M ${src.x}% ${src.y}% Q ${(src.x + dest.x)/2}% ${(src.y + dest.y)/2 - 4}% ${dest.x}% ${dest.y}%`}
+                            d={`M ${src.x/100*lifecycleDims.width} ${src.y/100*lifecycleDims.height} Q ${(src.x + dest.x)/2/100*lifecycleDims.width} ${((src.y + dest.y)/2 - 4)/100*lifecycleDims.height} ${dest.x/100*lifecycleDims.width} ${dest.y/100*lifecycleDims.height}`}
                             fill="none"
                             stroke={isHighlighted ? "#f97316" : "#18181b"}
                             strokeWidth={isHighlighted ? "1.5" : "1"}
@@ -1356,7 +1367,7 @@ export default function AnalystPortal() {
                         return (
                           <path
                             key={`${src.id}-${dest.id}`}
-                            d={`M ${src.x}% ${src.y}% Q ${(src.x + dest.x)/2}% ${(src.y + dest.y)/2 + 3}% ${dest.x}% ${dest.y}%`}
+                            d={`M ${src.x/100*lifecycleDims.width} ${src.y/100*lifecycleDims.height} Q ${(src.x + dest.x)/2/100*lifecycleDims.width} ${((src.y + dest.y)/2 + 3)/100*lifecycleDims.height} ${dest.x/100*lifecycleDims.width} ${dest.y/100*lifecycleDims.height}`}
                             fill="none"
                             stroke={isHighlighted ? "#f97316" : "#18181b"}
                             strokeWidth={isHighlighted ? "1.5" : "1"}
@@ -1375,7 +1386,7 @@ export default function AnalystPortal() {
                         return (
                           <path
                             key={`${src.id}-${dest.id}`}
-                            d={`M ${src.x}% ${src.y}% L ${dest.x}% ${dest.y}%`}
+                            d={`M ${src.x/100*lifecycleDims.width} ${src.y/100*lifecycleDims.height} L ${dest.x/100*lifecycleDims.width} ${dest.y/100*lifecycleDims.height}`}
                             fill="none"
                             stroke={isHighlighted ? "#f97316" : "#18181b"}
                             strokeWidth={isHighlighted ? "1.5" : "1"}
@@ -1394,7 +1405,7 @@ export default function AnalystPortal() {
                         return (
                           <path
                             key={`${src.id}-${dest.id}`}
-                            d={`M ${src.x}% ${src.y}% Q ${(src.x + dest.x)/2}% ${(src.y + dest.y)/2 + 2}% ${dest.x}% ${dest.y}%`}
+                            d={`M ${src.x/100*lifecycleDims.width} ${src.y/100*lifecycleDims.height} Q ${(src.x + dest.x)/2/100*lifecycleDims.width} ${((src.y + dest.y)/2 + 2)/100*lifecycleDims.height} ${dest.x/100*lifecycleDims.width} ${dest.y/100*lifecycleDims.height}`}
                             fill="none"
                             stroke={isHighlighted ? "#f97316" : "#18181b"}
                             strokeWidth={isHighlighted ? "1.5" : "1"}
@@ -1499,8 +1510,8 @@ export default function AnalystPortal() {
 
                             {/* Draw connection edges */}
                             {scoreResult.network_graph.edges.map((edge, eIdx) => {
-                              const srcNode = scoreResult.network_graph.nodes.find(n => n.id === edge.source);
-                              const destNode = scoreResult.network_graph.nodes.find(n => n.id === edge.target);
+                              const srcNode = scoreResult.network_graph?.nodes.find(n => n.id === edge.source);
+                              const destNode = scoreResult.network_graph?.nodes.find(n => n.id === edge.target);
                               if (!srcNode || !destNode) return null;
                               
                               const srcPos = { x: srcNode.x, y: srcNode.y };

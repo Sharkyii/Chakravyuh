@@ -20,9 +20,33 @@ jobs:
       - name: Install dependencies
         run: uv sync
       - name: Lint
-        run: uv run ruff check src tests
+        run: |
+          uv run ruff check src tests
+          uv run ruff format --check src tests
       - name: Test
         run: uv run pytest -q -m "not slow"
+
+  data-validation:
+    name: Data & Schema Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.11.26"
+      - name: Set up Python
+        run: uv python install 3.11
+      - name: Install dependencies
+        run: uv sync
+      - name: Explicit Schema Drift Check
+        run: uv run pytest tests/schema/test_arrow_schemas.py
+      - name: Generate Validation Batch
+        run: make data SEED=42 N_CONSUMERS=250 N_MERCHANTS=25
+      - name: Generate Graph Edges
+        run: make graph
+      - name: Validate Marginals
+        run: make validate
 
   frontend:
     runs-on: ubuntu-latest
@@ -46,7 +70,7 @@ jobs:
 
   playwright:
     runs-on: ubuntu-latest
-    needs: [python, frontend]
+    needs: [python, frontend, data-validation]
     defaults:
       run:
         working-directory: web/next-app

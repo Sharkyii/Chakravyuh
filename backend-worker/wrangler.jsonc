@@ -1,0 +1,28 @@
+{
+  "$schema": "../web/next-app/node_modules/wrangler/config-schema.json",
+  "name": "chakravyuh-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-22",
+  "containers": [
+    {
+      "class_name": "FastApiContainer",
+      "image": "../Dockerfile",
+      "instance_type": "standard-4",
+      "max_instances": 3
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "FASTAPI_CONTAINER",
+        "class_name": "FastApiContainer"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["FastApiContainer"]
+    }
+  ]
+}

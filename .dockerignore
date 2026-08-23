@@ -1,0 +1,12 @@
+.git
+.github
+.venv
+__pycache__
+*.pyc
+web/next-app
+notebooks
+docs
+data
+tests
+issues.md
+*.md

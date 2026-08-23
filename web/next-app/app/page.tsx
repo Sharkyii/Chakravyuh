@@ -22,6 +22,9 @@ import {
   Cpu
 } from "lucide-react";
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+
 // Types
 interface Scenario {
   description: string;
@@ -324,7 +327,7 @@ export default function AnalystPortal() {
     setSubmittingFeedback(true);
     setFeedbackSuccess(false);
     try {
-      const res = await fetch("http://localhost:8000/api/feedback", {
+      const res = await fetch(`${API_BASE_URL}/api/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -346,7 +349,7 @@ export default function AnalystPortal() {
 
   const clearGraphHistory = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/graph/clear", { method: "POST" });
+      const res = await fetch(`${API_BASE_URL}/api/graph/clear`, { method: "POST" });
       if (res.ok) {
         setScoreResult(null);
         setSelectedTransactionNode(null);
@@ -376,7 +379,7 @@ export default function AnalystPortal() {
 
   const fetchScenarios = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/scenarios");
+      const res = await fetch(`${API_BASE_URL}/api/scenarios`);
       if (res.ok) {
         const data = await res.json();
         setScenarios(data);
@@ -392,7 +395,7 @@ export default function AnalystPortal() {
   const fetchMetrics = async () => {
     setIsLoadingMetrics(true);
     try {
-      const res = await fetch("http://localhost:8000/api/metrics");
+      const res = await fetch(`${API_BASE_URL}/api/metrics`);
       if (res.ok) {
         const data = await res.json();
         setMetricsData(data);
@@ -408,7 +411,7 @@ export default function AnalystPortal() {
     setIsScoring(true);
     setScoreError("");
     try {
-      const res = await fetch("http://localhost:8000/api/analyze", {
+      const res = await fetch(`${API_BASE_URL}/api/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

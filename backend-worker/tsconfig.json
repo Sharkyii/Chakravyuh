@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "es2021",
+    "lib": ["es2021"],
+    "module": "es2022",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["./worker-configuration.d.ts"]
+  },
+  "include": ["src/**/*.ts", "worker-configuration.d.ts"]
+}

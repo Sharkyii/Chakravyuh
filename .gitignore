@@ -26,4 +26,12 @@ web/next-app/next-env.d.ts
 web/next-app/tsconfig.tsbuildinfo
 web/next-app/playwright-report/
 web/next-app/test-results/
+web/next-app/.open-next/
+web/next-app/.wrangler/
+web/next-app/cloudflare-env.d.ts
+
+# Cloudflare backend Worker (Container)
+backend-worker/node_modules/
+backend-worker/worker-configuration.d.ts
+backend-worker/.wrangler/
 

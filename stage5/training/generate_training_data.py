@@ -137,7 +137,7 @@ def main():
             baseline,
             seed=seed,
             intensity=intensity,
-            config=adaptive_config if attack_id == "adversarial_evasion" else None,
+            config=adaptive_config if attack_id in ("adversarial_evasion", "synthetic_identity_bustout") else None,
         )
         
         # Standardize dataclasses/objects to dicts if needed

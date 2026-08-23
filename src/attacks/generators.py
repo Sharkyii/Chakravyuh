@@ -811,7 +811,12 @@ class AdversarialEvasionAttack(AttackGenerator):
         # through the payer's single busiest existing relationship rather
         # than spreading across a small pool, hiding the incremental volume
         # inside a pair whose edge_count was never going to look unusual.
-        if cfg.get("adaptive_top_counterparty"):
+        if cfg.get("adaptive_volume_splitting"):
+            payee_pool = _existing_consumer_payees_for_payer(
+                baseline, payer_id, payee_rng, consumer_ids, k=max(10, n_events * 2)
+            )
+            pretext = "volume_split_adaptive"
+        elif cfg.get("adaptive_top_counterparty"):
             top = _top_counterparty_for_payer(baseline, payer_id, consumer_ids)
             payee_pool = (
                 [top]
@@ -1508,7 +1513,11 @@ class SyntheticIdentityBustoutAttack(AttackGenerator):
                 session_duration_s=int(20 + i * 6 + rng.integers(-3, 6)),
                 time_on_confirm_screen_s=float(rng.uniform(1.2, 3.5)),
                 beneficiary_first_time=(i < 2),
-                beneficiary_added_ago_s=int(90 + i * 12 + rng.integers(-10, 20)),
+                beneficiary_added_ago_s=(
+                    int(63072000 + i * 12 + rng.integers(-10, 20))
+                    if (config or {}).get("adaptive_sleeper")
+                    else int(90 + i * 12 + rng.integers(-10, 20))
+                ),
                 pin_attempts=0,  # Card CNP uses CVV only, so 0 PIN attempts
                 screen_share_active=False,
                 call_active_during_txn=False,

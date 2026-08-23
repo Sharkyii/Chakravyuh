@@ -21,8 +21,8 @@ os.makedirs(REPORTS_DIR, exist_ok=True)
 # campaigns each pushed fraud-adjacent rows into the same order of magnitude
 # as the legitimate baseline, which alone can make a classifier look
 # artificially good regardless of split methodology.
-STAGE5_N_CONSUMERS = 20_000
-STAGE5_N_MERCHANTS = 800
+STAGE5_N_CONSUMERS = 100_000
+STAGE5_N_MERCHANTS = 4_000
 
 # Campaigns generated per attack family. Two competing constraints: total
 # fraud+lookalike volume should stay a small minority of the dataset (not

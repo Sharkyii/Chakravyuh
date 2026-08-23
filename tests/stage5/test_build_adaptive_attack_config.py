@@ -44,7 +44,7 @@ def test_edge_count_above_threshold_triggers_adaptive_routing(tmp_path, monkeypa
     _write_stub_artifacts(tmp_path, names, importances)
 
     config = build_adaptive_config()
-    assert config.get("adaptive_top_counterparty") is True
+    assert config.get("adaptive_volume_splitting") is True
     assert "beneficiary_age_floor_s" not in config
 
 
@@ -55,7 +55,7 @@ def test_beneficiary_age_above_threshold_sets_floor(tmp_path, monkeypatch):
     _write_stub_artifacts(tmp_path, names, importances)
 
     config = build_adaptive_config()
-    assert "adaptive_top_counterparty" not in config
+    assert "adaptive_volume_splitting" not in config
 
     from src.generators import calibration as cal
 

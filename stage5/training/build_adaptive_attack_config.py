@@ -66,7 +66,9 @@ def build_adaptive_config() -> dict[str, Any]:
 
     edge_count_importance = by_name.get("num__edge_count", 0.0)
     if edge_count_importance >= TARGET_IMPORTANCE_THRESHOLD:
-        config["adaptive_top_counterparty"] = True
+        # For Gen 3, instead of concentrating on a single top counterparty,
+        # spread volume across a wide pool to evade density detection.
+        config["adaptive_volume_splitting"] = True
 
     ben_age_importance = by_name.get("num__beneficiary_added_ago_s", 0.0)
     if ben_age_importance >= TARGET_IMPORTANCE_THRESHOLD:
@@ -77,6 +79,8 @@ def build_adaptive_config() -> dict[str, Any]:
         config["beneficiary_age_floor_s"] = int(
             floor + BENEFICIARY_AGE_ADAPTIVE_FRACTION * (ceiling - floor)
         )
+        # Enable Gen 3 full sleeper emulation
+        config["adaptive_sleeper"] = True
 
     return config
 

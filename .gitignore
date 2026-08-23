@@ -24,4 +24,6 @@ web/next-app/node_modules/
 web/next-app/.next/
 web/next-app/next-env.d.ts
 web/next-app/tsconfig.tsbuildinfo
+web/next-app/playwright-report/
+web/next-app/test-results/
 

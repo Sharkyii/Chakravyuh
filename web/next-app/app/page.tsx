@@ -1123,7 +1123,7 @@ export default function AnalystPortal() {
                   <div>
                     <h4 className="text-sm font-semibold text-white mb-1">Observe Leaks</h4>
                     <p className="text-xs text-zinc-500 leading-relaxed">
-                      The ML detector's features are audited. Features that form "tells" (like fixed ASN blocks or shallow-copy lookalikes) are identified.
+                      The ML detector&apos;s features are audited. Features that form &quot;tells&quot; (like fixed ASN blocks or shallow-copy lookalikes) are identified.
                     </p>
                   </div>
                 </div>
@@ -1147,7 +1147,7 @@ export default function AnalystPortal() {
                   <div>
                     <h4 className="text-sm font-semibold text-white mb-1">Retrain and Defend</h4>
                     <p className="text-xs text-zinc-500 leading-relaxed">
-                      The detector retrains on these newly optimized, adaptive evasion campaigns. This raises the detection floor, forcing the attacker's cost up.
+                      The detector retrains on these newly optimized, adaptive evasion campaigns. This raises the detection floor, forcing the attacker&apos;s cost up.
                     </p>
                   </div>
                 </div>
@@ -1464,7 +1464,7 @@ export default function AnalystPortal() {
                         <Network className="h-12 w-12 text-zinc-800 mb-3" />
                         <span className="text-sm font-semibold text-zinc-400">No Transaction Network Loaded</span>
                         <p className="text-xs text-zinc-600 max-w-sm mt-1">
-                          Go to the Risk Scoring Studio, choose a simulation scenario, click "Run Risk Assessment", and return to visualize its dynamic counterparty connections.
+                          Go to the Risk Scoring Studio, choose a simulation scenario, click &quot;Run Risk Assessment&quot;, and return to visualize its dynamic counterparty connections.
                         </p>
                       </div>
                     ) : (

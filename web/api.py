@@ -5,6 +5,8 @@ import joblib
 from pathlib import Path
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from collections import OrderedDict
+from starlette.concurrency import run_in_threadpool
 
 # Setup project root
 project_root = Path(__file__).resolve().parent.parent
@@ -40,7 +42,20 @@ DYNAMIC_METRICS = {
 }
 
 # In-memory store for session transactions (for correlation graph)
-SESSION_TRANSACTIONS = []
+MAX_SESSIONS = 200
+MAX_TXNS_PER_SESSION = 50
+_SESSION_COUNTERS: dict[str, int] = {}
+_SESSION_GRAPHS: "OrderedDict[str, list[dict]]" = OrderedDict()
+
+def _get_session_txns(session_id: str) -> list[dict]:
+    if session_id not in _SESSION_GRAPHS:
+        if len(_SESSION_GRAPHS) >= MAX_SESSIONS:
+            oldest_id, _ = _SESSION_GRAPHS.popitem(last=False)  # evict oldest
+            _SESSION_COUNTERS.pop(oldest_id, None)
+        _SESSION_GRAPHS[session_id] = []
+        _SESSION_COUNTERS[session_id] = 0
+    _SESSION_GRAPHS.move_to_end(session_id)
+    return _SESSION_GRAPHS[session_id]
 
 def calculate_similarity(txn1: dict, txn2: dict) -> float:
     weights = {
@@ -78,8 +93,11 @@ def get_scenarios():
     return SCENARIOS
 
 @app.post("/api/graph/clear")
-def clear_graph():
-    SESSION_TRANSACTIONS.clear()
+def clear_graph(request: Request):
+    session_id = getattr(request, "headers", {}).get("x-session-id") or "default-session"
+    session_txns = _get_session_txns(session_id)
+    session_txns.clear()
+    _SESSION_COUNTERS[session_id] = 0
     return {"status": "success", "message": "Session transaction history cleared."}
 
 @app.post("/api/analyze")
@@ -91,47 +109,41 @@ async def analyze(request: Request):
     if not txn:
         raise HTTPException(status_code=400, detail="Transaction data is required")
         
-    # Save original key
-    orig_key = os.environ.get("GOOGLE_GEMINI_API_KEY") or os.environ.get("google_gemini_api_key")
-    
-    if api_key:
-        os.environ["GOOGLE_GEMINI_API_KEY"] = api_key
-        os.environ["google_gemini_api_key"] = api_key
-    else:
-        # Check if the key in env is a placeholder/invalid one
-        # If so, temporarily blank it out so that pipeline.py falls back to local simulation
-        curr_key = os.environ.get("GOOGLE_GEMINI_API_KEY", "") or os.environ.get("google_gemini_api_key", "")
-        dummy_keys = {
-            "AQ.Ab8RN6Ida8we4qt5S64aCIwzkaJrsOb0bmB7HGcdrMdf9wVe8A",
-            "AQ.Ab8RN6LMmERQfbtGJicIhBR6Z3owBauO48KcHDrRjlhjmb9-w",
-            "AIzaSyYourActualKeyHere",
-            "AIzaSyYour...yHere"
-        }
-        if curr_key in dummy_keys or "your" in curr_key.lower():
-            os.environ["GOOGLE_GEMINI_API_KEY"] = ""
-            os.environ["google_gemini_api_key"] = ""
+    baseline_amount = data.get("baseline_amount")
+    if baseline_amount is not None:
+        if "historical_average_amount" not in txn:
+            txn["historical_average_amount"] = baseline_amount
+        if "amount_deviation" not in txn:
+            txn["amount_deviation"] = abs(float(txn.get("amount", 0.0)) - float(baseline_amount))
+            
+    session_id = getattr(request, "headers", {}).get("x-session-id") or "default-session"
+    session_txns = _get_session_txns(session_id)
             
     try:
-        result = analyze_transaction(txn)
+        result = await run_in_threadpool(analyze_transaction, txn, api_key)
         
         # Always generate a new unique transaction ID for each simulation run in this session.
         # This ensures consecutive runs of the same scenario accumulate as separate nodes.
-        txn_id = f"TXN_{len(SESSION_TRANSACTIONS) + 1:03d}"
+        _SESSION_COUNTERS[session_id] += 1
+        txn_id = f"TXN_{_SESSION_COUNTERS[session_id]:03d}"
+        result["txn_id"] = txn_id
         
         # Let's save transaction data along with result
-        SESSION_TRANSACTIONS.append({
+        session_txns.append({
             "txn_id": txn_id,
             "transaction": txn,
             "result": result
         })
         
-
+        while len(session_txns) > MAX_TXNS_PER_SESSION:
+            session_txns.pop(0)
+        
         nodes = []
         edges = []
         campaign_alerts = []
         
         # 1. Build nodes and local subgraphs for all session transactions
-        for idx, item in enumerate(SESSION_TRANSACTIONS):
+        for idx, item in enumerate(session_txns):
             t_id = item["txn_id"]
             t_txn = item["transaction"]
             t_res = item["result"]
@@ -143,7 +155,7 @@ async def analyze(request: Request):
             
             # Dynamic Horizontal coordinates to spread clusters across canvas (15% to 85%)
             # We want each cluster to occupy a 20% width block
-            base_x = 15 + (70 / max(1, len(SESSION_TRANSACTIONS) - 1)) * idx if len(SESSION_TRANSACTIONS) > 1 else 50
+            base_x = 15 + (70 / max(1, len(session_txns) - 1)) * idx if len(session_txns) > 1 else 50
             base_y = 50 + (idx % 2 - 0.5) * 12
             
             # Add Payer Node
@@ -232,12 +244,12 @@ async def analyze(request: Request):
                 })
 
         # 2. Pairwise similarity metrics connection (dashed green links)
-        for i in range(len(SESSION_TRANSACTIONS)):
-            for j in range(i + 1, len(SESSION_TRANSACTIONS)):
-                txn1 = SESSION_TRANSACTIONS[i]["transaction"]
-                txn2 = SESSION_TRANSACTIONS[j]["transaction"]
-                id1 = SESSION_TRANSACTIONS[i]["txn_id"]
-                id2 = SESSION_TRANSACTIONS[j]["txn_id"]
+        for i in range(len(session_txns)):
+            for j in range(i + 1, len(session_txns)):
+                txn1 = session_txns[i]["transaction"]
+                txn2 = session_txns[j]["transaction"]
+                id1 = session_txns[i]["txn_id"]
+                id2 = session_txns[j]["txn_id"]
                 
                 sim = calculate_similarity(txn1, txn2)
                 if sim >= 0.75:
@@ -261,14 +273,6 @@ async def analyze(request: Request):
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        # Restore environment
-        if orig_key:
-            os.environ["GOOGLE_GEMINI_API_KEY"] = orig_key
-            os.environ["google_gemini_api_key"] = orig_key
-        else:
-            os.environ.pop("GOOGLE_GEMINI_API_KEY", None)
-            os.environ.pop("google_gemini_api_key", None)
             
     return result
 
@@ -288,26 +292,29 @@ async def submit_feedback(request: Request):
         "risk_score": risk_score
     })
     
-    # Simulate retraining impact with heavy weightage:
     n_feedback = len(FEEDBACK_STORE)
     
-    # Recall and PR-AUC improve as model learns from analyst corrections
-    new_pr_auc = min(0.9980, 0.9866 + n_feedback * 0.0018)
-    new_recall_01 = min(0.9990, 0.9775 + n_feedback * 0.0025)
-    new_recall_1 = min(0.9999, 0.9902 + n_feedback * 0.0012)
+    predicted_positive = risk_score >= 60.0
+    actual_positive = actual_label == "fraud"
+    agreement = predicted_positive == actual_positive
     
-    DYNAMIC_METRICS["PR-AUC"] = new_pr_auc
-    DYNAMIC_METRICS["Recall @ 0.1% FPR"] = new_recall_01
-    DYNAMIC_METRICS["Recall @ 1% FPR"] = new_recall_1
+    delta = 0.0006 if agreement else -0.0004
+    DYNAMIC_METRICS["PR-AUC"] = min(0.9980, max(0.9700, DYNAMIC_METRICS["PR-AUC"] + delta))
     
-    print(f"[Closed-Loop Retraining] Feedbacks: {n_feedback} | Retrained XGBoost + Random Forest in online mode.")
-    print(f"[Closed-Loop Retraining] New metrics: PR-AUC={new_pr_auc:.4f}, Recall@0.1%={new_recall_01:.4f}")
+    delta_01 = 0.0008 if agreement else -0.0006
+    DYNAMIC_METRICS["Recall @ 0.1% FPR"] = min(0.9990, max(0.9500, DYNAMIC_METRICS["Recall @ 0.1% FPR"] + delta_01))
+    
+    delta_1 = 0.0004 if agreement else -0.0002
+    DYNAMIC_METRICS["Recall @ 1% FPR"] = min(0.9999, max(0.9700, DYNAMIC_METRICS["Recall @ 1% FPR"] + delta_1))
+    
+    print(f"[Closed-Loop Feedback] Feedbacks: {n_feedback} | Agreement: {agreement}. Simulated closed-loop metric adjusted based on prediction/label agreement \u2014 illustrative only, no live model retraining occurs.")
+    print(f"[Closed-Loop Feedback] New metrics: PR-AUC={DYNAMIC_METRICS['PR-AUC']:.4f}, Recall@0.1%={DYNAMIC_METRICS['Recall @ 0.1% FPR']:.4f}")
     
     return {
         "status": "success",
-        "retrained": True,
+        "retrained": False,
         "feedback_count": n_feedback,
-        "message": "Model weights updated with sample weight 100. Stats updated.",
+        "message": "Feedback recorded. Simulated closed-loop metric adjusted based on prediction/label agreement \u2014 illustrative only, no live model retraining occurs.",
         "metrics": DYNAMIC_METRICS
     }
 

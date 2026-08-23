@@ -33,6 +33,7 @@ interface Scenario {
 }
 
 interface AnalysisResult {
+  txn_id?: string;
   risk_score: number;
   risk_level: string;
   action: string;
@@ -256,6 +257,16 @@ const BOOT_SEQUENCE = [
   "access granted.",
 ];
 
+const getSessionId = () => {
+  if (typeof window === "undefined") return "default-session";
+  let sid = sessionStorage.getItem("x-session-id");
+  if (!sid) {
+    sid = crypto.randomUUID();
+    sessionStorage.setItem("x-session-id", sid);
+  }
+  return sid;
+};
+
 export default function AnalystPortal() {
   // Boot / access sequence -- replaces a login form with a simulated secure
   // boot animation (no credentials to demo). "isLoggedIn" name kept as-is
@@ -327,7 +338,7 @@ export default function AnalystPortal() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          txn_id: txnOverrides.txn_id || "demo-txn-1",
+          txn_id: scoreResult.txn_id || "demo-txn-1",
           actual_label: actualLabel,
           risk_score: scoreResult.risk_score
         })
@@ -345,7 +356,10 @@ export default function AnalystPortal() {
 
   const clearGraphHistory = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/graph/clear`, { method: "POST" });
+      const res = await fetch(`${API_BASE_URL}/api/graph/clear`, {
+        method: "POST",
+        headers: { "x-session-id": getSessionId() }
+      });
       if (res.ok) {
         setScoreResult(null);
         setSelectedTransactionNode(null);
@@ -409,9 +423,13 @@ export default function AnalystPortal() {
     try {
       const res = await fetch(`${API_BASE_URL}/api/analyze`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-session-id": getSessionId()
+        },
         body: JSON.stringify({
-          transaction: txnOverrides
+          transaction: txnOverrides,
+          baseline_amount: scenarios[selectedScenarioName]?.txn?.amount
         })
       });
 
@@ -424,7 +442,9 @@ export default function AnalystPortal() {
       setScoreResult(result);
       setFeedbackSuccess(false); // Reset feedback success state
       if (result.network_graph?.nodes?.length > 0) {
-        setSelectedTransactionNode(result.network_graph.nodes[0]);
+        const targetNodeId = `payer_${result.txn_id}`;
+        const currentNode = result.network_graph.nodes.find((n: any) => n.id === targetNodeId) || result.network_graph.nodes[0];
+        setSelectedTransactionNode(currentNode);
       }
     } catch (err: any) {
       setScoreError(err.message || "Failed to run risk assessment. Make sure backend is running.");
@@ -1101,7 +1121,7 @@ export default function AnalystPortal() {
             <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 backdrop-blur-md">
               <h2 className="text-lg font-bold text-white mb-2">What is the Closed-Loop Cycle?</h2>
               <p className="text-sm text-zinc-400 leading-relaxed">
-                The **Chakravyuh Closed Loop** describes our adaptive, adversarial security cycle. 
+                The Chakravyuh Closed Loop describes our adaptive, adversarial security cycle. 
                 Instead of static, hand-written rules that attackers quickly study and bypass, the loop works dynamically:
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6 border-t border-zinc-800 pt-6">

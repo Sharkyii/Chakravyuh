@@ -1,5 +1,5 @@
 import pytest
-from web.api import analyze, submit_feedback, FEEDBACK_STORE, DYNAMIC_METRICS, SESSION_TRANSACTIONS
+from web.api import analyze, submit_feedback, FEEDBACK_STORE, DYNAMIC_METRICS, _SESSION_GRAPHS
 from stage5.config.settings import MODELS_DIR
 
 # stage5/models/*.pkl are gitignored and aren't trained in CI.
@@ -18,15 +18,14 @@ class MockRequest:
 
 
 @pytest.mark.anyio
-async def test_feedback_api_success():
+async def test_feedback_api_agreement():
     # Clear feedback store
     FEEDBACK_STORE.clear()
 
     # Reset metrics
     DYNAMIC_METRICS["PR-AUC"] = 0.9866
-    DYNAMIC_METRICS["Recall @ 0.1% FPR"] = 0.9775
 
-    # Submit legitimate feedback
+    # Submit legitimate feedback where score implies legitimate
     req = MockRequest({"txn_id": "test-txn-123", "actual_label": "legitimate", "risk_score": 25.0})
 
     data = await submit_feedback(req)
@@ -35,6 +34,22 @@ async def test_feedback_api_success():
     assert data["feedback_count"] == 1
     assert data["metrics"]["PR-AUC"] > 0.9866
     assert len(FEEDBACK_STORE) == 1
+
+@pytest.mark.anyio
+async def test_feedback_api_disagreement():
+    # Clear feedback store
+    FEEDBACK_STORE.clear()
+
+    # Reset metrics
+    DYNAMIC_METRICS["PR-AUC"] = 0.9866
+
+    # Submit legitimate feedback where score implies fraud
+    req = MockRequest({"txn_id": "test-txn-123", "actual_label": "legitimate", "risk_score": 85.0})
+
+    data = await submit_feedback(req)
+
+    assert data["status"] == "success"
+    assert data["metrics"]["PR-AUC"] < 0.9866
 
 
 @pytest.mark.anyio
@@ -51,7 +66,7 @@ async def test_feedback_api_invalid_request():
 @pytest.mark.anyio
 async def test_analyze_injects_graph():
     # Clear session transactions
-    SESSION_TRANSACTIONS.clear()
+    _SESSION_GRAPHS.clear()
 
     # Submit mock transaction
     mock_txn = {
@@ -79,3 +94,35 @@ async def test_analyze_injects_graph():
 
     payee_node = next(n for n in graph["nodes"] if n["id"] == "payee_TXN_001")
     assert payee_node["label"] == "Payee (TXN_001)"
+
+
+class MockRequestWithHeaders(MockRequest):
+    def __init__(self, data: dict, headers: dict):
+        super().__init__(data)
+        self.headers = headers
+
+@requires_trained_models
+@pytest.mark.anyio
+async def test_analyze_session_isolation():
+    _SESSION_GRAPHS.clear()
+
+    mock_txn = {
+        "amount": 12500.0,
+        "edge_count": 1.0,
+        "pin_attempts": 1,
+        "rail": "upi_p2p",
+    }
+    
+    req1 = MockRequestWithHeaders({"transaction": mock_txn}, {"x-session-id": "sess1"})
+    req2 = MockRequestWithHeaders({"transaction": mock_txn}, {"x-session-id": "sess2"})
+
+    data1 = await analyze(req1)
+    data2 = await analyze(req2)
+    
+    nodes1 = data1["network_graph"]["nodes"]
+    nodes2 = data2["network_graph"]["nodes"]
+    
+    # Each should have only 2 nodes (payer and payee) from one transaction
+    # Without isolation, the second request would return graph data for both transactions (4+ nodes)
+    assert len(nodes1) == 2
+    assert len(nodes2) == 2

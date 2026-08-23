@@ -16,6 +16,13 @@ if str(project_root) not in sys.path:
 
 from stage5.config.settings import MODELS_DIR, ALL_FEATURES
 
+DUMMY_KEYS = {
+    "AQ.Ab8RN6Ida8we4qt5S64aCIwzkaJrsOb0bmB7HGcdrMdf9wVe8A",
+    "AQ.Ab8RN6LMmERQfbtGJicIhBR6Z3owBauO48KcHDrRjlhjmb9-w",
+    "AIzaSyYourActualKeyHere",
+    "AIzaSyYour...yHere"
+}
+
 # Helper to load environmental variables manually (pattern from attacks framework)
 def load_env_file() -> None:
     """Helper to parse a local .env file manually into os.environ."""
@@ -253,7 +260,31 @@ def call_gemini_api(prompt: str, api_key: str) -> dict:
         text_content = resp_json["candidates"][0]["content"]["parts"][0]["text"]
         return json.loads(text_content)
 
-def analyze_transaction(transaction: dict) -> dict:
+def _ramp_up(value: float, low: float, high: float) -> float:
+    """Continuous 0.0->1.0 severity ramp, linear between `low` and `high`.
+    `low` must stay equal to the original step-function's activation
+    threshold (the point below which the signal was, and still must be,
+    exactly 0) -- otherwise inputs the original design judged benign start
+    picking up phantom risk credit just for being non-zero, inflating
+    false-positive pressure on legitimate low-risk traffic. Only the region
+    at/above `low` is made continuous, replacing the old flat plateau
+    between the two step thresholds."""
+    if value <= low:
+        return 0.0
+    if value >= high:
+        return 1.0
+    return (value - low) / (high - low)
+
+
+def _ramp_down(value: float, full_risk_at: float, zero_at: float) -> float:
+    """Inverse of _ramp_up, for signals where a *smaller* value is riskier
+    (e.g. beneficiary age): 1.0 at/below `full_risk_at`, 0.0 at/above
+    `zero_at` (which must match the original step function's cutoff),
+    linear in between."""
+    return 1.0 - _ramp_up(value, low=full_risk_at, high=zero_at)
+
+
+def analyze_transaction(transaction: dict, api_key: str | None = None) -> dict:
     """Runs a transaction through the Stage 6 risk fusion & analyst pipeline."""
     # 1. Load pre-trained models
     artifacts = load_artifacts()
@@ -327,49 +358,57 @@ def analyze_transaction(transaction: dict) -> dict:
         if accessibility: flags.append("accessibility service")
         contributing_signals.append(f"Risky device flags active: {', '.join(flags)}")
         
-    # Beneficiary age
+    # Beneficiary age (smaller age = higher risk). zero_at=3600 matches the
+    # original step function's cutoff exactly -- ages >= 1h stay at 0 risk,
+    # same as before; only the 300s-3600s band is now a ramp instead of a
+    # flat 0.5 plateau.
     ben_age = transaction.get("beneficiary_added_ago_s")
     if ben_age is not None and pd.notna(ben_age):
         ben_age = float(ben_age)
+        ben_added_flag = _ramp_down(ben_age, full_risk_at=300.0, zero_at=3600.0)
         if ben_age < 300:
-            ben_added_flag = 1.0
             contributing_signals.append(f"Beneficiary added very recently ({ben_age:.1f}s ago)")
         elif ben_age < 3600:
-            ben_added_flag = 0.5
             contributing_signals.append(f"Beneficiary added recently ({ben_age/60:.1f} minutes ago)")
-            
-    # Graph counts
+
+    # Graph counts. low/high=10/30 match the original cutoffs exactly --
+    # counts at or below 10 stay at 0 risk and at/above 30 stay at max
+    # severity, same as before. Only the 10-30 band, which used to be a flat
+    # 0.5 plateau, is now a continuous ramp.
     edge_count = transaction.get("edge_count")
     if edge_count is not None and pd.notna(edge_count):
         edge_count = float(edge_count)
+        edge_count_flag = _ramp_up(edge_count, low=10.0, high=30.0)
         if edge_count > 30:
-            edge_count_flag = 1.0
             contributing_signals.append(f"Highly elevated graph edge count ({edge_count})")
         elif edge_count > 10:
-            edge_count_flag = 0.5
             contributing_signals.append(f"Moderately elevated graph edge count ({edge_count})")
-            
-    # Deviation from historical average
+
+    # Deviation from historical average. low/high=2.0/4.0 match the original
+    # cutoffs exactly, same reasoning as edge_count above.
     amt_dev = transaction.get("amount_deviation")
     hist_avg = transaction.get("historical_average_amount")
     if amt_dev is not None and pd.notna(amt_dev) and hist_avg is not None and pd.notna(hist_avg) and float(hist_avg) > 0:
         ratio = float(amt_dev) / float(hist_avg)
+        dev_flag = _ramp_up(ratio, low=2.0, high=4.0)
         if ratio > 4.0:
-            dev_flag = 1.0
             contributing_signals.append(f"Significant transaction amount deviation ({ratio:.1f}x historical average)")
         elif ratio > 2.0:
-            dev_flag = 0.5
             contributing_signals.append(f"Moderate transaction amount deviation ({ratio:.1f}x historical average)")
-            
-    # PIN attempts
+
+    # PIN attempts. low=1 matches the original cutoff (0 or 1 attempts stay at
+    # 0 risk); high=5 is the Studio's slider max, not an original step
+    # threshold -- unlike the other flags, pin_attempts is an integer with no
+    # continuous values to smooth between the old anchors (1 and >2 was
+    # already just two adjacent integers), so the real bug (3, 4, 5 attempts
+    # all flatlining at 1.0) is fixed by ramping across the full 2-5 range.
     pin_attempts = transaction.get("pin_attempts")
     if pin_attempts is not None and pd.notna(pin_attempts):
         pin_attempts = int(pin_attempts)
+        pin_flag = _ramp_up(float(pin_attempts), low=1.0, high=5.0)
         if pin_attempts > 2:
-            pin_flag = 1.0
             contributing_signals.append(f"Multiple failed PIN attempts ({pin_attempts})")
         elif pin_attempts > 1:
-            pin_flag = 0.5
             contributing_signals.append(f"Elevated PIN attempts ({pin_attempts})")
             
     # IP is proxy
@@ -387,15 +426,15 @@ def analyze_transaction(transaction: dict) -> dict:
         if new_ip: contexts.append("new IP")
         contributing_signals.append(f"Transaction from new context: {', '.join(contexts)}")
         
-    # High transaction amount check
+    # High transaction amount check. low/high=25000/100000 match the original
+    # cutoffs exactly, same reasoning as edge_count above.
     amount_val = transaction.get("amount", 0.0)
     if amount_val is not None and pd.notna(amount_val):
         amount_val = float(amount_val)
+        amt_flag = _ramp_up(amount_val, low=25000.0, high=100000.0)
         if amount_val > 100000.0:
-            amt_flag = 1.0
             contributing_signals.append(f"High transaction amount (₹{amount_val:,.2f})")
         elif amount_val > 25000.0:
-            amt_flag = 0.5
             contributing_signals.append(f"Moderately high transaction amount (₹{amount_val:,.2f})")
             
     # Anomaly Index calculation
@@ -426,13 +465,15 @@ def analyze_transaction(transaction: dict) -> dict:
         pin_attempts_val = int(pin_attempts_val)
         # 1. PIN brute-forcing on high-value transfer (Takeover signature)
         if pin_attempts_val >= 3 and amount_val > 10000.0:
-            risk_score_raw = max(risk_score_raw, 85.0)
+            severity = max(_ramp_up(float(pin_attempts_val), low=3.0, high=5.0),
+                            _ramp_up(amount_val, low=10000.0, high=100000.0))
+            risk_score_raw = max(risk_score_raw, 85.0 + 10.0 * severity)
             if "Multiple PIN failures on high-value transaction" not in contributing_signals:
                 contributing_signals.append("Multiple PIN failures on high-value transaction")
                 
     # 2. Coerced push scam signature (active device sharing + active call + high amount)
     if device_risk_flag == 1.0 and amount_val > 25000.0:
-        risk_score_raw = max(risk_score_raw, 90.0)
+        risk_score_raw = max(risk_score_raw, 90.0 + 8.0 * _ramp_up(amount_val, low=25000.0, high=100000.0))
         if "Active device sharing/call on high-value transaction" not in contributing_signals:
             contributing_signals.append("Active device sharing/call on high-value transaction")
             
@@ -479,17 +520,11 @@ def analyze_transaction(transaction: dict) -> dict:
     }
     
     # 5. LLM Analyst Intelligence Layer
-    load_env_file()
-    api_key = os.environ.get("google_gemini_api_key") or os.environ.get("GOOGLE_GEMINI_API_KEY")
+    if api_key is None:
+        load_env_file()
+        api_key = os.environ.get("google_gemini_api_key") or os.environ.get("GOOGLE_GEMINI_API_KEY")
     
-    # Filter out known mock placeholder keys
-    dummy_keys = {
-        "AQ.Ab8RN6Ida8we4qt5S64aCIwzkaJrsOb0bmB7HGcdrMdf9wVe8A",
-        "AQ.Ab8RN6LMmERQfbtGJicIhBR6Z3owBauO48KcHDrRjlhjmb9-w",
-        "AIzaSyYourActualKeyHere",
-        "AIzaSyYour...yHere"
-    }
-    if api_key in dummy_keys or (api_key and "your" in api_key.lower()):
+    if api_key in DUMMY_KEYS or (api_key and "your" in api_key.lower()):
         api_key = None
     
     llm_analysis = None

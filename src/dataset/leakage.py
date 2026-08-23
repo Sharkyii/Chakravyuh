@@ -10,7 +10,14 @@ from src.dataset.loader import PaymentDataset
 from src.dataset.splits import TemporalSplitConfig, assign_split, temporal_split_transactions
 from src.schema.enums import DetectableAt
 
-LABEL_ONLY_COLUMNS = {"is_fraud", "attack_id", "campaign_id", "pretext", "is_legit_lookalike", "detectable_at"}
+LABEL_ONLY_COLUMNS = {
+    "is_fraud",
+    "attack_id",
+    "campaign_id",
+    "pretext",
+    "is_legit_lookalike",
+    "detectable_at",
+}
 
 
 @dataclass(slots=True)
@@ -63,7 +70,10 @@ def run_leakage_checks(
     if not (
         ordered_windows[0].end == ordered_windows[1].start
         and ordered_windows[1].end == ordered_windows[2].start
-        and ordered_windows[0].start < ordered_windows[0].end <= ordered_windows[1].end <= ordered_windows[2].end
+        and ordered_windows[0].start
+        < ordered_windows[0].end
+        <= ordered_windows[1].end
+        <= ordered_windows[2].end
     ):
         errors.append("temporal split windows are not strictly ordered")
 
@@ -87,7 +97,11 @@ def run_leakage_checks(
     for row in dataset.labels:
         if row["is_fraud"] is not False:
             errors.append(f"baseline label is fraud: {row['txn_id']}")
-        if row["attack_id"] is not None or row["campaign_id"] is not None or row["pretext"] is not None:
+        if (
+            row["attack_id"] is not None
+            or row["campaign_id"] is not None
+            or row["pretext"] is not None
+        ):
             errors.append(f"baseline label contains attack metadata: {row['txn_id']}")
         if row["is_legit_lookalike"] is not False:
             errors.append(f"baseline label marked lookalike: {row['txn_id']}")
@@ -96,17 +110,28 @@ def run_leakage_checks(
 
     for edge in dataset.graph_edges:
         if edge["src_party_id"] not in party_ids or edge["dst_party_id"] not in party_ids:
-            errors.append(f"invalid graph edge party reference: {edge['src_party_id']}->{edge['dst_party_id']}")
+            errors.append(
+                f"invalid graph edge party reference: {edge['src_party_id']}->{edge['dst_party_id']}"
+            )
         if edge["window_start"] >= edge["window_end"]:
-            errors.append(f"invalid graph edge window: {edge['src_party_id']}->{edge['dst_party_id']}")
-        if edge["window_start"] < ordered_windows[0].start or edge["window_end"] > ordered_windows[-1].end:
-            errors.append(f"graph edge outside dataset window: {edge['src_party_id']}->{edge['dst_party_id']}")
+            errors.append(
+                f"invalid graph edge window: {edge['src_party_id']}->{edge['dst_party_id']}"
+            )
+        if (
+            edge["window_start"] < ordered_windows[0].start
+            or edge["window_end"] > ordered_windows[-1].end
+        ):
+            errors.append(
+                f"graph edge outside dataset window: {edge['src_party_id']}->{edge['dst_party_id']}"
+            )
 
     details = {
         "transaction_duplicates": len(duplicate_txns),
         "label_duplicates": len(duplicate_labels),
         "split_sizes": {name: len(ids) for name, ids in splits.transaction_ids.items()},
-        "label_feature_columns_present": sorted(set(dataset.transactions[0]) & LABEL_ONLY_COLUMNS) if dataset.transactions else [],
+        "label_feature_columns_present": sorted(set(dataset.transactions[0]) & LABEL_ONLY_COLUMNS)
+        if dataset.transactions
+        else [],
         "full_window_graph_edges": len(dataset.graph_edges),
     }
     return LeakageReport(errors=errors, details=details)

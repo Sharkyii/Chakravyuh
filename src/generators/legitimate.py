@@ -57,7 +57,9 @@ def _money(value: float) -> Decimal:
     return Decimal(str(max(value, 1.0))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
-def _amount_for_rail(rng: np.random.Generator, rail: Rail, income_type: str, mcc: int | None) -> Decimal:
+def _amount_for_rail(
+    rng: np.random.Generator, rail: Rail, income_type: str, mcc: int | None
+) -> Decimal:
     persona_multiplier = {"salaried": 1.15, "gig": 0.95, "none": 0.65}[income_type]
     if rail in {Rail.CARD_CNP, Rail.CARD_CP}:
         value = rng.lognormal(mean=6.35, sigma=0.85) * persona_multiplier
@@ -76,7 +78,9 @@ def _amount_for_rail(rng: np.random.Generator, rail: Rail, income_type: str, mcc
 
 
 def _is_round_amount(amount: Decimal) -> bool:
-    return amount % Decimal("100.00") == Decimal("0.00") or amount % Decimal("500.00") == Decimal("0.00")
+    return amount % Decimal("100.00") == Decimal("0.00") or amount % Decimal("500.00") == Decimal(
+        "0.00"
+    )
 
 
 def _day_weights(total_days: int) -> np.ndarray:
@@ -85,7 +89,10 @@ def _day_weights(total_days: int) -> np.ndarray:
     generator run, not per transaction -- see generate_legitimate_transactions.
     """
     weights = np.array(
-        [cal.DAY_OF_WEEK_WEIGHTS[(cal.SIM_START + timedelta(days=d)).weekday()] for d in range(total_days)],
+        [
+            cal.DAY_OF_WEEK_WEIGHTS[(cal.SIM_START + timedelta(days=d)).weekday()]
+            for d in range(total_days)
+        ],
         dtype=np.float64,
     )
     return weights / weights.sum()
@@ -105,7 +112,8 @@ def _timestamp(rng: np.random.Generator, total_days: int, day_weights: np.ndarra
 
 def _active_devices(devices: Iterable[Device], timestamp: datetime) -> list[Device]:
     return [
-        d for d in devices
+        d
+        for d in devices
         if d.first_seen_at <= timestamp <= d.last_seen_at
         and (d.retired_at is None or timestamp < d.retired_at)
     ]
@@ -120,7 +128,8 @@ def _choose_device(
     known_devices: dict[str, list[str]],
 ) -> tuple[str, bool]:
     known_active = _active_devices(
-        (devices_by_id[did] for did in known_devices.get(payer_id, []) if did in devices_by_id), timestamp
+        (devices_by_id[did] for did in known_devices.get(payer_id, []) if did in devices_by_id),
+        timestamp,
     )
     if known_active and rng.random() < cal.LEGIT_KNOWN_DEVICE_PROB:
         return known_active[int(rng.integers(0, len(known_active)))].device_id, True
@@ -164,7 +173,11 @@ def _auth_fields(
             method = AuthMethod.THREE_DS_CHALLENGE_OTP
         eci = "05" if method != AuthMethod.CVV_ONLY else "07"
         liability_shift = method != AuthMethod.CVV_ONLY
-        exemption = ExemptionClaimed.TRA if method == AuthMethod.THREE_DS_FRICTIONLESS else ExemptionClaimed.NONE
+        exemption = (
+            ExemptionClaimed.TRA
+            if method == AuthMethod.THREE_DS_FRICTIONLESS
+            else ExemptionClaimed.NONE
+        )
     elif rail == Rail.CARD_CP:
         method = AuthMethod.NONE
         eci = None
@@ -206,7 +219,12 @@ def _session_fields(
         base += float(rng.uniform(8, 35))
     duration = int(max(5, rng.normal(base, 18)))
     confirm = float(max(0.4, rng.lognormal(mean=0.75 + (0.35 if first_time else 0.0), sigma=0.55)))
-    if auth_method in {AuthMethod.NONE, AuthMethod.THREE_DS_FRICTIONLESS, AuthMethod.THREE_DS_CHALLENGE_OTP, AuthMethod.CVV_ONLY}:
+    if auth_method in {
+        AuthMethod.NONE,
+        AuthMethod.THREE_DS_FRICTIONLESS,
+        AuthMethod.THREE_DS_CHALLENGE_OTP,
+        AuthMethod.CVV_ONLY,
+    }:
         pin_attempts = 0
     else:
         pin_attempts = 1 + int(rng.random() < 0.035) + int(rng.random() < 0.004)
@@ -232,7 +250,8 @@ def _issuer_score(
 
 
 def _merchant_choice(
-    rng: np.random.Generator, merchants: list[GeneratedMerchant]) -> GeneratedMerchant:
+    rng: np.random.Generator, merchants: list[GeneratedMerchant]
+) -> GeneratedMerchant:
     weights = np.array([m.volume_weight for m in merchants], dtype=np.float64)
     weights = weights / weights.sum()
     return merchants[int(rng.choice(len(merchants), p=weights))]
@@ -257,7 +276,9 @@ def generate_legitimate_transactions(seed: int, population: PopulationBundle) ->
     txn_rng, choice_rng = (np.random.default_rng(s) for s in seed_seq.spawn(2))
     devices_by_id = {d.device_id: d for d in population.devices}
     consumer_parties = population.parties
-    merchant_by_id: dict[str, Merchant] = {m.merchant.merchant_id: m.merchant for m in population.merchants}
+    merchant_by_id: dict[str, Merchant] = {
+        m.merchant.merchant_id: m.merchant for m in population.merchants
+    }
 
     rows: list[Transaction] = []
     labels: list[Label] = []
@@ -315,7 +336,11 @@ def generate_legitimate_transactions(seed: int, population: PopulationBundle) ->
                 population.devices,
                 population.party_known_devices,
             )
-            decision = Decision.DECLINED if txn_rng.random() < cal.LEGIT_DECLINE_PROB else Decision.APPROVED
+            decision = (
+                Decision.DECLINED
+                if txn_rng.random() < cal.LEGIT_DECLINE_PROB
+                else Decision.APPROVED
+            )
             auth_method, auth_result, auth_latency, eci, liability_shift, exemption = _auth_fields(
                 txn_rng, rail, decision
             )
@@ -323,10 +348,18 @@ def generate_legitimate_transactions(seed: int, population: PopulationBundle) ->
                 decision = Decision.DECLINED
             decline_reason = None
             if decision == Decision.DECLINED:
-                decline_reason = "auth_failed" if auth_result == AuthResult.FAILURE else "issuer_decline"
-            session_duration, confirm_time, pin_attempts, screen_share, call_active, accessibility, paste = (
-                _session_fields(txn_rng, amount, first_time, auth_method)
-            )
+                decline_reason = (
+                    "auth_failed" if auth_result == AuthResult.FAILURE else "issuer_decline"
+                )
+            (
+                session_duration,
+                confirm_time,
+                pin_attempts,
+                screen_share,
+                call_active,
+                accessibility,
+                paste,
+            ) = _session_fields(txn_rng, amount, first_time, auth_method)
             score = _issuer_score(txn_rng, known_device, first_time, amount, decision)
 
             txn = Transaction(

@@ -3,6 +3,7 @@ import sys
 import json
 from datetime import datetime
 import joblib
+import mlflow
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -59,7 +60,11 @@ def precision_recall_at_fixed_fpr(y_true: np.ndarray, y_prob: np.ndarray, target
 
 def main():
     print("=== Training Stage 5 Primary Fraud Model ===")
-    
+
+    mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db"))
+    mlflow.set_experiment("chakravyuh-fraud-model")
+    mlflow.start_run(run_name=f"fraud_model_{datetime.now():%Y%m%d_%H%M%S}")
+
     # 1. Load data
     combined_dir = STAGE5_DATA_DIR / "combined"
     if not combined_dir.exists():
@@ -168,6 +173,14 @@ def main():
     )
     xgb.fit(X_train_proc, y_train)
     xgb_val_preds = xgb.predict_proba(X_val_proc)[:, 1]
+
+    mlflow.log_params({
+        "n_estimators": xgb.n_estimators,
+        "max_depth": xgb.max_depth,
+        "learning_rate": xgb.learning_rate,
+        "scale_pos_weight": scale_pos_weight,
+        "random_seed": 42,
+    })
     
     # Compare validation performance (PR-AUC)
     def pr_auc(y_true, y_prob):
@@ -285,6 +298,29 @@ def main():
         recall_str = f"{g['held_out_recall']:.4f}" if g["held_out_recall"] is not None else "n/a"
         print(f"@ {g['target_fpr']*100:.2f}% FPR: caught {g['held_out_fraud_caught']}/{g['held_out_fraud_total']} (recall={recall_str})")
 
+    mlflow.log_metrics({
+        "val_pr_auc_lr": float(lr_pr),
+        "val_pr_auc_rf": float(rf_pr),
+        "val_pr_auc_xgb": float(xgb_pr),
+        "selected_threshold": float(best_threshold),
+        "test_pr_auc": float(test_pr_auc),
+        "test_roc_auc": float(test_roc_auc),
+        "test_precision_f1_optimal": float(test_prec),
+        "test_recall_f1_optimal": float(test_rec),
+        "test_f1_optimal": float(test_f1),
+        "test_fpr_f1_optimal": float(test_fpr),
+    })
+    for m in fixed_fpr_metrics:
+        tag = f"{m['target_fpr']*100:.2f}pct_fpr"
+        mlflow.log_metrics({
+            f"precision_at_{tag}": m["precision"],
+            f"recall_at_{tag}": m["recall"],
+        })
+    for g in held_out_generalisation:
+        if g["held_out_recall"] is not None:
+            tag = f"{g['target_fpr']*100:.2f}pct_fpr"
+            mlflow.log_metric(f"held_out_recall_at_{tag}", g["held_out_recall"])
+
     # 9. Save Model Artifacts
     print(f"Saving final model artifacts to {MODELS_DIR}...")
     joblib.dump(final_model, MODELS_DIR / "fraud_model.pkl")
@@ -332,7 +368,13 @@ def main():
     }
     with open(MODELS_DIR / "model_metadata.json", "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
-        
+
+    mlflow.log_artifact(str(MODELS_DIR / "fraud_model.pkl"))
+    mlflow.log_artifact(str(MODELS_DIR / "preprocessor.pkl"))
+    mlflow.log_artifact(str(MODELS_DIR / "feature_schema.json"))
+    mlflow.log_artifact(str(MODELS_DIR / "model_metadata.json"))
+    mlflow.end_run()
+
     print("=== Model training and saving complete! ===")
 
 if __name__ == "__main__":

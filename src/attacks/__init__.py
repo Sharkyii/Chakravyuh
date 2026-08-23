@@ -9,7 +9,11 @@ from src.attacks.framework import (
     ScenarioGenerator,
     TemplateScenarioGenerator,
 )
-from src.attacks.registry import build_attack_generator, build_scenario_spec, generate_attack_dataset
+from src.attacks.registry import (
+    build_attack_generator,
+    build_scenario_spec,
+    generate_attack_dataset,
+)
 
 __all__ = [
     "AttackGenerator",

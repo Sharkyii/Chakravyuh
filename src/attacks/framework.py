@@ -63,19 +63,110 @@ class TemplateScenarioGenerator(ScenarioGenerator):
     """Deterministic, local scenario-template generator for Stage 4."""
 
     _TEMPLATES: dict[str, dict[str, Any]] = {
-        "scam_induced_push": {"pretext": "digital_arrest", "target_population": "consumer", "temporal_strategy": "burst", "behavioral_strategy": "coercion", "graph_strategy": "peer", "lookalike_generation": True},
-        "mule_network": {"pretext": "pass_through", "target_population": "consumer", "temporal_strategy": "fanout", "behavioral_strategy": "network", "graph_strategy": "fan_in_fan_out", "lookalike_generation": True},
-        "card_testing_probe": {"pretext": "probe_cycle", "target_population": "consumer", "temporal_strategy": "rapid_burst", "behavioral_strategy": "micro_amounts", "graph_strategy": "merchant", "lookalike_generation": True},
-        "adversarial_evasion": {"pretext": "low_and_slow", "target_population": "consumer", "temporal_strategy": "distributed", "behavioral_strategy": "evasion", "graph_strategy": "peer", "lookalike_generation": True},
-        "first_party_dispute": {"pretext": "friendly_fraud", "target_population": "consumer", "temporal_strategy": "post_settlement", "behavioral_strategy": "claimant_history", "graph_strategy": "merchant", "lookalike_generation": True},
-        "stealth_mandate": {"pretext": "mandate_stealth", "target_population": "consumer", "temporal_strategy": "recurring", "behavioral_strategy": "mandate_reuse", "graph_strategy": "merchant", "lookalike_generation": True},
-        "synthetic_merchant": {"pretext": "kyb_shell", "target_population": "merchant", "temporal_strategy": "growth_spike", "behavioral_strategy": "onboarding", "graph_strategy": "merchant", "lookalike_generation": True},
-        "transaction_laundering": {"pretext": "laundering", "target_population": "merchant", "temporal_strategy": "pass_through", "behavioral_strategy": "split_flow", "graph_strategy": "network", "lookalike_generation": True},
-        "credential_takeover": {"pretext": "session_compromise", "target_population": "consumer", "temporal_strategy": "device_change", "behavioral_strategy": "takeover", "graph_strategy": "device", "lookalike_generation": True},
-        "synthetic_identity_bustout": {"pretext": "bustout", "target_population": "consumer", "temporal_strategy": "evolution", "behavioral_strategy": "credit_building", "graph_strategy": "account", "lookalike_generation": True},
-        "subthreshold_fragmentation": {"pretext": "fragmentation", "target_population": "consumer", "temporal_strategy": "serial_split", "behavioral_strategy": "low_threshold", "graph_strategy": "multi_party", "lookalike_generation": True},
-        "agentic_injection": {"pretext": "agentic_abuse", "target_population": "consumer", "temporal_strategy": "automation", "behavioral_strategy": "delegation", "graph_strategy": "merchant", "lookalike_generation": True},
-        "insider_abuse": {"pretext": "insider_access", "target_population": "merchant", "temporal_strategy": "access_window", "behavioral_strategy": "inside_access", "graph_strategy": "merchant", "lookalike_generation": True},
+        "scam_induced_push": {
+            "pretext": "digital_arrest",
+            "target_population": "consumer",
+            "temporal_strategy": "burst",
+            "behavioral_strategy": "coercion",
+            "graph_strategy": "peer",
+            "lookalike_generation": True,
+        },
+        "mule_network": {
+            "pretext": "pass_through",
+            "target_population": "consumer",
+            "temporal_strategy": "fanout",
+            "behavioral_strategy": "network",
+            "graph_strategy": "fan_in_fan_out",
+            "lookalike_generation": True,
+        },
+        "card_testing_probe": {
+            "pretext": "probe_cycle",
+            "target_population": "consumer",
+            "temporal_strategy": "rapid_burst",
+            "behavioral_strategy": "micro_amounts",
+            "graph_strategy": "merchant",
+            "lookalike_generation": True,
+        },
+        "adversarial_evasion": {
+            "pretext": "low_and_slow",
+            "target_population": "consumer",
+            "temporal_strategy": "distributed",
+            "behavioral_strategy": "evasion",
+            "graph_strategy": "peer",
+            "lookalike_generation": True,
+        },
+        "first_party_dispute": {
+            "pretext": "friendly_fraud",
+            "target_population": "consumer",
+            "temporal_strategy": "post_settlement",
+            "behavioral_strategy": "claimant_history",
+            "graph_strategy": "merchant",
+            "lookalike_generation": True,
+        },
+        "stealth_mandate": {
+            "pretext": "mandate_stealth",
+            "target_population": "consumer",
+            "temporal_strategy": "recurring",
+            "behavioral_strategy": "mandate_reuse",
+            "graph_strategy": "merchant",
+            "lookalike_generation": True,
+        },
+        "synthetic_merchant": {
+            "pretext": "kyb_shell",
+            "target_population": "merchant",
+            "temporal_strategy": "growth_spike",
+            "behavioral_strategy": "onboarding",
+            "graph_strategy": "merchant",
+            "lookalike_generation": True,
+        },
+        "transaction_laundering": {
+            "pretext": "laundering",
+            "target_population": "merchant",
+            "temporal_strategy": "pass_through",
+            "behavioral_strategy": "split_flow",
+            "graph_strategy": "network",
+            "lookalike_generation": True,
+        },
+        "credential_takeover": {
+            "pretext": "session_compromise",
+            "target_population": "consumer",
+            "temporal_strategy": "device_change",
+            "behavioral_strategy": "takeover",
+            "graph_strategy": "device",
+            "lookalike_generation": True,
+        },
+        "synthetic_identity_bustout": {
+            "pretext": "bustout",
+            "target_population": "consumer",
+            "temporal_strategy": "evolution",
+            "behavioral_strategy": "credit_building",
+            "graph_strategy": "account",
+            "lookalike_generation": True,
+        },
+        "subthreshold_fragmentation": {
+            "pretext": "fragmentation",
+            "target_population": "consumer",
+            "temporal_strategy": "serial_split",
+            "behavioral_strategy": "low_threshold",
+            "graph_strategy": "multi_party",
+            "lookalike_generation": True,
+        },
+        "agentic_injection": {
+            "pretext": "agentic_abuse",
+            "target_population": "consumer",
+            "temporal_strategy": "automation",
+            "behavioral_strategy": "delegation",
+            "graph_strategy": "merchant",
+            "lookalike_generation": True,
+        },
+        "insider_abuse": {
+            "pretext": "insider_access",
+            "target_population": "merchant",
+            "temporal_strategy": "access_window",
+            "behavioral_strategy": "inside_access",
+            "graph_strategy": "merchant",
+            "lookalike_generation": True,
+        },
     }
 
     def generate_spec(
@@ -198,7 +289,11 @@ def _build_campaign(
     pretext: str | None,
     config: dict[str, Any] | None = None,
 ) -> AttackCampaign:
-    intensity_value = intensity if isinstance(intensity, AttackIntensity) else AttackIntensity(str(intensity).upper())
+    intensity_value = (
+        intensity
+        if isinstance(intensity, AttackIntensity)
+        else AttackIntensity(str(intensity).upper())
+    )
     spec = AttackSpec(
         attack_id=attack_id,
         seed=seed,
@@ -340,10 +435,16 @@ def _choose_device_for_party(baseline: PaymentDataset, party_id: str) -> str | N
     return None
 
 
-def _choose_party_ids(baseline: PaymentDataset, *, n: int, exclude: set[str] | None = None) -> list[str]:
+def _choose_party_ids(
+    baseline: PaymentDataset, *, n: int, exclude: set[str] | None = None
+) -> list[str]:
     exclude = exclude or set()
     party_rows = baseline.tables["parties"]
-    ids = [row["party_id"] for row in party_rows if row["party_type"] == "consumer" and row["party_id"] not in exclude]
+    ids = [
+        row["party_id"]
+        for row in party_rows
+        if row["party_type"] == "consumer" and row["party_id"] not in exclude
+    ]
     if len(ids) < n:
         return sorted(ids)
     return sorted(ids)[:n]
@@ -352,6 +453,7 @@ def _choose_party_ids(baseline: PaymentDataset, *, n: int, exclude: set[str] | N
 def load_env_file() -> None:
     """Helper to parse a local .env file manually into os.environ."""
     import sys
+
     p = Path(".").resolve()
     for parent in [p] + list(p.parents):
         env_path = parent / ".env"
@@ -365,7 +467,11 @@ def load_env_file() -> None:
                         val = val.strip()
                         if len(val) >= 2 and val[0] == val[-1] and val[0] in ('"', "'"):
                             val = val[1:-1]
-                        if "pytest" in sys.modules and key.lower() == "google_gemini_api_key" and key not in os.environ:
+                        if (
+                            "pytest" in sys.modules
+                            and key.lower() == "google_gemini_api_key"
+                            and key not in os.environ
+                        ):
                             continue
                         os.environ[key] = val
                 break
@@ -394,7 +500,11 @@ class LLMScenarioGenerator(ScenarioGenerator):
                 attack_id=attack_id, seed=seed, intensity=intensity, config=config
             )
 
-        intensity_value = intensity if isinstance(intensity, AttackIntensity) else AttackIntensity(str(intensity).upper())
+        intensity_value = (
+            intensity
+            if isinstance(intensity, AttackIntensity)
+            else AttackIntensity(str(intensity).upper())
+        )
 
         prompt = (
             f"You are a threat modeling system generating synthetic fraud attack scenarios "
@@ -423,7 +533,7 @@ class LLMScenarioGenerator(ScenarioGenerator):
                 "behavioral_strategy",
                 "graph_strategy",
                 "lookalike_generation",
-            ]
+            ],
         }
 
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={api_key}"
@@ -433,15 +543,12 @@ class LLMScenarioGenerator(ScenarioGenerator):
                 "responseMimeType": "application/json",
                 "responseSchema": response_schema,
                 "temperature": 0.7,
-            }
+            },
         }
 
         data_bytes = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(
-            url,
-            data=data_bytes,
-            headers={"Content-Type": "application/json"},
-            method="POST"
+            url, data=data_bytes, headers={"Content-Type": "application/json"}, method="POST"
         )
 
         llm_data = None
@@ -514,7 +621,7 @@ class LLMScenarioGenerator(ScenarioGenerator):
                     "temporal_strategy": temp_strat,
                     "behavioral_strategy": beh_strat,
                     "graph_strategy": graph_strat,
-                }
+                },
             )
             return final_spec
         except Exception:
@@ -547,7 +654,11 @@ class HybridScenarioGenerator(ScenarioGenerator):
         if not api_key:
             return base_spec
 
-        intensity_value = intensity if isinstance(intensity, AttackIntensity) else AttackIntensity(str(intensity).upper())
+        intensity_value = (
+            intensity
+            if isinstance(intensity, AttackIntensity)
+            else AttackIntensity(str(intensity).upper())
+        )
 
         prompt = (
             f"We have a deterministic scenario template with the following properties:\n"
@@ -584,7 +695,7 @@ class HybridScenarioGenerator(ScenarioGenerator):
                 "behavioral_strategy",
                 "graph_strategy",
                 "lookalike_generation",
-            ]
+            ],
         }
 
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={api_key}"
@@ -594,15 +705,12 @@ class HybridScenarioGenerator(ScenarioGenerator):
                 "responseMimeType": "application/json",
                 "responseSchema": response_schema,
                 "temperature": 0.5,
-            }
+            },
         }
 
         data_bytes = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(
-            url,
-            data=data_bytes,
-            headers={"Content-Type": "application/json"},
-            method="POST"
+            url, data=data_bytes, headers={"Content-Type": "application/json"}, method="POST"
         )
 
         llm_data = None
@@ -672,7 +780,7 @@ class HybridScenarioGenerator(ScenarioGenerator):
                     "temporal_strategy": temp_strat,
                     "behavioral_strategy": beh_strat,
                     "graph_strategy": graph_strat,
-                }
+                },
             )
         except Exception:
             return base_spec

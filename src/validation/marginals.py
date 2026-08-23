@@ -127,7 +127,18 @@ def summary_stats(values: Iterable[float]) -> dict[str, float]:
     vals = sorted(float(v) for v in values)
     n = len(vals)
     if n == 0:
-        return {"n": 0, "mean": 0.0, "median": 0.0, "p25": 0.0, "p75": 0.0, "p90": 0.0, "p99": 0.0, "min": 0.0, "max": 0.0, "cv": 0.0}
+        return {
+            "n": 0,
+            "mean": 0.0,
+            "median": 0.0,
+            "p25": 0.0,
+            "p75": 0.0,
+            "p90": 0.0,
+            "p99": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "cv": 0.0,
+        }
     mu = sum(vals) / n
     median = _percentile(vals, 0.5)
     variance = sum((v - mu) ** 2 for v in vals) / n
@@ -199,7 +210,9 @@ def inter_arrival_seconds_by_party(transactions: list[dict[str, Any]]) -> dict[s
 def categorical_cardinality(transactions: list[dict[str, Any]]) -> dict[str, Any]:
     """Distinct-value counts and per-party device counts."""
     mcc_values = {txn["mcc"] for txn in transactions if txn.get("mcc") is not None}
-    merchant_values = {txn["merchant_id"] for txn in transactions if txn.get("merchant_id") is not None}
+    merchant_values = {
+        txn["merchant_id"] for txn in transactions if txn.get("merchant_id") is not None
+    }
     devices_per_party: dict[str, set[str]] = defaultdict(set)
     merchants_per_party: dict[str, set[str]] = defaultdict(set)
     for txn in transactions:
@@ -287,7 +300,9 @@ def load_all_references(reference_dir: Path = DEFAULT_REFERENCE_DIR) -> dict[str
     return {name: load_reference(name, reference_dir) for name in REFERENCE_DATASETS}
 
 
-def compare_amount_distribution(result: MarginalsResult, references: dict[str, Any]) -> list[Finding]:
+def compare_amount_distribution(
+    result: MarginalsResult, references: dict[str, Any]
+) -> list[Finding]:
     """Overall amount shape vs ULB (numeric ratio comparison) and IEEE-CIS/
     PaySim/BankSim (qualitative "is it right-skewed" comparison), plus a
     per-MCC ordinal check against BankSim's category shape."""
@@ -329,9 +344,9 @@ def compare_amount_distribution(result: MarginalsResult, references: dict[str, A
     )
 
     for dataset_name in ("ieee_cis", "paysim"):
-        shape = references[dataset_name]["stats"].get("amount_shape") or references[dataset_name]["stats"].get(
-            "transaction_amt_shape"
-        )
+        shape = references[dataset_name]["stats"].get("amount_shape") or references[dataset_name][
+            "stats"
+        ].get("transaction_amt_shape")
         findings.append(
             Finding(
                 area="amount_distribution",
@@ -350,8 +365,10 @@ def compare_amount_distribution(result: MarginalsResult, references: dict[str, A
         if category is None:
             continue
         expected_tier = (
-            "high_value" if category in BANKSIM_HIGH_VALUE_CATEGORIES
-            else "everyday" if category in BANKSIM_EVERYDAY_CATEGORIES
+            "high_value"
+            if category in BANKSIM_HIGH_VALUE_CATEGORIES
+            else "everyday"
+            if category in BANKSIM_EVERYDAY_CATEGORIES
             else None
         )
         if expected_tier is None:
@@ -363,8 +380,12 @@ def compare_amount_distribution(result: MarginalsResult, references: dict[str, A
                 generated_value=round(stats["median"], 2),
                 reference_value=expected_tier,
                 reference_dataset="banksim",
-                reference_confidence=references["banksim"]["stats"]["amount_by_category_shape"]["confidence"],
-                reference_source=references["banksim"]["stats"]["amount_by_category_shape"]["source"],
+                reference_confidence=references["banksim"]["stats"]["amount_by_category_shape"][
+                    "confidence"
+                ],
+                reference_source=references["banksim"]["stats"]["amount_by_category_shape"][
+                    "source"
+                ],
                 note=(
                     "Ordinal check only: BankSim documents everyday categories (transportation, food) as "
                     "low-amount and high-value categories (travel, leisure, hotels) as high-amount. "
@@ -383,7 +404,10 @@ def compare_inter_arrival(result: MarginalsResult, references: dict[str, Any]) -
         Finding(
             area="inter_arrival_time",
             metric="per-payer inter-arrival time (seconds), pooled",
-            generated_value={k: round(v, 1) if isinstance(v, float) else v for k, v in result.inter_arrival_by_party_s.items()},
+            generated_value={
+                k: round(v, 1) if isinstance(v, float) else v
+                for k, v in result.inter_arrival_by_party_s.items()
+            },
             reference_value=None,
             reference_dataset=None,
             reference_confidence=None,
@@ -440,7 +464,9 @@ def compare_cardinality(result: MarginalsResult, references: dict[str, Any]) -> 
     return findings
 
 
-def compare_transactions_per_party(result: MarginalsResult, references: dict[str, Any]) -> list[Finding]:
+def compare_transactions_per_party(
+    result: MarginalsResult, references: dict[str, Any]
+) -> list[Finding]:
     return [
         Finding(
             area="transactions_per_party",
@@ -465,7 +491,9 @@ def compare_temporal_patterns(result: MarginalsResult, references: dict[str, Any
     hour_hist = result.temporal.get("hour_of_day", {})
     dow_hist = result.temporal.get("day_of_week", {})
     hour_values = list(hour_hist.values())
-    is_nonuniform_hour = (max(hour_values) - min(hour_values)) > (0.5 / 24) if hour_values else False
+    is_nonuniform_hour = (
+        (max(hour_values) - min(hour_values)) > (0.5 / 24) if hour_values else False
+    )
     dow_values = list(dow_hist.values())
     is_nonuniform_dow = (max(dow_values) - min(dow_values)) > (0.5 / 7) if dow_values else False
     return [

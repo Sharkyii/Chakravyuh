@@ -78,7 +78,9 @@ def build_scenario_spec(
         generator = HybridScenarioGenerator()
     else:
         generator = TemplateScenarioGenerator()
-    return generator.generate_spec(attack_id=attack_id, seed=seed, intensity=intensity, config=config)
+    return generator.generate_spec(
+        attack_id=attack_id, seed=seed, intensity=intensity, config=config
+    )
 
 
 def _write_table(path: Path, table_name: str, rows: list[dict[str, Any]]) -> None:
@@ -119,6 +121,7 @@ def write_attack_dataset(
     clean: bool = True,
 ) -> None:
     from src.dataset.loader import clear_dataset_cache
+
     clear_dataset_cache(output_dir)
 
     if clean and output_dir.exists():
@@ -130,7 +133,10 @@ def write_attack_dataset(
     # attack-only (one campaign, is_fraud=True) for callers that inspect the
     # AttackDataset return value directly.
     lookalike_txs, lookalike_labels = make_legit_lookalike_rows(
-        attack_rows=result.transactions, attack_labels=result.labels, seed=result.campaign.seed, baseline=baseline
+        attack_rows=result.transactions,
+        attack_labels=result.labels,
+        seed=result.campaign.seed,
+        baseline=baseline,
     )
     combined_transactions = baseline.transactions + result.transactions + lookalike_txs
     combined_labels = baseline.labels + result.labels + lookalike_labels
@@ -155,11 +161,18 @@ def write_attack_dataset(
         n_attack_txns=len(result.transactions),
         output_dir=output_dir,
     )
-    (output_dir / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    (output_dir / "manifest.json").write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
     report = validate_attack_dataset(load_dataset(output_dir), result.campaign.attack_id)
     (output_dir / "validation_report.json").write_text(
-        json.dumps({"ok": report.ok, "errors": report.errors, "summary": report.summary}, indent=2, sort_keys=True) + "\n",
+        json.dumps(
+            {"ok": report.ok, "errors": report.errors, "summary": report.summary},
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
         encoding="utf-8",
     )
     if not report.ok:
@@ -203,4 +216,9 @@ def generate_attack_dataset(
     return result
 
 
-__all__ = ["build_attack_generator", "build_scenario_spec", "generate_attack_dataset", "write_attack_dataset"]
+__all__ = [
+    "build_attack_generator",
+    "build_scenario_spec",
+    "generate_attack_dataset",
+    "write_attack_dataset",
+]

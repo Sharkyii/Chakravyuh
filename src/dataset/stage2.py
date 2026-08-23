@@ -35,7 +35,9 @@ def _write_rows(path: Path, table_name: str, rows: list[Any]) -> None:
     pq.write_table(pa.Table.from_pylist(pylist, schema=TABLE_ARROW_SCHEMAS[table_name]), path)
 
 
-def _stage2_manifest(source_manifest: dict[str, Any], graph_edges: int, input_dir: Path) -> dict[str, Any]:
+def _stage2_manifest(
+    source_manifest: dict[str, Any], graph_edges: int, input_dir: Path
+) -> dict[str, Any]:
     return {
         "dataset_version": STAGE2_DATASET_VERSION,
         "source_dataset_version": source_manifest.get("dataset_version"),
@@ -63,6 +65,7 @@ def build_stage2_dataset(
     """Read Stage 1 data, derive graph_edges, write and validate Stage 2 output."""
     source = load_dataset(input_dir)
     from src.dataset.loader import clear_dataset_cache
+
     clear_dataset_cache(output_dir)
     graph_edges = build_graph_edges(source.transactions, GraphBuildConfig())
 
@@ -77,14 +80,22 @@ def build_stage2_dataset(
             shutil.copy2(input_dir / f"{table_name}.parquet", output_dir / f"{table_name}.parquet")
 
     (output_dir / "manifest.json").write_text(
-        json.dumps(_stage2_manifest(source.manifest, len(graph_edges), input_dir), indent=2, sort_keys=True) + "\n",
+        json.dumps(
+            _stage2_manifest(source.manifest, len(graph_edges), input_dir), indent=2, sort_keys=True
+        )
+        + "\n",
         encoding="utf-8",
     )
 
     dataset = load_dataset(output_dir)
     report = validate_stage2_dataset(dataset)
     (output_dir / "validation_report.json").write_text(
-        json.dumps({"ok": report.ok, "errors": report.errors, "summary": report.summary}, indent=2, sort_keys=True) + "\n",
+        json.dumps(
+            {"ok": report.ok, "errors": report.errors, "summary": report.summary},
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
         encoding="utf-8",
     )
     if not report.ok:
@@ -96,7 +107,9 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Build Stage 2 graph/dataset harness artifacts")
     parser.add_argument("--input-dir", type=Path, default=DEFAULT_INPUT_DIR)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
-    parser.add_argument("--no-clean", action="store_true", help="do not remove output dir before writing")
+    parser.add_argument(
+        "--no-clean", action="store_true", help="do not remove output dir before writing"
+    )
     return parser
 
 

@@ -97,8 +97,7 @@ def generate_parties(rng: np.random.Generator, n: int) -> list[GeneratedParty]:
 
         kyc_level = KycLevel(_weighted_choice(rng, cal.KYC_LEVEL_WEIGHTS))
         kyc_completed_at = (
-            None if kyc_level == KycLevel.NONE
-            else cal.SIM_START - timedelta(days=account_age_days)
+            None if kyc_level == KycLevel.NONE else cal.SIM_START - timedelta(days=account_age_days)
         )
 
         income_type = _weighted_choice(rng, cal.INCOME_TYPE_WEIGHTS)
@@ -192,7 +191,9 @@ def generate_merchants(rng: np.random.Generator, n: int) -> list[GeneratedMercha
             flagged_by_ffri=False,
         )
         out.append(
-            GeneratedMerchant(merchant=merchant, party=merchant_party, volume_weight=float(volume_weights[i]))
+            GeneratedMerchant(
+                merchant=merchant, party=merchant_party, volume_weight=float(volume_weights[i])
+            )
         )
     return out
 
@@ -262,7 +263,9 @@ def generate_devices(
         if pattern == "upgraded_during_window":
             switch_day = rng.uniform(1, cal.SIM_WEEKS * 7 - 1)
             switch_at = cal.SIM_START + timedelta(days=switch_day)
-            old = _make_device(rng, pid, long_before, switch_at, is_shared=False, retired_at=switch_at)
+            old = _make_device(
+                rng, pid, long_before, switch_at, is_shared=False, retired_at=switch_at
+            )
             new = _make_device(
                 rng, pid, switch_at, cal.SIM_END, is_shared=False, replaced_device_id=old.device_id
             )
@@ -285,9 +288,7 @@ def generate_devices(
 
 def generate_population(seed: int) -> PopulationBundle:
     seed_seq = np.random.SeedSequence(seed)
-    party_rng, merchant_rng, device_rng = (
-        np.random.default_rng(s) for s in seed_seq.spawn(3)
-    )
+    party_rng, merchant_rng, device_rng = (np.random.default_rng(s) for s in seed_seq.spawn(3))
 
     parties = generate_parties(party_rng, cal.N_CONSUMER_PARTIES)
     merchants = generate_merchants(merchant_rng, cal.N_MERCHANTS)

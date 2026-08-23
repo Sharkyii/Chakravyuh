@@ -818,7 +818,10 @@ export default function AnalystPortal() {
                 </button>
 
                 {scoreError && (
-                  <div className="flex items-center gap-2 p-3 text-sm text-red-400 bg-red-950/30 border border-red-900/60 rounded-xl">
+                  <div
+                    data-testid="score-error"
+                    className="flex items-center gap-2 p-3 text-sm text-red-400 bg-red-950/30 border border-red-900/60 rounded-xl"
+                  >
                     <AlertTriangle className="h-4 w-4 shrink-0" />
                     <span>{scoreError}</span>
                   </div>

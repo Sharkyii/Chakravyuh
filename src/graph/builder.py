@@ -50,7 +50,8 @@ def _value(row: Any, name: str) -> Any:
 def _transactions_in_window(rows: Iterable[Any], config: GraphBuildConfig) -> list[Any]:
     return sorted(
         (
-            row for row in rows
+            row
+            for row in rows
             if config.window_start <= _value(row, "timestamp") < config.window_end
         ),
         key=lambda row: (_value(row, "timestamp"), _value(row, "txn_id")),

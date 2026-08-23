@@ -31,7 +31,9 @@ def _row_dict(row: Any) -> dict[str, Any]:
 
 
 def _write_table(path: Path, table_name: str, rows: list[Any]) -> None:
-    table = pa.Table.from_pylist([_row_dict(r) for r in rows], schema=TABLE_ARROW_SCHEMAS[table_name])
+    table = pa.Table.from_pylist(
+        [_row_dict(r) for r in rows], schema=TABLE_ARROW_SCHEMAS[table_name]
+    )
     pq.write_table(table, path)
 
 
@@ -39,7 +41,9 @@ def _empty_table(path: Path, table_name: str) -> None:
     pq.write_table(pa.Table.from_pylist([], schema=TABLE_ARROW_SCHEMAS[table_name]), path)
 
 
-def _manifest(seed: int, population: PopulationBundle, dataset: LegitimateDataset) -> dict[str, Any]:
+def _manifest(
+    seed: int, population: PopulationBundle, dataset: LegitimateDataset
+) -> dict[str, Any]:
     return {
         "dataset_version": DATASET_VERSION,
         "seed": seed,
@@ -66,6 +70,7 @@ def write_legitimate_dataset(
 ) -> None:
     """Write Stage 1 tables, manifest and validation report to Parquet/JSON."""
     from src.dataset.loader import clear_dataset_cache
+
     clear_dataset_cache(output_dir)
 
     if clean and output_dir.exists():
@@ -86,7 +91,12 @@ def write_legitimate_dataset(
         encoding="utf-8",
     )
     (output_dir / "validation_report.json").write_text(
-        json.dumps({"ok": report.ok, "errors": report.errors, "summary": report.summary}, indent=2, sort_keys=True) + "\n",
+        json.dumps(
+            {"ok": report.ok, "errors": report.errors, "summary": report.summary},
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
         encoding="utf-8",
     )
 
@@ -126,7 +136,9 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--n-consumers", type=int, default=None)
     parser.add_argument("--n-merchants", type=int, default=None)
-    parser.add_argument("--no-clean", action="store_true", help="do not remove output dir before writing")
+    parser.add_argument(
+        "--no-clean", action="store_true", help="do not remove output dir before writing"
+    )
     return parser
 
 

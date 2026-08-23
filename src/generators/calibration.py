@@ -167,16 +167,26 @@ OS_NAME_VERSION: dict[str, list[tuple[str, str]]] = {
     "android": [("Android", v) for v in ["11", "12", "13", "14", "15"]],
     "ios": [("iOS", v) for v in ["16", "17", "18"]],
     "desktop": [
-        ("Windows", "11"), ("Windows", "10"), ("macOS", "15"), ("macOS", "14"),
+        ("Windows", "11"),
+        ("Windows", "10"),
+        ("macOS", "15"),
+        ("macOS", "14"),
     ],
     "other": [("unknown", "unknown")],
 }
 
 DEVICE_MODELS: dict[str, list[str]] = {
     "android": [
-        "Samsung Galaxy M14", "Samsung Galaxy S23", "Redmi Note 13",
-        "Redmi 12", "realme narzo 60", "Vivo Y28", "OPPO A78", "Pixel 8",
-        "OnePlus Nord CE4", "Motorola Edge 50",
+        "Samsung Galaxy M14",
+        "Samsung Galaxy S23",
+        "Redmi Note 13",
+        "Redmi 12",
+        "realme narzo 60",
+        "Vivo Y28",
+        "OPPO A78",
+        "Pixel 8",
+        "OnePlus Nord CE4",
+        "Motorola Edge 50",
     ],
     "ios": ["iPhone 13", "iPhone 14", "iPhone 15", "iPhone SE (3rd gen)"],
     "desktop": ["Desktop PC", "Laptop"],  # OS-agnostic; os_name/os_version carry the OS
@@ -260,7 +270,9 @@ MERCHANT_VOLUME_PARETO_ALPHA = 1.4
 # Doc gives merchants.kyb_level no explicit enum values; these two tiers are
 # a reasoned choice, not taken from the schema doc.
 KYB_LEVEL_WEIGHTS: dict[str, float] = {"full": 0.62, "basic": 0.38}
-KYB_DOCS_VERIFIED_AGAINST_REGISTRY_PROB = 0.55  # format-valid-only is common; full registry check less so
+KYB_DOCS_VERIFIED_AGAINST_REGISTRY_PROB = (
+    0.55  # format-valid-only is common; full registry check less so
+)
 
 VOLUME_GROWTH_CURVE_WEIGHTS: dict[str, float] = {"organic": 0.75, "step": 0.15, "spike": 0.10}
 

@@ -59,7 +59,10 @@ def test_beneficiary_age_above_threshold_sets_floor(tmp_path, monkeypatch):
 
     from src.generators import calibration as cal
 
-    floor, ceiling = cal.LEGIT_EXISTING_BENEFICIARY_MIN_AGE_S, cal.LEGIT_EXISTING_BENEFICIARY_MAX_AGE_S
+    floor, ceiling = (
+        cal.LEGIT_EXISTING_BENEFICIARY_MIN_AGE_S,
+        cal.LEGIT_EXISTING_BENEFICIARY_MAX_AGE_S,
+    )
     expected = int(floor + BENEFICIARY_AGE_ADAPTIVE_FRACTION * (ceiling - floor))
     assert config["beneficiary_age_floor_s"] == expected
 

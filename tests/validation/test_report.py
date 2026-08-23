@@ -67,7 +67,9 @@ def test_write_report_findings_json_is_valid(tmp_path: Path, small_stage2_dir: P
     import json
 
     output_dir = tmp_path / "validation2"
-    write_report(input_dir=small_stage2_dir, output_dir=output_dir, reference_dir=DEFAULT_REFERENCE_DIR)
+    write_report(
+        input_dir=small_stage2_dir, output_dir=output_dir, reference_dir=DEFAULT_REFERENCE_DIR
+    )
     findings = json.loads((output_dir / "findings.json").read_text(encoding="utf-8"))
     assert isinstance(findings, list)
     assert len(findings) > 0

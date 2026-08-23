@@ -59,6 +59,12 @@ def test_row_round_trips_through_parquet(table_name: str, tmp_path: Path) -> Non
 
 def test_all_eight_tables_registered() -> None:
     assert set(TABLE_ARROW_SCHEMAS) == {
-        "transactions", "parties", "devices", "merchants",
-        "mandates", "disputes", "graph_edges", "labels",
+        "transactions",
+        "parties",
+        "devices",
+        "merchants",
+        "mandates",
+        "disputes",
+        "graph_edges",
+        "labels",
     }

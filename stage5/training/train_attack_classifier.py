@@ -1,6 +1,9 @@
+import os
 import sys
 import json
+from datetime import datetime
 import joblib
+import mlflow
 from pathlib import Path
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, f1_score, classification_report
@@ -23,7 +26,11 @@ from stage5.config.settings import (
 
 def main():
     print("=== Training Stage 5 Attack Family Classifier ===")
-    
+
+    mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db"))
+    mlflow.set_experiment("chakravyuh-attack-classifier")
+    mlflow.start_run(run_name=f"attack_classifier_{datetime.now():%Y%m%d_%H%M%S}")
+
     # 1. Load data
     combined_dir = STAGE5_DATA_DIR / "combined"
     if not combined_dir.exists():
@@ -133,7 +140,16 @@ def main():
         eval_metric="mlogloss"
     )
     xgb_model.fit(X_train_proc, y_train, sample_weight=train_sample_weights)
-    
+
+    mlflow.log_params({
+        "rf_n_estimators": rf_model.n_estimators,
+        "xgb_n_estimators": xgb_model.n_estimators,
+        "xgb_max_depth": xgb_model.max_depth,
+        "xgb_learning_rate": xgb_model.learning_rate,
+        "random_seed": 42,
+        "num_attack_classes": len(attack_ids),
+    })
+
     # Evaluate XGBoost on Test Set
     xgb_test_preds = xgb_model.predict(X_test_proc)
     xgb_test_acc = accuracy_score(y_test, xgb_test_preds)
@@ -161,9 +177,19 @@ def main():
         best_model = rf_model
         model_name = "RandomForest"
         
+    mlflow.log_metrics({
+        "rf_test_accuracy": float(rf_test_acc),
+        "rf_test_macro_f1": float(rf_test_macro_f1),
+        "rf_test_weighted_f1": float(rf_test_weighted_f1),
+        "xgb_test_accuracy": float(xgb_test_acc),
+        "xgb_test_macro_f1": float(xgb_test_macro_f1),
+        "xgb_test_weighted_f1": float(xgb_test_weighted_f1),
+    })
+    mlflow.set_tag("selected_model", model_name)
+
     print(f"Saving final attack classifier ({model_name}) to {MODELS_DIR}...")
     joblib.dump(best_model, MODELS_DIR / "attack_classifier.pkl")
-    
+
     # Save class mapping
     class_mappings = {
         "attack_to_idx": attack_to_idx,
@@ -171,7 +197,11 @@ def main():
     }
     with open(MODELS_DIR / "attack_class_mapping.json", "w", encoding="utf-8") as f:
         json.dump(class_mappings, f, indent=2)
-        
+
+    mlflow.log_artifact(str(MODELS_DIR / "attack_classifier.pkl"))
+    mlflow.log_artifact(str(MODELS_DIR / "attack_class_mapping.json"))
+    mlflow.end_run()
+
     print("=== Attack classifier training and saving complete! ===")
 
 if __name__ == "__main__":

@@ -104,6 +104,7 @@ def load_dataset(source_dir: Path) -> PaymentDataset:
         if ts_cols:
             from datetime import timezone
             from src.schema.common import IST
+
             for row in pylist:
                 for col in ts_cols:
                     val = row[col]
@@ -113,7 +114,9 @@ def load_dataset(source_dir: Path) -> PaymentDataset:
         tables[table_name] = pylist
 
     manifest_path = abs_dir / "manifest.json"
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
+    manifest = (
+        json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
+    )
     ds = PaymentDataset(source_dir=source_dir, tables=tables, manifest=manifest)
     _dataset_cache[abs_dir] = ds
     return ds

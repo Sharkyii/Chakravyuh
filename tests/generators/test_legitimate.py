@@ -148,12 +148,16 @@ def test_day_of_week_distribution_is_not_flat(small_population):
     weighted_days = sorted(range(7), key=lambda d: cal.DAY_OF_WEEK_WEIGHTS[d])
     observed_days = sorted(range(7), key=lambda d: shares[d])
     assert weighted_days[0] in observed_days[:3], "lowest-weighted day should not be the busiest"
-    assert weighted_days[-1] in observed_days[-3:], "highest-weighted day should not be the quietest"
+    assert (
+        weighted_days[-1] in observed_days[-3:]
+    ), "highest-weighted day should not be the quietest"
 
     # Match src/validation/marginals.py's compare_temporal_patterns threshold
     # exactly (max-min > 0.5/7) -- a weaker spread here passed this rank-order
     # check but still failed the fidelity report as flat (issues.md I15).
-    assert max(shares.values()) - min(shares.values()) > 0.5 / 7, "too subtle to clear the fidelity report's non-uniformity bar"
+    assert (
+        max(shares.values()) - min(shares.values()) > 0.5 / 7
+    ), "too subtle to clear the fidelity report's non-uniformity bar"
 
 
 def test_amount_scales_with_mcc():

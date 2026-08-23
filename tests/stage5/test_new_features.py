@@ -11,6 +11,7 @@ from src.dataset.loader import load_dataset
 from stage5.config.settings import STAGE5_DATA_DIR, ALL_FEATURES, BEHAVIORAL_FEATURES
 from stage5.features.feature_engineering import build_features
 
+
 # data/generated/ is gitignored and isn't generated in CI (generation is
 # itself the "slow" work the -m "not slow" marker excludes elsewhere).
 @pytest.mark.skipif(
@@ -25,7 +26,7 @@ def test_new_features_are_correctly_generated_and_available():
     # Take a small sample of the transactions for fast test execution
     dataset.tables["transactions"] = dataset.tables["transactions"][:200]
     df = build_features(dataset)
-    
+
     new_expected_features = [
         "inter_txn_time_mean",
         "inter_txn_time_std",
@@ -51,19 +52,27 @@ def test_new_features_are_correctly_generated_and_available():
         "max_beneficiary_added_ago",
         "agent_txn_ratio",
         "agent_txn_burstiness",
-        "time_since_prev_agent_txn"
+        "time_since_prev_agent_txn",
     ]
-    
+
     for f in new_expected_features:
         assert f in BEHAVIORAL_FEATURES, f"{f} is missing from BEHAVIORAL_FEATURES"
         assert f in ALL_FEATURES, f"{f} is missing from ALL_FEATURES"
         assert f in df.columns, f"{f} is missing from df.columns"
-        
+
     for f in new_expected_features:
         vals = df[f].fillna(-999)
         assert not np.isnan(vals.values).any(), f"NaNs found in feature {f}"
-        
-    leakage_keywords = ["attack_id", "campaign_id", "pretext", "is_fraud", "is_legit_lookalike", "detectable_at", "scenario_id"]
+
+    leakage_keywords = [
+        "attack_id",
+        "campaign_id",
+        "pretext",
+        "is_fraud",
+        "is_legit_lookalike",
+        "detectable_at",
+        "scenario_id",
+    ]
     for f in new_expected_features:
         for keyword in leakage_keywords:
             assert keyword not in f, f"Potential leakage in feature name: {f} contains {keyword}"

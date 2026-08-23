@@ -54,7 +54,9 @@ def test_graph_construction_generates_schema_valid_edges():
     ]
     edges = build_graph_edges(rows)
     assert len(edges) == 3
-    table = pa.Table.from_pylist([asdict(edge) for edge in edges], schema=TABLE_ARROW_SCHEMAS["graph_edges"])
+    table = pa.Table.from_pylist(
+        [asdict(edge) for edge in edges], schema=TABLE_ARROW_SCHEMAS["graph_edges"]
+    )
     assert table.schema.equals(TABLE_ARROW_SCHEMAS["graph_edges"])
 
 

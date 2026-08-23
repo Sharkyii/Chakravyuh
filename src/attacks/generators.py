@@ -21,17 +21,36 @@ from src.generators import calibration as cal
 
 
 def _intensity_count(intensity: AttackIntensity | str, low: int, medium: int, high: int) -> int:
-    intensity_value = intensity if isinstance(intensity, AttackIntensity) else AttackIntensity(str(intensity).upper())
-    return {AttackIntensity.LOW: low, AttackIntensity.MEDIUM: medium, AttackIntensity.HIGH: high}[intensity_value]
+    intensity_value = (
+        intensity
+        if isinstance(intensity, AttackIntensity)
+        else AttackIntensity(str(intensity).upper())
+    )
+    return {AttackIntensity.LOW: low, AttackIntensity.MEDIUM: medium, AttackIntensity.HIGH: high}[
+        intensity_value
+    ]
 
 
-def _new_party_pair(baseline: PaymentDataset, rng: np.random.Generator, *, exclude: set[str] | None = None) -> tuple[str, str]:
+def _new_party_pair(
+    baseline: PaymentDataset, rng: np.random.Generator, *, exclude: set[str] | None = None
+) -> tuple[str, str]:
     exclude = exclude or set()
-    consumer_ids = [row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer" and row["party_id"] not in exclude]
+    consumer_ids = [
+        row["party_id"]
+        for row in baseline.tables["parties"]
+        if row["party_type"] == "consumer" and row["party_id"] not in exclude
+    ]
     if len(consumer_ids) < 2:
-        return (baseline.tables["parties"][0]["party_id"], baseline.tables["parties"][0]["party_id"])
+        return (
+            baseline.tables["parties"][0]["party_id"],
+            baseline.tables["parties"][0]["party_id"],
+        )
     payer_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
-    payee_pool = [row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer" and row["party_id"] != payer_id]
+    payee_pool = [
+        row["party_id"]
+        for row in baseline.tables["parties"]
+        if row["party_type"] == "consumer" and row["party_id"] != payer_id
+    ]
     if not payee_pool:
         payee_id = payer_id
     else:
@@ -41,10 +60,11 @@ def _new_party_pair(baseline: PaymentDataset, rng: np.random.Generator, *, exclu
 
 def _random_start_ts(baseline: PaymentDataset, rng: np.random.Generator) -> datetime:
     import inspect
+
     tx_count = len(baseline.transactions)
     if tx_count == 0:
         return cal.SIM_START
-        
+
     max_duration_days = 2.0
     frame = inspect.currentframe()
     try:
@@ -66,7 +86,7 @@ def _random_start_ts(baseline: PaymentDataset, rng: np.random.Generator) -> date
                 max_duration_days = 1.0
     finally:
         del frame
-        
+
     sim_end_str = baseline.manifest.get("simulation_end")
     if not sim_end_str:
         idx = int(rng.integers(0, int(tx_count * 0.50)))
@@ -109,7 +129,10 @@ def _payer_history_index(baseline: PaymentDataset) -> dict[str, Any]:
 
 
 def _existing_merchant_for_payer(
-    baseline: PaymentDataset, payer_id: str, rng: np.random.Generator, merchants: list[dict[str, Any]]
+    baseline: PaymentDataset,
+    payer_id: str,
+    rng: np.random.Generator,
+    merchants: list[dict[str, Any]],
 ) -> dict[str, Any]:
     """Prefer a merchant this payer has genuinely transacted with before.
 
@@ -123,7 +146,9 @@ def _existing_merchant_for_payer(
     """
     index = _payer_history_index(baseline)
     merchant_ids = {m["merchant_id"] for m in merchants}
-    prior = sorted({pid for pid in index["payer_to_payees"].get(payer_id, []) if pid in merchant_ids})
+    prior = sorted(
+        {pid for pid in index["payer_to_payees"].get(payer_id, []) if pid in merchant_ids}
+    )
     if prior:
         chosen_id = prior[int(rng.integers(0, len(prior)))]
         return next(m for m in merchants if m["merchant_id"] == chosen_id)
@@ -150,7 +175,13 @@ def _existing_consumer_payees_for_payer(
     """
     index = _payer_history_index(baseline)
     consumer_id_set = set(consumer_ids)
-    prior = sorted({pid for pid in index["payer_to_payees"].get(payer_id, []) if pid in consumer_id_set and pid != payer_id})
+    prior = sorted(
+        {
+            pid
+            for pid in index["payer_to_payees"].get(payer_id, [])
+            if pid in consumer_id_set and pid != payer_id
+        }
+    )
     rng.shuffle(prior)
     chosen: list[str] = prior[:k]
     pool = [pid for pid in consumer_ids if pid != payer_id and pid not in chosen]
@@ -178,7 +209,8 @@ def _top_counterparty_for_payer(
     index = _payer_history_index(baseline)
     consumer_id_set = set(consumer_ids)
     payees = [
-        pid for pid in index["payer_to_payees"].get(payer_id, [])
+        pid
+        for pid in index["payer_to_payees"].get(payer_id, [])
         if pid in consumer_id_set and pid != payer_id
     ]
     if not payees:
@@ -244,7 +276,9 @@ def make_legit_lookalike_rows(
     if not attack_rows:
         return lookalike_rows, lookalike_labels
 
-    consumer_ids = [row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"]
+    consumer_ids = [
+        row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"
+    ]
     merchants = baseline.tables["merchants"]
     window_start, window_end = _lookalike_window(baseline)
 
@@ -272,9 +306,16 @@ def make_legit_lookalike_rows(
         payer_id = row["payer_id"]
         if row.get("merchant_id"):
             if merchant_pool is None:
-                candidates = [m for m in merchants if m["merchant_id"] != row["merchant_id"] and m["mcc_declared"] == row.get("mcc")]
+                candidates = [
+                    m
+                    for m in merchants
+                    if m["merchant_id"] != row["merchant_id"]
+                    and m["mcc_declared"] == row.get("mcc")
+                ]
                 if not candidates:
-                    candidates = [m for m in merchants if m["merchant_id"] != row["merchant_id"]] or merchants
+                    candidates = [
+                        m for m in merchants if m["merchant_id"] != row["merchant_id"]
+                    ] or merchants
                 n = min(pool_size, len(candidates))
                 pick_idxs = pool_rng.choice(len(candidates), size=n, replace=False)
                 merchant_pool = [candidates[int(i)] for i in pick_idxs]
@@ -284,7 +325,9 @@ def make_legit_lookalike_rows(
             variant["mcc"] = chosen["mcc_declared"]
         else:
             if consumer_pool is None:
-                candidates = [pid for pid in consumer_ids if pid != payer_id and pid != row["payee_id"]]
+                candidates = [
+                    pid for pid in consumer_ids if pid != payer_id and pid != row["payee_id"]
+                ]
                 if not candidates:
                     candidates = [pid for pid in consumer_ids if pid != payer_id] or consumer_ids
                 n = min(pool_size, len(candidates))
@@ -297,22 +340,35 @@ def make_legit_lookalike_rows(
         # Shape match on amount scale, independent jitter rather than a fixed
         # deterministic transform of the fraud row's exact amount.
         scale = float(rng.uniform(0.55, 1.15))
-        variant["amount"] = (row["amount"] * Decimal(str(round(scale, 4))) + Decimal("5.00")).quantize(Decimal("0.01"))
+        variant["amount"] = (
+            row["amount"] * Decimal(str(round(scale, 4))) + Decimal("5.00")
+        ).quantize(Decimal("0.01"))
         variant["amount_is_round"] = variant["amount"] % Decimal("100.00") == Decimal("0.00")
 
         variant["beneficiary_first_time"] = bool(rng.random() < 0.3)
         if variant["beneficiary_first_time"]:
             variant["beneficiary_added_ago_s"] = int(
-                rng.integers(cal.LEGIT_FIRST_BENEFICIARY_ADDED_MIN_S, cal.LEGIT_FIRST_BENEFICIARY_ADDED_MAX_S)
+                rng.integers(
+                    cal.LEGIT_FIRST_BENEFICIARY_ADDED_MIN_S, cal.LEGIT_FIRST_BENEFICIARY_ADDED_MAX_S
+                )
             )
         else:
             variant["beneficiary_added_ago_s"] = int(
-                rng.integers(cal.LEGIT_EXISTING_BENEFICIARY_MIN_AGE_S, cal.LEGIT_EXISTING_BENEFICIARY_MAX_AGE_S)
+                rng.integers(
+                    cal.LEGIT_EXISTING_BENEFICIARY_MIN_AGE_S,
+                    cal.LEGIT_EXISTING_BENEFICIARY_MAX_AGE_S,
+                )
             )
 
-        variant["time_on_confirm_screen_s"] = max(0.4, float(row["time_on_confirm_screen_s"]) * float(rng.uniform(0.7, 1.05)))
-        variant["session_duration_s"] = max(15, int(float(row["session_duration_s"]) * float(rng.uniform(0.75, 1.05))))
-        variant["issuer_risk_score"] = min(0.18, max(0.03, float(row["issuer_risk_score"]) * float(rng.uniform(0.5, 0.85))))
+        variant["time_on_confirm_screen_s"] = max(
+            0.4, float(row["time_on_confirm_screen_s"]) * float(rng.uniform(0.7, 1.05))
+        )
+        variant["session_duration_s"] = max(
+            15, int(float(row["session_duration_s"]) * float(rng.uniform(0.75, 1.05)))
+        )
+        variant["issuer_risk_score"] = min(
+            0.18, max(0.03, float(row["issuer_risk_score"]) * float(rng.uniform(0.5, 0.85)))
+        )
 
         # A legit lookalike is, by construction, not a coerced or compromised
         # payment -- don't inherit the source fraud row's coercion/automation
@@ -329,15 +385,17 @@ def make_legit_lookalike_rows(
         variant["agent_declared_principal"] = None
 
         lookalike_rows.append(variant)
-        lookalike_labels.append({
-            "txn_id": variant["txn_id"],
-            "is_fraud": False,
-            "attack_id": None,
-            "campaign_id": None,
-            "pretext": None,
-            "is_legit_lookalike": True,
-            "detectable_at": row.get("detectable_at", DetectableAt.POST_AUTH.value),
-        })
+        lookalike_labels.append(
+            {
+                "txn_id": variant["txn_id"],
+                "is_fraud": False,
+                "attack_id": None,
+                "campaign_id": None,
+                "pretext": None,
+                "is_legit_lookalike": True,
+                "detectable_at": row.get("detectable_at", DetectableAt.POST_AUTH.value),
+            }
+        )
     return lookalike_rows, lookalike_labels
 
 
@@ -353,34 +411,49 @@ class ScamInducedPushAttack(AttackGenerator):
         config: dict[str, Any] | None = None,
     ):
         rng = np.random.default_rng(seed)
-        intensity_value = intensity if isinstance(intensity, AttackIntensity) else AttackIntensity(str(intensity).upper())
-        attack_cfg = {"pretext": config.get("pretext", "digital_arrest") if config else "digital_arrest"}
-        
-        source_party_ids = [row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"]
+        intensity_value = (
+            intensity
+            if isinstance(intensity, AttackIntensity)
+            else AttackIntensity(str(intensity).upper())
+        )
+        attack_cfg = {
+            "pretext": config.get("pretext", "digital_arrest") if config else "digital_arrest"
+        }
+
+        source_party_ids = [
+            row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"
+        ]
         payer_id = source_party_ids[int(rng.integers(0, len(source_party_ids)))]
         payee_id = source_party_ids[int(rng.integers(0, len(source_party_ids)))]
         if payer_id == payee_id:
-            payee_id = source_party_ids[(source_party_ids.index(payer_id) + 1) % len(source_party_ids)]
-            
-        device_id = _choose_device_for_party(baseline, payer_id) or baseline.tables["devices"][0]["device_id"]
+            payee_id = source_party_ids[
+                (source_party_ids.index(payer_id) + 1) % len(source_party_ids)
+            ]
+
+        device_id = (
+            _choose_device_for_party(baseline, payer_id)
+            or baseline.tables["devices"][0]["device_id"]
+        )
         known = True if device_id else False
-        
-        n_events = {AttackIntensity.LOW: 3, AttackIntensity.MEDIUM: 6, AttackIntensity.HIGH: 10}[intensity_value]
+
+        n_events = {AttackIntensity.LOW: 3, AttackIntensity.MEDIUM: 6, AttackIntensity.HIGH: 10}[
+            intensity_value
+        ]
         n_events += int(rng.integers(-1, 2))  # vary campaign size stochastically
         n_events = max(2, n_events)
-        
+
         start_ts = _random_start_ts(baseline, rng)
-        
+
         rows: list[dict[str, Any]] = []
         labels: list[dict[str, Any]] = []
-        
+
         first_added_ago = int(rng.integers(30, 240))
-        
+
         for i in range(n_events):
             amount = _money(float(rng.lognormal(mean=5.2, sigma=0.65)) * (1.3 + 0.15 * i))
             # Vary timing steps stochastically
             event_ts = start_ts + timedelta(minutes=float(rng.uniform(3.0, 18.0)) * i)
-            
+
             # First is new beneficiary; subsequent use the same existing beneficiary
             if i == 0:
                 first_time = True
@@ -388,7 +461,7 @@ class ScamInducedPushAttack(AttackGenerator):
             else:
                 first_time = False
                 added_ago = int((event_ts - start_ts).total_seconds()) + first_added_ago
-                
+
             txn = _transaction_row(
                 rng=rng,
                 payer_id=payer_id,
@@ -427,7 +500,7 @@ class ScamInducedPushAttack(AttackGenerator):
                     detectable_at=DetectableAt.POST_AUTH,
                 )
             )
-            
+
         campaign = _build_campaign(
             self.attack_id,
             seed=seed,
@@ -441,7 +514,7 @@ class ScamInducedPushAttack(AttackGenerator):
         )
         for label in labels:
             label["campaign_id"] = campaign.campaign_id
-            
+
         return campaign, rows, labels
 
 
@@ -457,41 +530,68 @@ class MuleNetworkAttack(AttackGenerator):
         config: dict[str, Any] | None = None,
     ):
         rng = np.random.default_rng(seed)
-        intensity_value = intensity if isinstance(intensity, AttackIntensity) else AttackIntensity(str(intensity).upper())
-        consumer_ids = [row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"]
-        
-        n_sources = max(3, 2 + int(intensity_value == AttackIntensity.HIGH) * 3) + int(rng.integers(-1, 2))
+        intensity_value = (
+            intensity
+            if isinstance(intensity, AttackIntensity)
+            else AttackIntensity(str(intensity).upper())
+        )
+        consumer_ids = [
+            row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"
+        ]
+
+        n_sources = max(3, 2 + int(intensity_value == AttackIntensity.HIGH) * 3) + int(
+            rng.integers(-1, 2)
+        )
         n_sources = max(2, n_sources)
         source_ids = consumer_ids[:n_sources]
-        
+
         mule_id = consumer_ids[min(len(consumer_ids) - 1, 50)]
         destination_id = consumer_ids[min(len(consumer_ids) - 1, 120)]
-        
+
         start_ts = _random_start_ts(baseline, rng)
-        
+
         rows: list[dict[str, Any]] = []
         labels: list[dict[str, Any]] = []
-        
+
         # Decide if mule relationship is pre-existing or new
         is_mule_new = rng.random() < 0.60
         first_added_ago = int(rng.integers(40, 300))
-        
+
         for idx, source_id in enumerate(source_ids):
-            device_id = _choose_device_for_party(baseline, source_id) or baseline.tables["devices"][0]["device_id"]
+            device_id = (
+                _choose_device_for_party(baseline, source_id)
+                or baseline.tables["devices"][0]["device_id"]
+            )
             for step in range(2):
                 payee_id = mule_id if step == 0 else destination_id
-                amount = _money(float(rng.lognormal(mean=4.2, sigma=0.6)) + idx * 10.0 + float(rng.normal(0, 15)))
-                
+                amount = _money(
+                    float(rng.lognormal(mean=4.2, sigma=0.6))
+                    + idx * 10.0
+                    + float(rng.normal(0, 15))
+                )
+
                 # Vary transfer delay stochastically
-                event_ts = start_ts + timedelta(minutes=float(rng.uniform(6.0, 24.0)) * idx + float(rng.uniform(1.0, 6.0)) * step)
-                
+                event_ts = start_ts + timedelta(
+                    minutes=float(rng.uniform(6.0, 24.0)) * idx
+                    + float(rng.uniform(1.0, 6.0)) * step
+                )
+
                 if step == 0:
                     first_time = is_mule_new and (idx == 0)
-                    added_ago = first_added_ago if first_time else int(rng.integers(cal.LEGIT_EXISTING_BENEFICIARY_MIN_AGE_S, cal.LEGIT_EXISTING_BENEFICIARY_MAX_AGE_S))
+                    added_ago = (
+                        first_added_ago
+                        if first_time
+                        else int(
+                            rng.integers(
+                                cal.LEGIT_EXISTING_BENEFICIARY_MIN_AGE_S,
+                                cal.LEGIT_EXISTING_BENEFICIARY_MAX_AGE_S,
+                            )
+                        )
+                    )
                 else:
                     first_time = True
                     added_ago = int(rng.integers(20, 120))
-                    
+
                 txn = _transaction_row(
                     rng=rng,
                     payer_id=source_id,
@@ -519,8 +619,16 @@ class MuleNetworkAttack(AttackGenerator):
                     issuer_risk_score=0.09,
                 )
                 rows.append(txn)
-                labels.append(_label_row(txn["txn_id"], attack_id=self.attack_id, campaign_id="", pretext="pass_through", detectable_at=DetectableAt.POST_AUTH))
-                
+                labels.append(
+                    _label_row(
+                        txn["txn_id"],
+                        attack_id=self.attack_id,
+                        campaign_id="",
+                        pretext="pass_through",
+                        detectable_at=DetectableAt.POST_AUTH,
+                    )
+                )
+
         campaign = _build_campaign(
             self.attack_id,
             seed=seed,
@@ -535,7 +643,7 @@ class MuleNetworkAttack(AttackGenerator):
         campaign.mule_party_id = mule_id
         for label in labels:
             label["campaign_id"] = campaign.campaign_id
-            
+
         return campaign, rows, labels
 
 
@@ -551,38 +659,47 @@ class CardTestingProbeAttack(AttackGenerator):
         config: dict[str, Any] | None = None,
     ):
         rng = np.random.default_rng(seed)
-        intensity_value = intensity if isinstance(intensity, AttackIntensity) else AttackIntensity(str(intensity).upper())
-        consumer_ids = [row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"]
+        intensity_value = (
+            intensity
+            if isinstance(intensity, AttackIntensity)
+            else AttackIntensity(str(intensity).upper())
+        )
+        consumer_ids = [
+            row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"
+        ]
         payer_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
-        
+
         # Select multiple baseline merchants to vary destination structure
         merchants = baseline.tables["merchants"]
         merchant_pool = [m["merchant_id"] for m in merchants]
-        
-        device_id = _choose_device_for_party(baseline, payer_id) or baseline.tables["devices"][0]["device_id"]
-        
+
+        device_id = (
+            _choose_device_for_party(baseline, payer_id)
+            or baseline.tables["devices"][0]["device_id"]
+        )
+
         n_events = _intensity_count(intensity_value, 4, 8, 15)
         n_events += int(rng.integers(-1, 3))
         n_events = max(4, n_events)
-        
+
         start_ts = _random_start_ts(baseline, rng)
-        
+
         rows: list[dict[str, Any]] = []
         labels: list[dict[str, Any]] = []
-        
+
         for i in range(n_events):
             merchant_id = merchant_pool[int(rng.integers(0, len(merchant_pool)))]
             # Card testing: very small micro-amounts
             amount = _money(float(rng.uniform(1.00, 12.00)))
-            
+
             # Rapid card test successions
             event_ts = start_ts + timedelta(seconds=float(rng.uniform(15.0, 90.0)) * i)
-            
+
             # Differentiate decisions stochastically (probes have declines)
             decision = "declined" if (i == 0 or rng.random() < 0.35) else "approved"
             decline_reason = "auth_failed" if decision == "declined" else None
             auth_result = "failure" if decision == "declined" else "success"
-            
+
             txn = _transaction_row(
                 rng=rng,
                 payer_id=payer_id,
@@ -609,8 +726,16 @@ class CardTestingProbeAttack(AttackGenerator):
                 geo_matches_home=(rng.random() < 0.95),
             )
             rows.append(txn)
-            labels.append(_label_row(txn["txn_id"], attack_id=self.attack_id, campaign_id="", pretext="micro_probe", detectable_at=DetectableAt.POST_AUTH))
-            
+            labels.append(
+                _label_row(
+                    txn["txn_id"],
+                    attack_id=self.attack_id,
+                    campaign_id="",
+                    pretext="micro_probe",
+                    detectable_at=DetectableAt.POST_AUTH,
+                )
+            )
+
         campaign = _build_campaign(
             self.attack_id,
             seed=seed,
@@ -624,7 +749,7 @@ class CardTestingProbeAttack(AttackGenerator):
         )
         for label in labels:
             label["campaign_id"] = campaign.campaign_id
-            
+
         return campaign, rows, labels
 
 
@@ -640,13 +765,24 @@ class AdversarialEvasionAttack(AttackGenerator):
         config: dict[str, Any] | None = None,
     ):
         rng = np.random.default_rng(seed)
-        intensity_value = intensity if isinstance(intensity, AttackIntensity) else AttackIntensity(str(intensity).upper())
-        consumer_ids = [row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"]
+        intensity_value = (
+            intensity
+            if isinstance(intensity, AttackIntensity)
+            else AttackIntensity(str(intensity).upper())
+        )
+        consumer_ids = [
+            row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"
+        ]
         payer_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
 
-        device_id = _choose_device_for_party(baseline, payer_id) or baseline.tables["devices"][0]["device_id"]
+        device_id = (
+            _choose_device_for_party(baseline, payer_id)
+            or baseline.tables["devices"][0]["device_id"]
+        )
 
-        n_events = {AttackIntensity.LOW: 2, AttackIntensity.MEDIUM: 4, AttackIntensity.HIGH: 7}[intensity_value]
+        n_events = {AttackIntensity.LOW: 2, AttackIntensity.MEDIUM: 4, AttackIntensity.HIGH: 7}[
+            intensity_value
+        ]
         n_events += int(rng.integers(-1, 2))
         n_events = max(2, n_events)
 
@@ -677,8 +813,12 @@ class AdversarialEvasionAttack(AttackGenerator):
         # inside a pair whose edge_count was never going to look unusual.
         if cfg.get("adaptive_top_counterparty"):
             top = _top_counterparty_for_payer(baseline, payer_id, consumer_ids)
-            payee_pool = [top] if top else _existing_consumer_payees_for_payer(
-                baseline, payer_id, payee_rng, consumer_ids, k=min(3, n_events)
+            payee_pool = (
+                [top]
+                if top
+                else _existing_consumer_payees_for_payer(
+                    baseline, payer_id, payee_rng, consumer_ids, k=min(3, n_events)
+                )
             )
             pretext = "low_and_slow_adaptive"
         else:
@@ -689,9 +829,13 @@ class AdversarialEvasionAttack(AttackGenerator):
             # catalogue's inversion-pass claim for this family requires every
             # feature, including counterparty structure, to sit inside the
             # legitimate distribution.
-            payee_pool = _existing_consumer_payees_for_payer(baseline, payer_id, payee_rng, consumer_ids, k=min(3, n_events))
+            payee_pool = _existing_consumer_payees_for_payer(
+                baseline, payer_id, payee_rng, consumer_ids, k=min(3, n_events)
+            )
 
-        beneficiary_age_floor_s = int(cfg.get("beneficiary_age_floor_s", cal.LEGIT_EXISTING_BENEFICIARY_MIN_AGE_S))
+        beneficiary_age_floor_s = int(
+            cfg.get("beneficiary_age_floor_s", cal.LEGIT_EXISTING_BENEFICIARY_MIN_AGE_S)
+        )
 
         start_ts = _random_start_ts(baseline, rng)
 
@@ -722,7 +866,9 @@ class AdversarialEvasionAttack(AttackGenerator):
                 session_duration_s=int(23 + i * 7 + rng.integers(-4, 8)),
                 time_on_confirm_screen_s=float(rng.uniform(2.2, 4.5)),
                 beneficiary_first_time=False,
-                beneficiary_added_ago_s=int(rng.integers(beneficiary_age_floor_s, cal.LEGIT_EXISTING_BENEFICIARY_MAX_AGE_S)),
+                beneficiary_added_ago_s=int(
+                    rng.integers(beneficiary_age_floor_s, cal.LEGIT_EXISTING_BENEFICIARY_MAX_AGE_S)
+                ),
                 pin_attempts=1 + int(rng.random() < 0.03),
                 screen_share_active=False,
                 call_active_during_txn=False,
@@ -733,8 +879,16 @@ class AdversarialEvasionAttack(AttackGenerator):
                 issuer_risk_score=0.07,
             )
             rows.append(txn)
-            labels.append(_label_row(txn["txn_id"], attack_id=self.attack_id, campaign_id="", pretext=pretext, detectable_at=DetectableAt.POST_AUTH))
-            
+            labels.append(
+                _label_row(
+                    txn["txn_id"],
+                    attack_id=self.attack_id,
+                    campaign_id="",
+                    pretext=pretext,
+                    detectable_at=DetectableAt.POST_AUTH,
+                )
+            )
+
         campaign = _build_campaign(
             self.attack_id,
             seed=seed,
@@ -748,26 +902,44 @@ class AdversarialEvasionAttack(AttackGenerator):
         )
         for label in labels:
             label["campaign_id"] = campaign.campaign_id
-            
+
         return campaign, rows, labels
 
 
 class FirstPartyDisputeAttack(AttackGenerator):
     attack_id = "first_party_dispute"
 
-    def generate(self, baseline: PaymentDataset, *, seed: int, intensity: AttackIntensity | str, config: dict[str, Any] | None = None):
+    def generate(
+        self,
+        baseline: PaymentDataset,
+        *,
+        seed: int,
+        intensity: AttackIntensity | str,
+        config: dict[str, Any] | None = None,
+    ):
         rng = np.random.default_rng(seed)
-        intensity_value = intensity if isinstance(intensity, AttackIntensity) else AttackIntensity(str(intensity).upper())
-        
-        consumer_ids = [row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"]
+        intensity_value = (
+            intensity
+            if isinstance(intensity, AttackIntensity)
+            else AttackIntensity(str(intensity).upper())
+        )
+
+        consumer_ids = [
+            row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"
+        ]
         payer_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
         # Prefer a merchant this payer has actually transacted with before
         # (issues.md I7): the rows below are already labelled as an existing
         # beneficiary, but a uniformly random merchant made that claim false
         # in the graph -- a brand-new pair suddenly getting hit N times.
-        merchant_row = _existing_merchant_for_payer(baseline, payer_id, rng, baseline.tables["merchants"])
+        merchant_row = _existing_merchant_for_payer(
+            baseline, payer_id, rng, baseline.tables["merchants"]
+        )
         merchant_id = merchant_row["merchant_id"]
-        device_id = _choose_device_for_party(baseline, payer_id) or baseline.tables["devices"][0]["device_id"]
+        device_id = (
+            _choose_device_for_party(baseline, payer_id)
+            or baseline.tables["devices"][0]["device_id"]
+        )
 
         start_ts = _random_start_ts(baseline, rng)
 
@@ -780,8 +952,10 @@ class FirstPartyDisputeAttack(AttackGenerator):
 
         for i in range(n_events):
             # Friendly fraud: spread stochastically over days
-            event_ts = start_ts + timedelta(days=float(rng.uniform(1.0, 4.0)) * i, hours=float(rng.uniform(-3.0, 5.0)))
-            
+            event_ts = start_ts + timedelta(
+                days=float(rng.uniform(1.0, 4.0)) * i, hours=float(rng.uniform(-3.0, 5.0))
+            )
+
             txn = _transaction_row(
                 rng=rng,
                 payer_id=payer_id,
@@ -800,7 +974,12 @@ class FirstPartyDisputeAttack(AttackGenerator):
                 session_duration_s=int(20 + i * 5 + rng.integers(-3, 6)),
                 time_on_confirm_screen_s=float(rng.uniform(1.5, 4.0)),
                 beneficiary_first_time=False,
-                beneficiary_added_ago_s=int(rng.integers(cal.LEGIT_EXISTING_BENEFICIARY_MIN_AGE_S, cal.LEGIT_EXISTING_BENEFICIARY_MAX_AGE_S)),
+                beneficiary_added_ago_s=int(
+                    rng.integers(
+                        cal.LEGIT_EXISTING_BENEFICIARY_MIN_AGE_S,
+                        cal.LEGIT_EXISTING_BENEFICIARY_MAX_AGE_S,
+                    )
+                ),
                 pin_attempts=0,  # Card CNP uses CVV only, so 0 PIN attempts
                 screen_share_active=False,
                 call_active_during_txn=False,
@@ -809,45 +988,81 @@ class FirstPartyDisputeAttack(AttackGenerator):
                 issuer_risk_score=0.11,
             )
             rows.append(txn)
-            labels.append(_label_row(txn["txn_id"], attack_id=self.attack_id, campaign_id="", pretext="friendly_fraud", detectable_at=DetectableAt.POST_SETTLEMENT))
-            
-        campaign = _build_campaign(self.attack_id, seed=seed, intensity=intensity_value, start_time=rows[0]["timestamp"], end_time=rows[-1]["timestamp"], affected_entities=[payer_id, merchant_id], event_count=len(rows), pretext="friendly_fraud", config={"merchant_id": merchant_id})
+            labels.append(
+                _label_row(
+                    txn["txn_id"],
+                    attack_id=self.attack_id,
+                    campaign_id="",
+                    pretext="friendly_fraud",
+                    detectable_at=DetectableAt.POST_SETTLEMENT,
+                )
+            )
+
+        campaign = _build_campaign(
+            self.attack_id,
+            seed=seed,
+            intensity=intensity_value,
+            start_time=rows[0]["timestamp"],
+            end_time=rows[-1]["timestamp"],
+            affected_entities=[payer_id, merchant_id],
+            event_count=len(rows),
+            pretext="friendly_fraud",
+            config={"merchant_id": merchant_id},
+        )
         for label in labels:
             label["campaign_id"] = campaign.campaign_id
-            
+
         return campaign, rows, labels
 
 
 class StealthMandateAttack(AttackGenerator):
     attack_id = "stealth_mandate"
 
-    def generate(self, baseline: PaymentDataset, *, seed: int, intensity: AttackIntensity | str, config: dict[str, Any] | None = None):
+    def generate(
+        self,
+        baseline: PaymentDataset,
+        *,
+        seed: int,
+        intensity: AttackIntensity | str,
+        config: dict[str, Any] | None = None,
+    ):
         rng = np.random.default_rng(seed)
-        intensity_value = intensity if isinstance(intensity, AttackIntensity) else AttackIntensity(str(intensity).upper())
-        consumer_ids = [row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"]
+        intensity_value = (
+            intensity
+            if isinstance(intensity, AttackIntensity)
+            else AttackIntensity(str(intensity).upper())
+        )
+        consumer_ids = [
+            row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"
+        ]
         payer_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
         # Prefer a merchant this payer has actually transacted with before
         # (issues.md I7) -- a recurring mandate to a genuinely established
         # biller relationship, not a brand-new pair with an "existing
         # beneficiary" label the graph itself contradicts.
-        merchant_row = _existing_merchant_for_payer(baseline, payer_id, rng, baseline.tables["merchants"])
+        merchant_row = _existing_merchant_for_payer(
+            baseline, payer_id, rng, baseline.tables["merchants"]
+        )
         merchant_id = merchant_row["merchant_id"]
-        device_id = _choose_device_for_party(baseline, payer_id) or baseline.tables["devices"][0]["device_id"]
+        device_id = (
+            _choose_device_for_party(baseline, payer_id)
+            or baseline.tables["devices"][0]["device_id"]
+        )
 
         start_ts = _random_start_ts(baseline, rng)
 
         n_events = _intensity_count(intensity_value, 3, 6, 12)
         n_events += int(rng.integers(-1, 3))
         n_events = max(3, n_events)
-        
+
         rows: list[dict[str, Any]] = []
         labels: list[dict[str, Any]] = []
-        
+
         for idx in range(n_events):
             # Recurring charge: spread stochastically over weeks
             event_ts = start_ts + timedelta(days=float(rng.uniform(2.5, 9.5)) * idx)
             amount = _money(19.0 + idx * 7.0 + float(rng.normal(0, 3)))
-            
+
             txn = _transaction_row(
                 rng=rng,
                 payer_id=payer_id,
@@ -866,7 +1081,12 @@ class StealthMandateAttack(AttackGenerator):
                 session_duration_s=int(14 + idx + rng.integers(-2, 4)),
                 time_on_confirm_screen_s=float(rng.uniform(0.8, 2.0)),
                 beneficiary_first_time=False,
-                beneficiary_added_ago_s=int(rng.integers(cal.LEGIT_EXISTING_BENEFICIARY_MIN_AGE_S, cal.LEGIT_EXISTING_BENEFICIARY_MAX_AGE_S)),
+                beneficiary_added_ago_s=int(
+                    rng.integers(
+                        cal.LEGIT_EXISTING_BENEFICIARY_MIN_AGE_S,
+                        cal.LEGIT_EXISTING_BENEFICIARY_MAX_AGE_S,
+                    )
+                ),
                 pin_attempts=0,  # Mandate recurring has no PIN checks, so 0 PIN attempts
                 screen_share_active=False,
                 call_active_during_txn=False,
@@ -875,43 +1095,79 @@ class StealthMandateAttack(AttackGenerator):
                 issuer_risk_score=0.09,
             )
             rows.append(txn)
-            labels.append(_label_row(txn["txn_id"], attack_id=self.attack_id, campaign_id="", pretext="mandate_stealth", detectable_at=DetectableAt.POST_AUTH))
-            
-        campaign = _build_campaign(self.attack_id, seed=seed, intensity=intensity_value, start_time=rows[0]["timestamp"], end_time=rows[-1]["timestamp"], affected_entities=[payer_id, merchant_id], event_count=len(rows), pretext="mandate_stealth", config={"merchant_id": merchant_id})
+            labels.append(
+                _label_row(
+                    txn["txn_id"],
+                    attack_id=self.attack_id,
+                    campaign_id="",
+                    pretext="mandate_stealth",
+                    detectable_at=DetectableAt.POST_AUTH,
+                )
+            )
+
+        campaign = _build_campaign(
+            self.attack_id,
+            seed=seed,
+            intensity=intensity_value,
+            start_time=rows[0]["timestamp"],
+            end_time=rows[-1]["timestamp"],
+            affected_entities=[payer_id, merchant_id],
+            event_count=len(rows),
+            pretext="mandate_stealth",
+            config={"merchant_id": merchant_id},
+        )
         for label in labels:
             label["campaign_id"] = campaign.campaign_id
-            
+
         return campaign, rows, labels
 
 
 class SyntheticMerchantAttack(AttackGenerator):
     attack_id = "synthetic_merchant"
 
-    def generate(self, baseline: PaymentDataset, *, seed: int, intensity: AttackIntensity | str, config: dict[str, Any] | None = None):
+    def generate(
+        self,
+        baseline: PaymentDataset,
+        *,
+        seed: int,
+        intensity: AttackIntensity | str,
+        config: dict[str, Any] | None = None,
+    ):
         rng = np.random.default_rng(seed)
-        intensity_value = intensity if isinstance(intensity, AttackIntensity) else AttackIntensity(str(intensity).upper())
-        consumer_ids = [row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"]
+        intensity_value = (
+            intensity
+            if isinstance(intensity, AttackIntensity)
+            else AttackIntensity(str(intensity).upper())
+        )
+        consumer_ids = [
+            row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"
+        ]
         payer_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
-        merchant_row = baseline.tables["merchants"][int(rng.integers(0, len(baseline.tables["merchants"])))]
+        merchant_row = baseline.tables["merchants"][
+            int(rng.integers(0, len(baseline.tables["merchants"])))
+        ]
         merchant_id = merchant_row["merchant_id"]
-        device_id = _choose_device_for_party(baseline, payer_id) or baseline.tables["devices"][0]["device_id"]
-        
+        device_id = (
+            _choose_device_for_party(baseline, payer_id)
+            or baseline.tables["devices"][0]["device_id"]
+        )
+
         start_ts = _random_start_ts(baseline, rng)
-        
+
         n_events = _intensity_count(intensity_value, 3, 8, 14)
         n_events += int(rng.integers(-1, 3))
         n_events = max(3, n_events)
-        
+
         rows: list[dict[str, Any]] = []
         labels: list[dict[str, Any]] = []
-        
+
         first_added_ago = int(rng.integers(10, 60))
-        
+
         for i in range(n_events):
             # Rapid UPI P2M payments
             event_ts = start_ts + timedelta(minutes=float(rng.uniform(10.0, 45.0)) * i)
             amount = _money(180.0 + i * 60.0 + float(rng.normal(0, 20)))
-            
+
             # Setup beneficiary
             if i == 0:
                 first_time = True
@@ -919,7 +1175,7 @@ class SyntheticMerchantAttack(AttackGenerator):
             else:
                 first_time = False
                 added_ago = int((event_ts - start_ts).total_seconds()) + first_added_ago
-                
+
             txn = _transaction_row(
                 rng=rng,
                 payer_id=payer_id,
@@ -947,41 +1203,73 @@ class SyntheticMerchantAttack(AttackGenerator):
                 issuer_risk_score=0.10,
             )
             rows.append(txn)
-            labels.append(_label_row(txn["txn_id"], attack_id=self.attack_id, campaign_id="", pretext="kyb_shell", detectable_at=DetectableAt.POST_AUTH))
-            
-        campaign = _build_campaign(self.attack_id, seed=seed, intensity=intensity_value, start_time=rows[0]["timestamp"], end_time=rows[-1]["timestamp"], affected_entities=[payer_id, merchant_id], event_count=len(rows), pretext="kyb_shell", config={"merchant_id": merchant_id})
+            labels.append(
+                _label_row(
+                    txn["txn_id"],
+                    attack_id=self.attack_id,
+                    campaign_id="",
+                    pretext="kyb_shell",
+                    detectable_at=DetectableAt.POST_AUTH,
+                )
+            )
+
+        campaign = _build_campaign(
+            self.attack_id,
+            seed=seed,
+            intensity=intensity_value,
+            start_time=rows[0]["timestamp"],
+            end_time=rows[-1]["timestamp"],
+            affected_entities=[payer_id, merchant_id],
+            event_count=len(rows),
+            pretext="kyb_shell",
+            config={"merchant_id": merchant_id},
+        )
         for label in labels:
             label["campaign_id"] = campaign.campaign_id
-            
+
         return campaign, rows, labels
 
 
 class TransactionLaunderingAttack(AttackGenerator):
     attack_id = "transaction_laundering"
 
-    def generate(self, baseline: PaymentDataset, *, seed: int, intensity: AttackIntensity | str, config: dict[str, Any] | None = None):
+    def generate(
+        self,
+        baseline: PaymentDataset,
+        *,
+        seed: int,
+        intensity: AttackIntensity | str,
+        config: dict[str, Any] | None = None,
+    ):
         rng = np.random.default_rng(seed)
-        intensity_value = intensity if isinstance(intensity, AttackIntensity) else AttackIntensity(str(intensity).upper())
+        intensity_value = (
+            intensity
+            if isinstance(intensity, AttackIntensity)
+            else AttackIntensity(str(intensity).upper())
+        )
         merchant_ids = [row["merchant_id"] for row in baseline.tables["merchants"]]
         payer_id, payee_id = _new_party_pair(baseline, rng)
         merchant_id = merchant_ids[int(rng.integers(0, len(merchant_ids)))]
-        device_id = _choose_device_for_party(baseline, payer_id) or baseline.tables["devices"][0]["device_id"]
-        
+        device_id = (
+            _choose_device_for_party(baseline, payer_id)
+            or baseline.tables["devices"][0]["device_id"]
+        )
+
         n_events = _intensity_count(intensity_value, 3, 6, 10)
         n_events += int(rng.integers(-1, 2))
         n_events = max(3, n_events)
-        
+
         start_ts = _random_start_ts(baseline, rng)
-        
+
         rows: list[dict[str, Any]] = []
         labels: list[dict[str, Any]] = []
-        
+
         first_added_ago = int(rng.integers(40, 200))
-        
+
         for i in range(n_events):
             event_ts = start_ts + timedelta(minutes=float(rng.uniform(15.0, 45.0)) * i)
             amount = _money(70.0 + i * 40.0 + float(rng.normal(0, 10)))
-            
+
             # Setup beneficiary
             if i == 0:
                 first_time = True
@@ -989,7 +1277,7 @@ class TransactionLaunderingAttack(AttackGenerator):
             else:
                 first_time = False
                 added_ago = int((event_ts - start_ts).total_seconds()) + first_added_ago
-                
+
             txn = _transaction_row(
                 rng=rng,
                 payer_id=payer_id,
@@ -1017,45 +1305,81 @@ class TransactionLaunderingAttack(AttackGenerator):
                 issuer_risk_score=0.12,
             )
             rows.append(txn)
-            labels.append(_label_row(txn["txn_id"], attack_id=self.attack_id, campaign_id="", pretext="laundering", detectable_at=DetectableAt.POST_AUTH))
-            
-        campaign = _build_campaign(self.attack_id, seed=seed, intensity=intensity_value, start_time=rows[0]["timestamp"], end_time=rows[-1]["timestamp"], affected_entities=[payer_id, payee_id, merchant_id], event_count=len(rows), pretext="laundering", config={"merchant_id": merchant_id})
+            labels.append(
+                _label_row(
+                    txn["txn_id"],
+                    attack_id=self.attack_id,
+                    campaign_id="",
+                    pretext="laundering",
+                    detectable_at=DetectableAt.POST_AUTH,
+                )
+            )
+
+        campaign = _build_campaign(
+            self.attack_id,
+            seed=seed,
+            intensity=intensity_value,
+            start_time=rows[0]["timestamp"],
+            end_time=rows[-1]["timestamp"],
+            affected_entities=[payer_id, payee_id, merchant_id],
+            event_count=len(rows),
+            pretext="laundering",
+            config={"merchant_id": merchant_id},
+        )
         for label in labels:
             label["campaign_id"] = campaign.campaign_id
-            
+
         return campaign, rows, labels
 
 
 class CredentialTakeoverAttack(AttackGenerator):
     attack_id = "credential_takeover"
 
-    def generate(self, baseline: PaymentDataset, *, seed: int, intensity: AttackIntensity | str, config: dict[str, Any] | None = None):
+    def generate(
+        self,
+        baseline: PaymentDataset,
+        *,
+        seed: int,
+        intensity: AttackIntensity | str,
+        config: dict[str, Any] | None = None,
+    ):
         rng = np.random.default_rng(seed)
-        intensity_value = intensity if isinstance(intensity, AttackIntensity) else AttackIntensity(str(intensity).upper())
-        consumer_ids = [row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"]
+        intensity_value = (
+            intensity
+            if isinstance(intensity, AttackIntensity)
+            else AttackIntensity(str(intensity).upper())
+        )
+        consumer_ids = [
+            row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"
+        ]
         payer_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
         payee_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
         if payer_id == payee_id:
             payee_id = consumer_ids[(consumer_ids.index(payer_id) + 1) % len(consumer_ids)]
-            
-        old_device = _choose_device_for_party(baseline, payer_id) or baseline.tables["devices"][0]["device_id"]
-        new_device = baseline.tables["devices"][int(rng.integers(0, len(baseline.tables["devices"])))] ["device_id"]
-        
+
+        old_device = (
+            _choose_device_for_party(baseline, payer_id)
+            or baseline.tables["devices"][0]["device_id"]
+        )
+        new_device = baseline.tables["devices"][
+            int(rng.integers(0, len(baseline.tables["devices"])))
+        ]["device_id"]
+
         start_ts = _random_start_ts(baseline, rng)
-        
+
         n_events = _intensity_count(intensity_value, 2, 5, 10)
         n_events += int(rng.integers(-1, 2))
         n_events = max(2, n_events)
-        
+
         rows: list[dict[str, Any]] = []
         labels: list[dict[str, Any]] = []
-        
+
         first_added_ago = int(rng.integers(10, 60))
-        
+
         for i in range(n_events):
             event_ts = start_ts + timedelta(minutes=float(rng.uniform(10.0, 45.0)) * i)
             amount = _money(400.0 + i * 120.0 + float(rng.normal(0, 50)))
-            
+
             # Setup beneficiary
             if i == 0:
                 first_time = True
@@ -1063,7 +1387,7 @@ class CredentialTakeoverAttack(AttackGenerator):
             else:
                 first_time = False
                 added_ago = int((event_ts - start_ts).total_seconds()) + first_added_ago
-                
+
             txn = _transaction_row(
                 rng=rng,
                 payer_id=payer_id,
@@ -1091,38 +1415,72 @@ class CredentialTakeoverAttack(AttackGenerator):
                 issuer_risk_score=0.16,
             )
             rows.append(txn)
-            labels.append(_label_row(txn["txn_id"], attack_id=self.attack_id, campaign_id="", pretext="session_compromise", detectable_at=DetectableAt.POST_AUTH))
-            
-        campaign = _build_campaign(self.attack_id, seed=seed, intensity=intensity_value, start_time=rows[0]["timestamp"], end_time=rows[-1]["timestamp"], affected_entities=[payer_id, payee_id, old_device, new_device], event_count=len(rows), pretext="session_compromise", config={"new_device_id": new_device})
+            labels.append(
+                _label_row(
+                    txn["txn_id"],
+                    attack_id=self.attack_id,
+                    campaign_id="",
+                    pretext="session_compromise",
+                    detectable_at=DetectableAt.POST_AUTH,
+                )
+            )
+
+        campaign = _build_campaign(
+            self.attack_id,
+            seed=seed,
+            intensity=intensity_value,
+            start_time=rows[0]["timestamp"],
+            end_time=rows[-1]["timestamp"],
+            affected_entities=[payer_id, payee_id, old_device, new_device],
+            event_count=len(rows),
+            pretext="session_compromise",
+            config={"new_device_id": new_device},
+        )
         for label in labels:
             label["campaign_id"] = campaign.campaign_id
-            
+
         return campaign, rows, labels
 
 
 class SyntheticIdentityBustoutAttack(AttackGenerator):
     attack_id = "synthetic_identity_bustout"
 
-    def generate(self, baseline: PaymentDataset, *, seed: int, intensity: AttackIntensity | str, config: dict[str, Any] | None = None):
+    def generate(
+        self,
+        baseline: PaymentDataset,
+        *,
+        seed: int,
+        intensity: AttackIntensity | str,
+        config: dict[str, Any] | None = None,
+    ):
         rng = np.random.default_rng(seed)
-        intensity_value = intensity if isinstance(intensity, AttackIntensity) else AttackIntensity(str(intensity).upper())
-        consumer_ids = [row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"]
+        intensity_value = (
+            intensity
+            if isinstance(intensity, AttackIntensity)
+            else AttackIntensity(str(intensity).upper())
+        )
+        consumer_ids = [
+            row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"
+        ]
         payer_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
         payee_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
         if payer_id == payee_id:
             payee_id = consumer_ids[(consumer_ids.index(payer_id) + 1) % len(consumer_ids)]
-            
-        device_id = _choose_device_for_party(baseline, payer_id) or baseline.tables["devices"][0]["device_id"]
-        
+
+        device_id = (
+            _choose_device_for_party(baseline, payer_id)
+            or baseline.tables["devices"][0]["device_id"]
+        )
+
         start_ts = _random_start_ts(baseline, rng)
-        
+
         n_events = _intensity_count(intensity_value, 3, 7, 12)
         n_events += int(rng.integers(-1, 3))
         n_events = max(3, n_events)
-        
+
         rows: list[dict[str, Any]] = []
         labels: list[dict[str, Any]] = []
-        
+
         for i in range(n_events):
             # Slow credit-building phase then rapid max-out phase
             if i > 2:
@@ -1131,7 +1489,7 @@ class SyntheticIdentityBustoutAttack(AttackGenerator):
             else:
                 event_ts = start_ts + timedelta(days=i * 4 + float(rng.uniform(-0.5, 0.5)))
                 amount = _money(25.0 + i * 10.0 + float(rng.normal(0, 5)))
-                
+
             txn = _transaction_row(
                 rng=rng,
                 payer_id=payer_id,
@@ -1159,47 +1517,81 @@ class SyntheticIdentityBustoutAttack(AttackGenerator):
                 issuer_risk_score=0.06 + i * 0.03,
             )
             rows.append(txn)
-            labels.append(_label_row(txn["txn_id"], attack_id=self.attack_id, campaign_id="", pretext="bustout", detectable_at=DetectableAt.POST_AUTH))
-            
-        campaign = _build_campaign(self.attack_id, seed=seed, intensity=intensity_value, start_time=rows[0]["timestamp"], end_time=rows[-1]["timestamp"], affected_entities=[payer_id, payee_id], event_count=len(rows), pretext="bustout", config={"growth_phase": "credit_building"})
+            labels.append(
+                _label_row(
+                    txn["txn_id"],
+                    attack_id=self.attack_id,
+                    campaign_id="",
+                    pretext="bustout",
+                    detectable_at=DetectableAt.POST_AUTH,
+                )
+            )
+
+        campaign = _build_campaign(
+            self.attack_id,
+            seed=seed,
+            intensity=intensity_value,
+            start_time=rows[0]["timestamp"],
+            end_time=rows[-1]["timestamp"],
+            affected_entities=[payer_id, payee_id],
+            event_count=len(rows),
+            pretext="bustout",
+            config={"growth_phase": "credit_building"},
+        )
         for label in labels:
             label["campaign_id"] = campaign.campaign_id
-            
+
         return campaign, rows, labels
 
 
 class SubthresholdFragmentationAttack(AttackGenerator):
     attack_id = "subthreshold_fragmentation"
 
-    def generate(self, baseline: PaymentDataset, *, seed: int, intensity: AttackIntensity | str, config: dict[str, Any] | None = None):
+    def generate(
+        self,
+        baseline: PaymentDataset,
+        *,
+        seed: int,
+        intensity: AttackIntensity | str,
+        config: dict[str, Any] | None = None,
+    ):
         rng = np.random.default_rng(seed)
-        intensity_value = intensity if isinstance(intensity, AttackIntensity) else AttackIntensity(str(intensity).upper())
-        consumer_ids = [row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"]
+        intensity_value = (
+            intensity
+            if isinstance(intensity, AttackIntensity)
+            else AttackIntensity(str(intensity).upper())
+        )
+        consumer_ids = [
+            row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"
+        ]
         payer_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
         payee_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
         if payer_id == payee_id:
             payee_id = consumer_ids[(consumer_ids.index(payer_id) + 1) % len(consumer_ids)]
-            
-        device_id = _choose_device_for_party(baseline, payer_id) or baseline.tables["devices"][0]["device_id"]
-        
+
+        device_id = (
+            _choose_device_for_party(baseline, payer_id)
+            or baseline.tables["devices"][0]["device_id"]
+        )
+
         start_ts = _random_start_ts(baseline, rng)
-        
+
         n_events = _intensity_count(intensity_value, 4, 7, 12)
         n_events += int(rng.integers(-1, 3))
         n_events = max(4, n_events)
-        
+
         rows: list[dict[str, Any]] = []
         labels: list[dict[str, Any]] = []
-        
+
         first_added_ago = int(rng.integers(15, 60))
-        
+
         for i in range(n_events):
             # Fragmentation: amounts strictly under alert thresholds (e.g. 100 Rs)
             amount = _money(float(rng.uniform(15.00, 95.00)))
-            
+
             # Rapid micro-transfers
             event_ts = start_ts + timedelta(minutes=float(rng.uniform(2.0, 15.0)) * i)
-            
+
             # Setup beneficiary
             if i == 0:
                 first_time = True
@@ -1207,7 +1599,7 @@ class SubthresholdFragmentationAttack(AttackGenerator):
             else:
                 first_time = False
                 added_ago = int((event_ts - start_ts).total_seconds()) + first_added_ago
-                
+
             txn = _transaction_row(
                 rng=rng,
                 payer_id=payer_id,
@@ -1235,44 +1627,78 @@ class SubthresholdFragmentationAttack(AttackGenerator):
                 issuer_risk_score=0.08,
             )
             rows.append(txn)
-            labels.append(_label_row(txn["txn_id"], attack_id=self.attack_id, campaign_id="", pretext="fragmentation", detectable_at=DetectableAt.POST_AUTH))
-            
-        campaign = _build_campaign(self.attack_id, seed=seed, intensity=intensity_value, start_time=rows[0]["timestamp"], end_time=rows[-1]["timestamp"], affected_entities=[payer_id, payee_id], event_count=len(rows), pretext="fragmentation", config={"split_pattern": "serial"})
+            labels.append(
+                _label_row(
+                    txn["txn_id"],
+                    attack_id=self.attack_id,
+                    campaign_id="",
+                    pretext="fragmentation",
+                    detectable_at=DetectableAt.POST_AUTH,
+                )
+            )
+
+        campaign = _build_campaign(
+            self.attack_id,
+            seed=seed,
+            intensity=intensity_value,
+            start_time=rows[0]["timestamp"],
+            end_time=rows[-1]["timestamp"],
+            affected_entities=[payer_id, payee_id],
+            event_count=len(rows),
+            pretext="fragmentation",
+            config={"split_pattern": "serial"},
+        )
         for label in labels:
             label["campaign_id"] = campaign.campaign_id
-            
+
         return campaign, rows, labels
 
 
 class AgenticInjectionAttack(AttackGenerator):
     attack_id = "agentic_injection"
 
-    def generate(self, baseline: PaymentDataset, *, seed: int, intensity: AttackIntensity | str, config: dict[str, Any] | None = None):
+    def generate(
+        self,
+        baseline: PaymentDataset,
+        *,
+        seed: int,
+        intensity: AttackIntensity | str,
+        config: dict[str, Any] | None = None,
+    ):
         rng = np.random.default_rng(seed)
-        intensity_value = intensity if isinstance(intensity, AttackIntensity) else AttackIntensity(str(intensity).upper())
-        consumer_ids = [row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"]
+        intensity_value = (
+            intensity
+            if isinstance(intensity, AttackIntensity)
+            else AttackIntensity(str(intensity).upper())
+        )
+        consumer_ids = [
+            row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"
+        ]
         payer_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
         payee_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
         if payer_id == payee_id:
             payee_id = consumer_ids[(consumer_ids.index(payer_id) + 1) % len(consumer_ids)]
-            
-        device_id = _choose_device_for_party(baseline, payer_id) or baseline.tables["devices"][0]["device_id"]
-        
+
+        device_id = (
+            _choose_device_for_party(baseline, payer_id)
+            or baseline.tables["devices"][0]["device_id"]
+        )
+
         start_ts = _random_start_ts(baseline, rng)
-        
+
         n_events = _intensity_count(intensity_value, 2, 4, 8)
         n_events += int(rng.integers(-1, 2))
         n_events = max(2, n_events)
-        
+
         rows: list[dict[str, Any]] = []
         labels: list[dict[str, Any]] = []
-        
+
         first_added_ago = int(rng.integers(30, 180))
-        
+
         for i in range(n_events):
             event_ts = start_ts + timedelta(minutes=float(rng.uniform(6.0, 20.0)) * i)
             amount = _money(210.0 + i * 90.0 + float(rng.normal(0, 25)))
-            
+
             # Setup beneficiary
             if i == 0:
                 first_time = True
@@ -1280,7 +1706,7 @@ class AgenticInjectionAttack(AttackGenerator):
             else:
                 first_time = False
                 added_ago = int((event_ts - start_ts).total_seconds()) + first_added_ago
-                
+
             txn = _transaction_row(
                 rng=rng,
                 payer_id=payer_id,
@@ -1310,45 +1736,81 @@ class AgenticInjectionAttack(AttackGenerator):
                 issuer_risk_score=0.1,
             )
             rows.append(txn)
-            labels.append(_label_row(txn["txn_id"], attack_id=self.attack_id, campaign_id="", pretext="agentic_abuse", detectable_at=DetectableAt.POST_AUTH))
-            
-        campaign = _build_campaign(self.attack_id, seed=seed, intensity=intensity_value, start_time=rows[0]["timestamp"], end_time=rows[-1]["timestamp"], affected_entities=[payer_id, payee_id], event_count=len(rows), pretext="agentic_abuse", config={"agent_mode": True})
+            labels.append(
+                _label_row(
+                    txn["txn_id"],
+                    attack_id=self.attack_id,
+                    campaign_id="",
+                    pretext="agentic_abuse",
+                    detectable_at=DetectableAt.POST_AUTH,
+                )
+            )
+
+        campaign = _build_campaign(
+            self.attack_id,
+            seed=seed,
+            intensity=intensity_value,
+            start_time=rows[0]["timestamp"],
+            end_time=rows[-1]["timestamp"],
+            affected_entities=[payer_id, payee_id],
+            event_count=len(rows),
+            pretext="agentic_abuse",
+            config={"agent_mode": True},
+        )
         for label in labels:
             label["campaign_id"] = campaign.campaign_id
-            
+
         return campaign, rows, labels
 
 
 class InsiderAbuseAttack(AttackGenerator):
     attack_id = "insider_abuse"
 
-    def generate(self, baseline: PaymentDataset, *, seed: int, intensity: AttackIntensity | str, config: dict[str, Any] | None = None):
+    def generate(
+        self,
+        baseline: PaymentDataset,
+        *,
+        seed: int,
+        intensity: AttackIntensity | str,
+        config: dict[str, Any] | None = None,
+    ):
         rng = np.random.default_rng(seed)
-        intensity_value = intensity if isinstance(intensity, AttackIntensity) else AttackIntensity(str(intensity).upper())
-        consumer_ids = [row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"]
+        intensity_value = (
+            intensity
+            if isinstance(intensity, AttackIntensity)
+            else AttackIntensity(str(intensity).upper())
+        )
+        consumer_ids = [
+            row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"
+        ]
         payer_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
         # Prefer a merchant this payer has actually transacted with before
         # (issues.md I7) -- insider abuse "follows internal policy on paper"
         # per the catalogue, which should include the relationship looking
         # established rather than a brand-new pair suddenly getting hit N
         # times with no organic history.
-        merchant_row = _existing_merchant_for_payer(baseline, payer_id, rng, baseline.tables["merchants"])
+        merchant_row = _existing_merchant_for_payer(
+            baseline, payer_id, rng, baseline.tables["merchants"]
+        )
         merchant_id = merchant_row["merchant_id"]
-        device_id = _choose_device_for_party(baseline, payer_id) or baseline.tables["devices"][0]["device_id"]
+        device_id = (
+            _choose_device_for_party(baseline, payer_id)
+            or baseline.tables["devices"][0]["device_id"]
+        )
 
         start_ts = _random_start_ts(baseline, rng)
 
         n_events = _intensity_count(intensity_value, 2, 5, 9)
         n_events += int(rng.integers(-1, 2))
         n_events = max(2, n_events)
-        
+
         rows: list[dict[str, Any]] = []
         labels: list[dict[str, Any]] = []
-        
+
         for i in range(n_events):
             # Slow timing (multi-hour/day intervals)
             event_ts = start_ts + timedelta(hours=float(rng.uniform(4.0, 18.0)) * i)
-            
+
             txn = _transaction_row(
                 rng=rng,
                 payer_id=payer_id,
@@ -1367,7 +1829,12 @@ class InsiderAbuseAttack(AttackGenerator):
                 session_duration_s=int(12 + i + rng.integers(-2, 3)),
                 time_on_confirm_screen_s=float(rng.uniform(0.5, 1.8)),
                 beneficiary_first_time=False,
-                beneficiary_added_ago_s=int(rng.integers(cal.LEGIT_EXISTING_BENEFICIARY_MIN_AGE_S, cal.LEGIT_EXISTING_BENEFICIARY_MAX_AGE_S)),
+                beneficiary_added_ago_s=int(
+                    rng.integers(
+                        cal.LEGIT_EXISTING_BENEFICIARY_MIN_AGE_S,
+                        cal.LEGIT_EXISTING_BENEFICIARY_MAX_AGE_S,
+                    )
+                ),
                 pin_attempts=0,  # NEFT uses no PIN, so 0 attempts
                 screen_share_active=False,
                 call_active_during_txn=False,
@@ -1376,12 +1843,30 @@ class InsiderAbuseAttack(AttackGenerator):
                 issuer_risk_score=0.11,
             )
             rows.append(txn)
-            labels.append(_label_row(txn["txn_id"], attack_id=self.attack_id, campaign_id="", pretext="insider_access", detectable_at=DetectableAt.POST_SETTLEMENT))
-            
-        campaign = _build_campaign(self.attack_id, seed=seed, intensity=intensity_value, start_time=rows[0]["timestamp"], end_time=rows[-1]["timestamp"], affected_entities=[payer_id, merchant_id], event_count=len(rows), pretext="insider_access", config={"merchant_id": merchant_id})
+            labels.append(
+                _label_row(
+                    txn["txn_id"],
+                    attack_id=self.attack_id,
+                    campaign_id="",
+                    pretext="insider_access",
+                    detectable_at=DetectableAt.POST_SETTLEMENT,
+                )
+            )
+
+        campaign = _build_campaign(
+            self.attack_id,
+            seed=seed,
+            intensity=intensity_value,
+            start_time=rows[0]["timestamp"],
+            end_time=rows[-1]["timestamp"],
+            affected_entities=[payer_id, merchant_id],
+            event_count=len(rows),
+            pretext="insider_access",
+            config={"merchant_id": merchant_id},
+        )
         for label in labels:
             label["campaign_id"] = campaign.campaign_id
-            
+
         return campaign, rows, labels
 
 

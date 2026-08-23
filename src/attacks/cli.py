@@ -22,13 +22,17 @@ def _parser() -> argparse.ArgumentParser:
         "agentic_injection",
         "insider_abuse",
     ]
-    parser = argparse.ArgumentParser(description="Generate a synthetic Stage 3/4 attack scenario layered on the Stage 2 graph dataset")
+    parser = argparse.ArgumentParser(
+        description="Generate a synthetic Stage 3/4 attack scenario layered on the Stage 2 graph dataset"
+    )
     parser.add_argument("--attack", required=True, choices=attack_ids)
     parser.add_argument("--seed", required=True, type=int)
     parser.add_argument("--baseline-dir", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--intensity", choices=["LOW", "MEDIUM", "HIGH"], default="MEDIUM")
-    parser.add_argument("--no-clean", action="store_true", help="do not remove the output directory before writing")
+    parser.add_argument(
+        "--no-clean", action="store_true", help="do not remove the output directory before writing"
+    )
     return parser
 
 

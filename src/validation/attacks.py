@@ -59,7 +59,9 @@ def validate_attack_dataset(dataset: PaymentDataset, attack_id: str) -> AttackVa
         errors.append(f"pretext missing for {attack_id} attack labels")
     if any(row["is_legit_lookalike"] is not False for row in attack_labels):
         errors.append(f"lookalike flag incorrectly set for {attack_id}")
-    if any(row["detectable_at"] not in {item.value for item in DetectableAt} for row in attack_labels):
+    if any(
+        row["detectable_at"] not in {item.value for item in DetectableAt} for row in attack_labels
+    ):
         errors.append(f"invalid detectable_at for {attack_id}")
 
     campaign_ids = {row["campaign_id"] for row in attack_labels if row["campaign_id"] is not None}
@@ -68,11 +70,14 @@ def validate_attack_dataset(dataset: PaymentDataset, attack_id: str) -> AttackVa
     if len(attack_labels) != len(attack_txn_ids):
         errors.append(f"duplicate attack labels detected for {attack_id}")
 
-    attack_transaction_rows = [row for row in dataset.transactions if row["txn_id"] in attack_txn_ids]
+    attack_transaction_rows = [
+        row for row in dataset.transactions if row["txn_id"] in attack_txn_ids
+    ]
     if not attack_transaction_rows:
         errors.append(f"no attack transaction rows for {attack_id}")
     else:
         from datetime import datetime
+
         sim_start_str = dataset.manifest.get("simulation_start")
         sim_end_str = dataset.manifest.get("simulation_end")
         sim_start = datetime.fromisoformat(sim_start_str) if sim_start_str else None

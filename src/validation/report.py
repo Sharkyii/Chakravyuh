@@ -97,7 +97,9 @@ def plot_amount_by_mcc(transactions: list[dict[str, Any]], plots_dir: Path, top_
         mcc = t.get("mcc")
         if mcc is not None:
             by_mcc[int(mcc)].append(float(t["amount"]))
-    top_mccs = [mcc for mcc, _ in Counter({m: len(v) for m, v in by_mcc.items()}).most_common(top_n)]
+    top_mccs = [
+        mcc for mcc, _ in Counter({m: len(v) for m, v in by_mcc.items()}).most_common(top_n)
+    ]
     data = [_sample(by_mcc[mcc], n=20_000) for mcc in top_mccs]
 
     fig, ax = plt.subplots(figsize=(8, 4.5))
@@ -184,14 +186,28 @@ def plot_graph_degree(graph_edges: list[dict[str, Any]], plots_dir: Path) -> str
         in_degree[e["dst_party_id"]] = e["dst_in_degree"]
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 4))
-    ax1.hist(list(out_degree.values()), bins=40, color=_SERIES[4], edgecolor=_SURFACE, linewidth=0.3, zorder=2)
+    ax1.hist(
+        list(out_degree.values()),
+        bins=40,
+        color=_SERIES[4],
+        edgecolor=_SURFACE,
+        linewidth=0.3,
+        zorder=2,
+    )
     ax1.set_yscale("log")
     ax1.set_xlabel("out-degree (distinct payees)")
     ax1.set_ylabel("party count (log scale)")
     ax1.set_title("Out-degree distribution")
     _style_axes(ax1)
 
-    ax2.hist(list(in_degree.values()), bins=40, color=_SERIES[5], edgecolor=_SURFACE, linewidth=0.3, zorder=2)
+    ax2.hist(
+        list(in_degree.values()),
+        bins=40,
+        color=_SERIES[5],
+        edgecolor=_SURFACE,
+        linewidth=0.3,
+        zorder=2,
+    )
     ax2.set_yscale("log")
     ax2.set_xlabel("in-degree (distinct payers)")
     ax2.set_ylabel("party count (log scale)")
@@ -203,7 +219,10 @@ def plot_graph_degree(graph_edges: list[dict[str, Any]], plots_dir: Path) -> str
 
 
 def generate_all_plots(
-    transactions: list[dict[str, Any]], graph_edges: list[dict[str, Any]], temporal: dict[str, Any], plots_dir: Path
+    transactions: list[dict[str, Any]],
+    graph_edges: list[dict[str, Any]],
+    temporal: dict[str, Any],
+    plots_dir: Path,
 ) -> dict[str, str]:
     """Render every plot the report links to; return {logical_name: filename}."""
     plots_dir.mkdir(parents=True, exist_ok=True)
@@ -235,7 +254,9 @@ def _findings_table(findings: list[Finding]) -> str:
             "| {metric} | {gen} | {ref} | {ds} | {conf} | {note} |".format(
                 metric=f.metric,
                 gen=_fmt(f.generated_value),
-                ref=_fmt(f.reference_value) if f.reference_value is not None else "*no numeric reference published*",
+                ref=_fmt(f.reference_value)
+                if f.reference_value is not None
+                else "*no numeric reference published*",
                 ds=f.reference_dataset or "-",
                 conf=f.reference_confidence or "n/a",
                 note=f.note.replace("\n", " "),
@@ -282,7 +303,9 @@ def render_markdown_report(
         "",
         f"![Amount by MCC](plots/{plots['amount_by_mcc']})",
         "",
-        _findings_table(by_area.get("amount_distribution", []) + by_area.get("amount_distribution_per_mcc", [])),
+        _findings_table(
+            by_area.get("amount_distribution", []) + by_area.get("amount_distribution_per_mcc", [])
+        ),
         "",
         "## 2. Inter-arrival time distribution",
         "",
@@ -367,7 +390,9 @@ def write_report(
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Generate the legitimate-dataset fidelity validation report")
+    parser = argparse.ArgumentParser(
+        description="Generate the legitimate-dataset fidelity validation report"
+    )
     parser.add_argument("--input-dir", type=Path, default=DEFAULT_INPUT_DIR)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--reference-dir", type=Path, default=DEFAULT_REFERENCE_DIR)

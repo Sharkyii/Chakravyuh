@@ -88,7 +88,11 @@ def validate_legitimate_dataset(
     for label in labels:
         if label.is_fraud:
             errors.append(f"legitimate label is marked fraud: {label.txn_id}")
-        if label.attack_id is not None or label.campaign_id is not None or label.pretext is not None:
+        if (
+            label.attack_id is not None
+            or label.campaign_id is not None
+            or label.pretext is not None
+        ):
             errors.append(f"legitimate label contains attack metadata: {label.txn_id}")
         if label.is_legit_lookalike:
             errors.append(f"Stage 1 label unexpectedly marked lookalike: {label.txn_id}")
@@ -115,7 +119,9 @@ def validate_legitimate_dataset(
                 errors.append(f"device not active at transaction timestamp: {txn.txn_id}")
             if device.retired_at is not None and txn.timestamp >= device.retired_at:
                 errors.append(f"retired device used after retirement: {txn.txn_id}")
-        if txn.device_is_known_for_payer != (txn.device_id in population.party_known_devices.get(txn.payer_id, [])):
+        if txn.device_is_known_for_payer != (
+            txn.device_id in population.party_known_devices.get(txn.payer_id, [])
+        ):
             errors.append(f"device known flag inconsistent: {txn.txn_id}")
         if not (cal.SIM_START <= txn.timestamp < cal.SIM_END):
             errors.append(f"timestamp outside simulation window: {txn.txn_id}")

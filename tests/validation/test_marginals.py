@@ -74,18 +74,53 @@ def small_transactions() -> list[dict]:
             )
         )
     # a P2P row with no MCC/merchant, must not blow up MCC/cardinality logic
-    txns.append(_txn("txn-p2p", "payer-0", "payer-1", "250.00", _T0 + timedelta(days=1), mcc=None, merchant_id=None))
+    txns.append(
+        _txn(
+            "txn-p2p",
+            "payer-0",
+            "payer-1",
+            "250.00",
+            _T0 + timedelta(days=1),
+            mcc=None,
+            merchant_id=None,
+        )
+    )
     return txns
 
 
 @pytest.fixture
 def small_graph_edges() -> list[dict]:
     return [
-        {"src_party_id": "payer-0", "dst_party_id": "merchant-0", "src_out_degree": 3, "dst_in_degree": 1},
-        {"src_party_id": "payer-0", "dst_party_id": "merchant-1", "src_out_degree": 3, "dst_in_degree": 2},
-        {"src_party_id": "payer-0", "dst_party_id": "merchant-2", "src_out_degree": 3, "dst_in_degree": 1},
-        {"src_party_id": "payer-1", "dst_party_id": "merchant-0", "src_out_degree": 1, "dst_in_degree": 1},
-        {"src_party_id": "payer-2", "dst_party_id": "merchant-1", "src_out_degree": 1, "dst_in_degree": 2},
+        {
+            "src_party_id": "payer-0",
+            "dst_party_id": "merchant-0",
+            "src_out_degree": 3,
+            "dst_in_degree": 1,
+        },
+        {
+            "src_party_id": "payer-0",
+            "dst_party_id": "merchant-1",
+            "src_out_degree": 3,
+            "dst_in_degree": 2,
+        },
+        {
+            "src_party_id": "payer-0",
+            "dst_party_id": "merchant-2",
+            "src_out_degree": 3,
+            "dst_in_degree": 1,
+        },
+        {
+            "src_party_id": "payer-1",
+            "dst_party_id": "merchant-0",
+            "src_out_degree": 1,
+            "dst_in_degree": 1,
+        },
+        {
+            "src_party_id": "payer-2",
+            "dst_party_id": "merchant-1",
+            "src_out_degree": 1,
+            "dst_in_degree": 2,
+        },
     ]
 
 

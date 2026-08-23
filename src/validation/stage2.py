@@ -85,8 +85,11 @@ def validate_stage2_dataset(
         "is_fraud_false": sum(1 for row in dataset.labels if not row["is_fraud"]),
         "lookalike_true": sum(1 for row in dataset.labels if row["is_legit_lookalike"]),
         "attack_metadata_rows": sum(
-            1 for row in dataset.labels
-            if row["attack_id"] is not None or row["campaign_id"] is not None or row["pretext"] is not None
+            1
+            for row in dataset.labels
+            if row["attack_id"] is not None
+            or row["campaign_id"] is not None
+            or row["pretext"] is not None
         ),
     }
 

@@ -73,8 +73,10 @@ test("risk assessment run either scores the transaction or fails gracefully", as
 
   await page.getByRole("button", { name: /Run Risk Assessment/i }).click();
 
+  // Matches whatever error text the backend actually returns (e.g. a 404
+  // when CI hasn't trained models) rather than a specific guessed message.
   const resultVisible = page.getByText("TOP PREDICTED ATTACK VECTOR");
-  const errorVisible = page.getByText(/Failed to run risk assessment|Assessment failed/i);
+  const errorVisible = page.getByTestId("score-error");
   await expect(resultVisible.or(errorVisible)).toBeVisible({ timeout: 10000 });
   expect(errors).toEqual([]);
 });

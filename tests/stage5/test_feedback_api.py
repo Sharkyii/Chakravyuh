@@ -1,6 +1,5 @@
 import pytest
-import asyncio
-from web.api import analyze, submit_feedback, get_metrics, FEEDBACK_STORE, DYNAMIC_METRICS, SESSION_TRANSACTIONS
+from web.api import analyze, submit_feedback, FEEDBACK_STORE, DYNAMIC_METRICS, SESSION_TRANSACTIONS
 
 class MockRequest:
     def __init__(self, data: dict):

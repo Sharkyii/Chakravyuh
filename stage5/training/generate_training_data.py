@@ -82,6 +82,19 @@ def _write_table(path: Path, table_name: str, rows: list) -> None:
     table = pa.Table.from_pylist(pylist, schema=TABLE_ARROW_SCHEMAS[table_name])
     pq.write_table(table, path)
 
+def check_baseline_cache(baseline_dir: Path, n_consumers: int, n_merchants: int, seed: int = 42) -> bool:
+    """Returns True if the baseline cache exists and matches the requested settings."""
+    manifest_path = baseline_dir / "cache_manifest.json"
+    if not baseline_dir.exists() or not manifest_path.exists():
+        return False
+    try:
+        cached = json.loads(manifest_path.read_text(encoding="utf-8"))
+        return (cached.get("n_consumers") == n_consumers and
+                cached.get("n_merchants") == n_merchants and
+                cached.get("seed") == seed)
+    except Exception:
+        return False
+
 def main():
     print("=== Generating Stage 5 training dataset ===")
     
@@ -90,8 +103,8 @@ def main():
     baseline_s2 = STAGE5_DATA_DIR / "baseline" / "stage2"
     combined_dir = STAGE5_DATA_DIR / "combined"
     
-    print(f"Checking if baseline Stage 2 exists at {baseline_s2}...")
-    if not baseline_s2.exists():
+    print(f"Checking if baseline Stage 2 exists and matches settings at {baseline_s2}...")
+    if not check_baseline_cache(baseline_s2, STAGE5_N_CONSUMERS, STAGE5_N_MERCHANTS, 42):
         print(f"Generating Stage 1 baseline with n_consumers={STAGE5_N_CONSUMERS}...")
         generate_stage1_dataset(
             seed=42,
@@ -102,6 +115,15 @@ def main():
         )
         print("Building Stage 2 baseline (generating graph edges)...")
         build_stage2_dataset(input_dir=baseline_s1, output_dir=baseline_s2, clean=True)
+        
+        # Write cache manifest
+        baseline_s2.mkdir(parents=True, exist_ok=True)
+        (baseline_s2 / "cache_manifest.json").write_text(json.dumps({
+            "n_consumers": STAGE5_N_CONSUMERS,
+            "n_merchants": STAGE5_N_MERCHANTS,
+            "seed": 42
+        }, indent=2), encoding="utf-8")
+        
         print("Baseline generation complete!")
     else:
         print("Using existing Stage 2 baseline.")

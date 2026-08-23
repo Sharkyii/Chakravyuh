@@ -279,10 +279,6 @@ export default function AnalystPortal() {
     setIsLoggedIn(false);
   };
 
-  // App Configuration State
-  const [apiKey, setApiKey] = useState("");
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
   // Dashboard Tabs State
   const [activeTab, setActiveTab] = useState<"scoring" | "closed-loop" | "graph">("scoring");
 
@@ -415,8 +411,7 @@ export default function AnalystPortal() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          transaction: txnOverrides,
-          api_key: apiKey || null
+          transaction: txnOverrides
         })
       });
 
@@ -547,13 +542,6 @@ export default function AnalystPortal() {
 
         {/* Right side settings/logout */}
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsSettingsOpen(true)}
-            className="flex items-center justify-center p-2.5 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition"
-            title="Configure Gemini API"
-          >
-            <Settings className="h-4 w-4" />
-          </button>
           <button
             onClick={restartBoot}
             className="flex items-center gap-2 px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-red-400 hover:bg-red-950/20 hover:border-red-900/50 transition text-xs font-semibold"
@@ -986,11 +974,6 @@ export default function AnalystPortal() {
                           Chakravyuh AI Analyst Insight
                         </span>
                       </div>
-                      {!apiKey && (
-                        <span className="text-[9px] font-semibold bg-zinc-900 text-zinc-500 px-2 py-0.5 rounded border border-zinc-800">
-                          Simulation Mode
-                        </span>
-                      )}
                     </div>
 
                     {/* Vertical Timeline */}
@@ -1749,59 +1732,6 @@ export default function AnalystPortal() {
         © 2026 Chakravyuh Analyst Portal. Secure Area. Unauthorized access is strictly prohibited.
       </footer>
 
-      {/* Settings Modal (Gemini API Config) */}
-      {isSettingsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl relative">
-            <button
-              onClick={() => setIsSettingsOpen(false)}
-              className="absolute top-4 right-4 text-zinc-500 hover:text-zinc-300"
-            >
-              <X className="h-5 w-5" />
-            </button>
-
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-600/10 text-orange-500">
-                <Cpu className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-white">GenAI Configuration</h3>
-                <p className="text-xs text-zinc-400 mt-0.5">Setup Gemini API Key for Analyst Narratives</p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-2">
-                  Google Gemini API Key
-                </label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-zinc-500">
-                    <Key className="h-4 w-4" />
-                  </span>
-                  <input
-                    type="password"
-                    placeholder="AIzaSy..."
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    className="w-full rounded-xl border border-zinc-700 bg-zinc-950 pl-10 pr-4 py-3 text-zinc-200 placeholder-zinc-700 outline-none transition focus:border-orange-500"
-                  />
-                </div>
-                <p className="text-[10px] text-zinc-500 mt-2 leading-relaxed">
-                  Key is saved in memory during your active session. If left blank, the portal will use an intelligent local rule-based analyst simulator.
-                </p>
-              </div>
-
-              <button
-                onClick={() => setIsSettingsOpen(false)}
-                className="w-full rounded-xl bg-zinc-800 py-3 font-semibold text-white transition hover:bg-zinc-750 mt-2 border border-zinc-750"
-              >
-                Save Settings
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

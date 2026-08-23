@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
 @keyframes edge-pulse {
   0% { stroke-opacity: 0.4; stroke-width: 2px; }
   50% { stroke-opacity: 1; stroke-width: 4px; filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.8)); }

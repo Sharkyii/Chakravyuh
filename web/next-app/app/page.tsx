@@ -45,6 +45,7 @@ interface AnalysisResult {
   top_attack_family: string;
   top_attack_probability: number;
   contributing_signals: string[];
+  shap_contributions?: { feature: string; value: number }[];
   model_confidence: number;
   model_uncertainty: number;
   llm_analysis: {
@@ -258,6 +259,32 @@ const BOOT_SEQUENCE = [
   "decrypting analyst workspace...",
   "access granted.",
 ];
+
+function TypewriterText({ text }: { text: string }) {
+  const [displayText, setDisplayText] = useState("");
+  
+  useEffect(() => {
+    let currentText = "";
+    let currentIndex = 0;
+    
+    // Clear display text when input text changes
+    setDisplayText("");
+    
+    const interval = setInterval(() => {
+      if (currentIndex < text.length) {
+        currentText += text[currentIndex];
+        setDisplayText(currentText);
+        currentIndex++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 15); // Adjust typing speed here
+    
+    return () => clearInterval(interval);
+  }, [text]);
+  
+  return <span>{displayText}</span>;
+}
 
 const getSessionId = () => {
   if (typeof window === "undefined") return "default-session";
@@ -897,7 +924,7 @@ export default function AnalystPortal() {
                         </svg>
                         <div className="text-center">
                           <span className="text-2xl font-bold text-white font-mono">
-                            {scoreResult.risk_score.toFixed(0)}
+                            <CountUp end={scoreResult.risk_score} decimals={0} duration={1} />
                           </span>
                           <span className="text-[10px] text-zinc-500 block font-semibold uppercase tracking-wider">
                             / 100
@@ -958,45 +985,80 @@ export default function AnalystPortal() {
                   </div>
 
                   {/* Predicted Attack Family Card */}
-                  <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-4 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">
-                        Top Predicted Attack Vector
-                      </span>
-                      <h4 className="text-base font-bold text-white capitalize">
-                        {scoreResult.top_attack_family.replace(/_/g, " ")}
-                      </h4>
+                  <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-4 flex flex-col gap-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">
+                          Top Predicted Attack Vector
+                        </span>
+                        <h4 className="text-base font-bold text-white capitalize">
+                          {scoreResult.top_attack_family.replace(/_/g, " ")}
+                        </h4>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-2xl font-black text-orange-500 font-mono">
+                          <CountUp end={scoreResult.top_attack_probability * 100} decimals={1} duration={1} preserveValue />%
+                        </span>
+                        <span className="text-[9px] text-zinc-500 block uppercase tracking-wider font-bold">Classifier Match</span>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-2xl font-black text-orange-500 font-mono">
-                        {(scoreResult.top_attack_probability * 100).toFixed(1)}%
-                      </span>
-                      <span className="text-[9px] text-zinc-500 block uppercase tracking-wider font-bold">Classifier Match</span>
-                    </div>
+                    {/* Secondary Probabilities */}
+                    {scoreResult.attack_probabilities && Object.keys(scoreResult.attack_probabilities).length > 1 && (
+                      <div className="pt-3 border-t border-zinc-800 space-y-2">
+                        {Object.entries(scoreResult.attack_probabilities)
+                          .filter(([family, prob]) => family !== scoreResult.top_attack_family && prob > 0.01)
+                          .sort((a, b) => b[1] - a[1])
+                          .slice(0, 3)
+                          .map(([family, prob]) => (
+                            <div key={family} className="flex justify-between items-center text-xs">
+                              <span className="text-zinc-400 capitalize">{family.replace(/_/g, " ")}</span>
+                              <span className="text-zinc-500 font-mono">{(prob as number * 100).toFixed(1)}%</span>
+                            </div>
+                          ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Signals List */}
                   <div>
                     <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-2">
-                      Contributing Risk Signals
+                      Model Feature Contributions (SHAP)
                     </span>
-                    {scoreResult.contributing_signals.length === 0 ? (
+                    {(!scoreResult.shap_contributions || scoreResult.shap_contributions.length === 0) ? (
                       <span className="text-sm text-zinc-500 italic block p-3 rounded-xl bg-zinc-950/20 border border-zinc-900">
-                        No critical indicators triggered. Normal behavior profile.
+                        No significant feature contributions. Normal behavior profile.
                       </span>
                     ) : (
                       <div className="space-y-2">
-                        {scoreResult.contributing_signals.map((sig, idx) => (
+                        {scoreResult.shap_contributions.map((sig, idx) => (
                           <div
                             key={idx}
-                            className="flex items-center gap-3 p-3 rounded-xl bg-zinc-950/40 border border-zinc-800 text-sm font-medium text-zinc-300 hover:border-zinc-700 transition"
+                            className="flex items-center gap-3 p-3 rounded-xl bg-zinc-950/60 border border-zinc-900 group hover:border-zinc-700 transition"
                           >
-                            <AlertTriangle className="h-4 w-4 text-orange-500 shrink-0" />
-                            <span>{sig}</span>
+                            <div className="h-6 w-6 rounded-lg bg-orange-950/30 flex items-center justify-center shrink-0">
+                              <Target className="h-3 w-3 text-orange-500" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="text-xs font-semibold text-zinc-300 truncate font-mono">
+                                  {sig.feature}
+                                </span>
+                                <span className={`text-xs font-bold font-mono ${sig.value > 0 ? "text-red-400" : "text-emerald-400"}`}>
+                                  {sig.value > 0 ? "+" : ""}{sig.value.toFixed(2)}
+                                </span>
+                              </div>
+                              <div className="w-full bg-zinc-900 rounded-full h-1 overflow-hidden">
+                                <div 
+                                  className={`h-full ${sig.value > 0 ? "bg-red-500" : "bg-emerald-500"}`}
+                                  style={{ width: `${Math.min(Math.abs(sig.value) * 10, 100)}%` }}
+                                />
+                              </div>
+                            </div>
                           </div>
                         ))}
                       </div>
                     )}
+                  </div>
                         {/* AI Analyst Decision Audit Timeline */}
                   <div className="rounded-xl border border-zinc-900 bg-zinc-950/40 p-5 mt-auto">
                     <div className="flex items-center justify-between mb-4 border-b border-zinc-900 pb-2.5">
@@ -1049,10 +1111,10 @@ export default function AnalystPortal() {
                         </div>
                         <div className="mt-1.5 bg-zinc-950/60 p-3 rounded-lg border border-zinc-900 space-y-2">
                           <p className="text-xs text-zinc-300 leading-relaxed font-sans">
-                            {scoreResult.llm_analysis.fraud_explanation}
+                            <TypewriterText text={scoreResult.llm_analysis.fraud_explanation} />
                           </p>
                           <p className="text-[11px] text-[#ff5f00] italic font-medium pt-1.5 border-t border-zinc-900/80">
-                            {scoreResult.llm_analysis.attack_family_interpretation}
+                            <TypewriterText text={scoreResult.llm_analysis.attack_family_interpretation} />
                           </p>
                         </div>
                       </div>

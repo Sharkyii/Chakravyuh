@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import numpy as np
 import joblib
 from pathlib import Path
@@ -34,12 +35,27 @@ app.add_middleware(
 
 # In-memory store for feedback and dynamically updated metrics
 FEEDBACK_STORE = []
-DYNAMIC_METRICS = {
-    "PR-AUC": 0.9866,
-    "Recall @ 0.1% FPR": 0.9775,
-    "Recall @ 1% FPR": 0.9902,
-    "Held-out family recall @ 0.1%/1% FPR": 1.0000
-}
+
+try:
+    _metadata_path = project_root / "stage5" / "models" / "model_metadata.json"
+    with open(_metadata_path, "r") as f:
+        _meta = json.load(f)
+        _tm = _meta.get("test_metrics", {})
+        _fpr_pts = _tm.get("fixed_fpr_operating_points", [{}])
+        _held_out = _tm.get("held_out_family_generalisation", [{}])
+        DYNAMIC_METRICS = {
+            "PR-AUC": _tm.get("pr_auc", 0.9866),
+            "Recall @ 0.1% FPR": _fpr_pts[0].get("recall", 0.9775) if len(_fpr_pts) > 0 else 0.9775,
+            "Recall @ 1% FPR": _fpr_pts[1].get("recall", 0.9902) if len(_fpr_pts) > 1 else 0.9902,
+            "Held-out family recall @ 0.1%/1% FPR": _held_out[0].get("held_out_recall", 1.0) if len(_held_out) > 0 else 1.0,
+        }
+except Exception:
+    DYNAMIC_METRICS = {
+        "PR-AUC": 0.9866,
+        "Recall @ 0.1% FPR": 0.9775,
+        "Recall @ 1% FPR": 0.9902,
+        "Held-out family recall @ 0.1%/1% FPR": 1.0000
+    }
 
 # In-memory store for session transactions (for correlation graph)
 MAX_SESSIONS = 200

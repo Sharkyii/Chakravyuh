@@ -138,7 +138,7 @@ def build() -> Path:
     subtitle.text = (
         "AI Defense Lab for Payment Security\n"
         "Mastercard Innovation Challenge 2026 -- Global Fintech Fest, Mumbai\n"
-        "[Team name / members]"
+        "Team Chakravyuh (@Sharkyii)"
     )
 
     # SOURCE: docs/master-project-brief.md section 1
@@ -371,7 +371,7 @@ def build() -> Path:
         prs,
         "Working prototype: the loop, live",
         [
-            (0, "Streamlit app (web/app.py) -- uv run streamlit run web/app.py"),
+            (0, "Next.js frontend + FastAPI backend -- Analyst Portal UI (web/next-app, web/api.py)"),
             (0, "Live scoring -- pick or hand-tune a transaction, score it through the real Stage 6 pipeline: fraud probability, predicted attack family, contributing signals, analyst narrative"),
             (0, "Closed loop -- current feature importances, and what the next adaptive attack generation will target, read live from the saved model"),
             (0, "Attack catalogue -- the 13 generators, browsable"),
@@ -401,7 +401,7 @@ def build() -> Path:
         [
             (0, "Repository: github.com/Sharkyii/Chakravyuh"),
             (0, "docs/master-project-brief.md, docs/attack-catalogue.md, docs/model-choice.md, docs/closed-loop.md, issues.md"),
-            (0, "[Team contact]"),
+            (0, "Contact: github.com/Sharkyii"),
         ],
     )
 

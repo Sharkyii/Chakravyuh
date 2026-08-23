@@ -163,7 +163,7 @@ async def analyze(request: Request):
                 "id": f"payer_{t_id}",
                 "label": f"Payer ({t_id})",
                 "type": "payer",
-                "risk": "low" if t_pin <= 2 else "medium",
+                "risk": t_res.get("risk_level", "low").lower(),
                 "x": base_x - 10,
                 "y": base_y,
                 "details": {
@@ -209,7 +209,7 @@ async def analyze(request: Request):
                     "y": base_y - 22,
                     "details": {
                         "Control Channel": "Active Voice Call" if bool(t_txn.get("call_active_during_txn", False)) else "Screen Sharing Tool",
-                        "Location": "Unknown IP (VPN)",
+                        "Location": "Proxy/VPN (ip_is_proxy=True)" if bool(t_txn.get("ip_is_proxy", False)) else "Unmasked IP",
                         "Status": "Active Session hijacking"
                     }
                 })
@@ -231,15 +231,13 @@ async def analyze(request: Request):
                     "x": base_x + 5,
                     "y": base_y + 20,
                     "details": {
-                        "Verification": "Clean Account",
-                        "IP Location": "Delhi, IN",
-                        "Relationship": "Mule network source"
+                        "Relationship": f"Part of {int(t_edges_cnt)} observed edges (mule fan-in)"
                     }
                 })
                 edges.append({
                     "source": f"copayer_{t_id}",
                     "target": f"payee_{t_id}",
-                    "label": f"₹{t_amount * 0.35:,.0f}",
+                    "label": "Unknown amount",
                     "status": "warning" if t_risk in ["HIGH", "CRITICAL"] else "normal"
                 })
 

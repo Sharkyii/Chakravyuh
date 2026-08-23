@@ -1,3 +1,24 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@keyframes edge-pulse {
+  0% { stroke-opacity: 0.4; stroke-width: 2px; }
+  50% { stroke-opacity: 1; stroke-width: 4px; filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.8)); }
+  100% { stroke-opacity: 0.4; stroke-width: 2px; }
+}
+
+.pulse-edge {
+  animation: edge-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.03) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}

@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
+import CountUp from "react-countup";
 import {
   Shield,
   Lock,
@@ -839,7 +841,17 @@ export default function AnalystPortal() {
 
             {/* Results Panel - 7 Cols */}
             <section className="lg:col-span-7 flex flex-col gap-6">
-              {!scoreResult ? (
+              {isScoring ? (
+                <div className="rounded-2xl border border-zinc-800 bg-zinc-900/20 p-8 backdrop-blur-md flex flex-col items-center justify-center text-center flex-1 min-h-[400px] animate-shimmer relative overflow-hidden">
+                  <div className="z-10 flex flex-col items-center">
+                    <Shield className="h-16 w-16 text-[#ff5f00] mb-4 animate-pulse" />
+                    <h3 className="text-lg font-bold text-white tracking-wide">Scoring Transaction...</h3>
+                    <p className="text-sm text-zinc-400 mt-2 font-mono">
+                      Running ML Risk Evaluator & LLM Analyst Agent
+                    </p>
+                  </div>
+                </div>
+              ) : !scoreResult ? (
                 <div className="rounded-2xl border border-zinc-800 bg-zinc-900/20 p-8 backdrop-blur-md flex flex-col items-center justify-center text-center flex-1 min-h-[400px]">
                   <Shield className="h-16 w-16 text-zinc-700 mb-4 animate-pulse" />
                   <h3 className="text-lg font-semibold text-zinc-400">Studio Ingestion Ready</h3>
@@ -1172,7 +1184,7 @@ export default function AnalystPortal() {
                       {item.metric}
                     </span>
                     <span className="text-3xl font-black text-white font-mono">
-                      {(item.value * 100).toFixed(2)}%
+                      <CountUp end={item.value * 100} decimals={2} duration={1.5} preserveValue />%
                     </span>
                   </div>
                   {/* Miniature Circle Progress */}
@@ -1536,7 +1548,9 @@ export default function AnalystPortal() {
                               
                               return (
                                 <g key={eIdx}>
-                                  <line
+                                  <motion.line
+                                    layout
+                                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
                                     x1={`${srcPos.x}%`}
                                     y1={`${srcPos.y}%`}
                                     x2={`${destPos.x}%`}
@@ -1545,7 +1559,7 @@ export default function AnalystPortal() {
                                     strokeWidth={isLinkage ? "2" : isAlert ? "2" : "1.2"}
                                     strokeDasharray={isLinkage ? "4 4" : isAlert ? "4 4" : "0"}
                                     markerEnd={isLinkage ? undefined : `url(#${isAlert ? "txn-arrow-red" : "txn-arrow"})`}
-                                    className="transition-all duration-300"
+                                    className={`transition-all duration-300 ${isAlert ? "pulse-edge" : ""}`}
                                   />
                                   {/* Edge text label */}
                                   <text
@@ -1573,10 +1587,12 @@ export default function AnalystPortal() {
                               else if (node.risk === "low") strokeColor = "#10b981";
                               
                               return (
-                                <g
+                                <motion.g
+                                  layout
+                                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
                                   key={node.id}
                                   onClick={() => setSelectedTransactionNode(node)}
-                                  className="cursor-pointer group"
+                                  className="cursor-pointer group hover:scale-[1.02]"
                                 >
                                   <circle
                                     cx={`${node.x}%`}
@@ -1598,7 +1614,7 @@ export default function AnalystPortal() {
                                   >
                                     {node.label}
                                   </text>
-                                </g>
+                                </motion.g>
                               );
                             })}
                           </svg>

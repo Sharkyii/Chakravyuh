@@ -21,8 +21,8 @@ test_runner.py
 run_tests.py
 scratch_tmp/
 
-# Model pickle artifacts (exceed GitHub size limit)
-stage5/models/*.pkl
+# Model artifacts are small enough to be tracked
+# stage5/models/*.pkl
 
 # Next.js frontend
 web/next-app/node_modules/

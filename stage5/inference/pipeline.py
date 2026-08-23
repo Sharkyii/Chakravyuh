@@ -7,6 +7,7 @@ import urllib.error
 from pathlib import Path
 import numpy as np
 import pandas as pd
+import shap
 
 # Setup project root
 project_root = Path(__file__).resolve().parent.parent.parent
@@ -67,15 +68,58 @@ def load_artifacts():
             
         idx_to_attack = {int(k): v for k, v in mapping["idx_to_attack"].items()}
         attack_to_idx = {k: int(v) for k, v in mapping["attack_to_idx"].items()}
-        
+
+        # TreeExplainer needs no background dataset for tree models (unlike
+        # KernelExplainer) and is fast enough to build once and cache -- this
+        # is what actually delivers the "XGBoost has fast, mature SHAP
+        # support" claim in docs/model-choice.md, rather than leaving it as
+        # a documented-but-unimplemented reason for the model choice.
+        shap_explainer = None
+        try:
+            if hasattr(fraud_model, "feature_importances_"):
+                shap_explainer = shap.TreeExplainer(fraud_model)
+        except Exception:
+            shap_explainer = None  # non-tree best_model (e.g. Logistic Regression fallback)
+
         _artifacts = {
             "preprocessor": preprocessor,
             "fraud_model": fraud_model,
             "attack_classifier": attack_classifier,
             "idx_to_attack": idx_to_attack,
             "attack_to_idx": attack_to_idx,
+            "shap_explainer": shap_explainer,
         }
     return _artifacts
+
+
+def compute_shap_contributions(X_proc: np.ndarray, top_k: int = 6) -> list[dict]:
+    """Real per-prediction feature attribution for one transaction's fraud
+    score, not the hand-coded threshold rules below. Returns [] gracefully
+    if no tree explainer is available (e.g. the saved model isn't a tree)."""
+    artifacts = load_artifacts()
+    explainer = artifacts["shap_explainer"]
+    if explainer is None:
+        return []
+
+    try:
+        raw_values = explainer.shap_values(X_proc)
+        # Binary XGBClassifier: TreeExplainer returns a single (n, n_features)
+        # array of log-odds contributions toward the positive (fraud) class.
+        row = np.asarray(raw_values)[0] if np.asarray(raw_values).ndim == 2 else np.asarray(raw_values)
+        feature_names = artifacts["preprocessor"].get_feature_names_out()
+        pairs = list(zip(feature_names, row))
+        pairs.sort(key=lambda p: abs(p[1]), reverse=True)
+        return [
+            {
+                "feature": name.split("__", 1)[-1] if "__" in name else name,
+                "shap_value": float(value),
+                "direction": "increases_risk" if value > 0 else "decreases_risk",
+            }
+            for name, value in pairs[:top_k]
+            if abs(value) > 1e-6
+        ]
+    except Exception:
+        return []
 
 def prepare_transaction_df(transaction: dict) -> pd.DataFrame:
     """Prepares a single-row DataFrame matching the 75 features expected by the preprocessor."""
@@ -113,7 +157,8 @@ def get_fallback_llm_analysis(transaction: dict, risk_assessment: dict, error_ms
     top_attack = risk_assessment["top_attack_family"]
     top_prob = risk_assessment["top_attack_probability"]
     signals = risk_assessment["contributing_signals"]
-    
+    shap_contributions = risk_assessment.get("shap_contributions", [])
+
     explanation = (
         f"The transaction was assessed with a fraud probability of {fraud_prob*100:.1f}%, "
         f"resulting in a combined risk score of {risk_score:.1f}/100 and a risk level of {risk_level}."
@@ -130,8 +175,13 @@ def get_fallback_llm_analysis(transaction: dict, risk_assessment: dict, error_ms
         f"This classification represents the closest matches among known fraud campaign patterns."
     )
     
-    key_evidence = list(signals) if signals else ["Model prediction score"]
-    
+    key_evidence = list(signals) if signals else []
+    for c in shap_contributions[:3]:
+        verb = "raised" if c["shap_value"] > 0 else "lowered"
+        key_evidence.append(f"{c['feature']} {verb} the model's fraud score ({c['shap_value']:+.3f} log-odds, SHAP)")
+    if not key_evidence:
+        key_evidence = ["Model prediction score"]
+
     investigation_steps = [
         "Review payer transaction history for velocity spikes.",
         "Verify if the device and IP location match the billing address.",
@@ -219,7 +269,9 @@ def analyze_transaction(transaction: dict) -> dict:
     # 3. Model Predictions
     fraud_probs = fraud_model.predict_proba(X_proc)[0]
     fraud_probability = float(fraud_probs[1])
-    
+
+    shap_contributions = compute_shap_contributions(X_proc)
+
     attack_probs = attack_classifier.predict_proba(X_proc)[0]
     attack_probabilities = {}
     for idx, prob in enumerate(attack_probs):
@@ -421,6 +473,7 @@ def analyze_transaction(transaction: dict) -> dict:
         "top_attack_family": top_attack_family,
         "top_attack_probability": float(top_attack_probability),
         "contributing_signals": contributing_signals,
+        "shap_contributions": shap_contributions,
         "model_confidence": float(overall_confidence),
         "model_uncertainty": float(overall_uncertainty),
     }
@@ -465,7 +518,14 @@ def analyze_transaction(transaction: dict) -> dict:
             evidence_lines.append(f"  - {signal}")
         if not contributing_signals:
             evidence_lines.append("  - None")
-            
+
+        if shap_contributions:
+            evidence_lines.append("Top model feature attributions (SHAP, signed log-odds contribution to fraud score):")
+            for c in shap_contributions:
+                arrow = "+" if c["shap_value"] > 0 else ""
+                evidence_lines.append(f"  - {c['feature']}: {arrow}{c['shap_value']:.3f} ({c['direction'].replace('_', ' ')})")
+
+
         prompt = (
             "You are Chakravyuh GenAI Analyst, a specialized AI assistant for Mastercard instant payment fraud detection.\n"
             "Analyze the following transaction context and ML-derived evidence to generate a structured risk explanation. "

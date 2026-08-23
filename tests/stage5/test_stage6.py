@@ -5,6 +5,7 @@ import pandas as pd
 from stage5.config.settings import ALL_FEATURES
 from stage5.inference.pipeline import (
     analyze_transaction,
+    compute_shap_contributions,
     get_fallback_llm_analysis,
     load_artifacts,
     prepare_transaction_df,
@@ -239,6 +240,41 @@ def test_fallback_behavior_explicitly():
             os.environ["google_gemini_api_key"] = orig_key
         if orig_key_upper:
             os.environ["GOOGLE_GEMINI_API_KEY"] = orig_key_upper
+
+def test_shap_contributions_present_and_signed():
+    """analyze_transaction should surface real per-prediction SHAP attribution,
+    not just the hand-coded threshold rules -- docs/model-choice.md already
+    claims this as a reason for the XGBoost choice; this locks in that the
+    claim is actually implemented."""
+    artifacts = load_artifacts()
+    assert artifacts["shap_explainer"] is not None, "XGBoost model should get a TreeExplainer"
+
+    test_txn = {
+        "amount": 45000.0, "rail": "upi_p2p", "beneficiary_first_time": True,
+        "beneficiary_added_ago_s": 180, "screen_share_active": True,
+        "call_active_during_txn": True, "edge_count": 1.0,
+    }
+    res = analyze_transaction(test_txn)
+    contributions = res["shap_contributions"]
+    assert len(contributions) > 0
+    for c in contributions:
+        assert set(c.keys()) == {"feature", "shap_value", "direction"}
+        assert c["direction"] in {"increases_risk", "decreases_risk"}
+        assert (c["shap_value"] > 0) == (c["direction"] == "increases_risk")
+    # Sorted by |shap_value| descending
+    magnitudes = [abs(c["shap_value"]) for c in contributions]
+    assert magnitudes == sorted(magnitudes, reverse=True)
+    assert any("SHAP" in item for item in res["llm_analysis"]["key_evidence"])
+
+
+def test_shap_contributions_empty_without_explainer(monkeypatch):
+    import stage5.inference.pipeline as pipeline_mod
+
+    monkeypatch.setitem(pipeline_mod._artifacts, "shap_explainer", None)
+    df = prepare_transaction_df({"amount": 1.0})
+    X_proc = pipeline_mod.load_artifacts()["preprocessor"].transform(df)
+    assert compute_shap_contributions(X_proc) == []
+
 
 def test_no_model_modification():
     """Asserts that no model training code is run and parameters are not modified."""

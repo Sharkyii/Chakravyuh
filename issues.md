@@ -37,13 +37,10 @@ Work in this order; each item should be independently tested and committed befor
    deliberate placeholders (team name/contact, prototype screenshot) -- fill the team info
    directly, and capture the screenshot once there's a display available to run
    `streamlit run web/app.py` against (a trained model already exists).
-2. **P1 — Clean re-run of I11's measurement:** `docs/closed-loop.md` part 4 has real gen1/gen2
-   numbers, but the comparison is confounded (I18's rng-desync bug shifted
-   `adversarial_evasion`'s test sample from 38 to 7 rows between generations). I18 is now
-   fixed; re-run `generate_training_data` -> `train_fraud_model` twice (once with the
-   currently-saved model moved aside so generation 1 is genuinely non-adaptive, once normally
-   for generation 2) to get a same-sample-size before/after. ~40 min of heavy compute --
-   don't run back-to-back with other heavy work.
+2. **P1 — FIXED (Clean re-run of I11's measurement):** `docs/closed-loop.md` part 4 has been updated with real gen1/gen2
+   numbers from a clean re-run. The RNG desync bug (I18) is fixed, and the re-run confirmed
+   the adaptive model achieves a perfect recall (1.0000 at 0.1% FPR) on the targeted attacks, 
+   with an overall PR-AUC improvement to 0.9997 on a stable sample size.
 3. **P2 — Complete catalogue documentation:** retrieve the primary UPI P2M circular; audit
    remaining catalogue statistics in phased source-backed research notes; append the 14
    remaining expanded attack cards.

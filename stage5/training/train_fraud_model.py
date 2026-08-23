@@ -168,7 +168,8 @@ def main():
         learning_rate=0.1,
         scale_pos_weight=scale_pos_weight,
         random_state=42,
-        n_jobs=-1,
+        device="cuda",
+        tree_method="hist",
         eval_metric="logloss"
     )
     xgb.fit(X_train_proc, y_train)

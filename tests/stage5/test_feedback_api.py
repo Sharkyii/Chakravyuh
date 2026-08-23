@@ -35,6 +35,7 @@ async def test_feedback_api_agreement():
     assert data["metrics"]["PR-AUC"] > 0.9866
     assert len(FEEDBACK_STORE) == 1
 
+
 @pytest.mark.anyio
 async def test_feedback_api_disagreement():
     # Clear feedback store
@@ -101,6 +102,7 @@ class MockRequestWithHeaders(MockRequest):
         super().__init__(data)
         self.headers = headers
 
+
 @requires_trained_models
 @pytest.mark.anyio
 async def test_analyze_session_isolation():
@@ -112,16 +114,16 @@ async def test_analyze_session_isolation():
         "pin_attempts": 1,
         "rail": "upi_p2p",
     }
-    
+
     req1 = MockRequestWithHeaders({"transaction": mock_txn}, {"x-session-id": "sess1"})
     req2 = MockRequestWithHeaders({"transaction": mock_txn}, {"x-session-id": "sess2"})
 
     data1 = await analyze(req1)
     data2 = await analyze(req2)
-    
+
     nodes1 = data1["network_graph"]["nodes"]
     nodes2 = data2["network_graph"]["nodes"]
-    
+
     # Each should have only 2 nodes (payer and payee) from one transaction
     # Without isolation, the second request would return graph data for both transactions (4+ nodes)
     assert len(nodes1) == 2

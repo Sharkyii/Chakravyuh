@@ -359,7 +359,30 @@ def get_metrics():
         adaptive_config = build_adaptive_config()
     except Exception:
         pass
-        
+
+    # Frozen as-trained provenance, distinct from DYNAMIC_METRICS above which
+    # is seeded from this same file but then drifts with simulated analyst
+    # feedback -- this block always reflects what's actually on disk right now.
+    model_provenance = None
+    metadata_path = MODELS_DIR / "model_metadata.json"
+    if metadata_path.exists():
+        try:
+            with open(metadata_path, "r", encoding="utf-8") as f:
+                model_metadata = json.load(f)
+            test_metrics = model_metadata.get("test_metrics", {})
+            fpr_points = test_metrics.get("fixed_fpr_operating_points", [])
+            model_provenance = {
+                "model_version": model_metadata.get("model_version"),
+                "trained_timestamp": model_metadata.get("trained_timestamp"),
+                "held_out_attack_family": model_metadata.get("held_out_attack_family"),
+                "split_methodology": model_metadata.get("split_methodology"),
+                "test_pr_auc": test_metrics.get("pr_auc"),
+                "test_recall_0_1_fpr": fpr_points[0].get("recall") if len(fpr_points) > 0 else None,
+                "test_recall_1_fpr": fpr_points[1].get("recall") if len(fpr_points) > 1 else None,
+            }
+        except Exception:
+            model_provenance = None
+
     return {
         "recorded_metrics": [
             {"metric": "PR-AUC", "value": DYNAMIC_METRICS["PR-AUC"]},
@@ -368,5 +391,6 @@ def get_metrics():
             {"metric": "Held-out family recall @ 0.1%/1% FPR", "value": DYNAMIC_METRICS["Held-out family recall @ 0.1%/1% FPR"]}
         ],
         "feature_importances": feature_importances,
-        "adaptive_config": adaptive_config
+        "adaptive_config": adaptive_config,
+        "model_provenance": model_provenance
     }

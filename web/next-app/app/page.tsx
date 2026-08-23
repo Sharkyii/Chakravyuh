@@ -21,7 +21,8 @@ import {
   Layers,
   Network,
   HelpCircle,
-  Cpu
+  Cpu,
+  Target
 } from "lucide-react";
 
 const API_BASE_URL =
@@ -45,7 +46,7 @@ interface AnalysisResult {
   top_attack_family: string;
   top_attack_probability: number;
   contributing_signals: string[];
-  shap_contributions?: { feature: string; value: number }[];
+  shap_contributions?: { feature: string; shap_value: number; direction: "increases_risk" | "decreases_risk" }[];
   model_confidence: number;
   model_uncertainty: number;
   llm_analysis: {
@@ -72,10 +73,21 @@ interface FeatureImportance {
   importance: number;
 }
 
+interface ModelProvenance {
+  model_version: string | null;
+  trained_timestamp: string | null;
+  held_out_attack_family: string | null;
+  split_methodology: string | null;
+  test_pr_auc: number | null;
+  test_recall_0_1_fpr: number | null;
+  test_recall_1_fpr: number | null;
+}
+
 interface MetricsResult {
   recorded_metrics: MetricItem[];
   feature_importances: FeatureImportance[];
   adaptive_config: Record<string, any>;
+  model_provenance?: ModelProvenance;
 }
 
 interface GraphNode {
@@ -1002,17 +1014,27 @@ export default function AnalystPortal() {
                         <span className="text-[9px] text-zinc-500 block uppercase tracking-wider font-bold">Classifier Match</span>
                       </div>
                     </div>
-                    {/* Secondary Probabilities */}
+                    {/* Full Attack Family Breakdown -- all 13, not just the top match */}
                     {scoreResult.attack_probabilities && Object.keys(scoreResult.attack_probabilities).length > 1 && (
-                      <div className="pt-3 border-t border-zinc-800 space-y-2">
+                      <div className="pt-3 border-t border-zinc-800 space-y-1.5">
                         {Object.entries(scoreResult.attack_probabilities)
-                          .filter(([family, prob]) => family !== scoreResult.top_attack_family && prob > 0.01)
                           .sort((a, b) => b[1] - a[1])
-                          .slice(0, 3)
                           .map(([family, prob]) => (
-                            <div key={family} className="flex justify-between items-center text-xs">
-                              <span className="text-zinc-400 capitalize">{family.replace(/_/g, " ")}</span>
-                              <span className="text-zinc-500 font-mono">{(prob as number * 100).toFixed(1)}%</span>
+                            <div key={family} className="flex items-center gap-2">
+                              <span className="w-36 shrink-0 text-[10px] font-mono text-zinc-400 capitalize truncate">
+                                {family.replace(/_/g, " ")}
+                              </span>
+                              <div className="flex-1 h-1.5 rounded-full bg-zinc-900 overflow-hidden">
+                                <motion.div
+                                  className={`h-full rounded-full ${family === scoreResult.top_attack_family ? "bg-orange-500" : "bg-zinc-600"}`}
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${prob * 100}%` }}
+                                  transition={{ duration: 0.6, ease: "easeOut" }}
+                                />
+                              </div>
+                              <span className="w-12 shrink-0 text-right text-[10px] font-mono text-zinc-500">
+                                {(prob * 100).toFixed(1)}%
+                              </span>
                             </div>
                           ))}
                       </div>
@@ -1043,14 +1065,14 @@ export default function AnalystPortal() {
                                 <span className="text-xs font-semibold text-zinc-300 truncate font-mono">
                                   {sig.feature}
                                 </span>
-                                <span className={`text-xs font-bold font-mono ${sig.value > 0 ? "text-red-400" : "text-emerald-400"}`}>
-                                  {sig.value > 0 ? "+" : ""}{sig.value.toFixed(2)}
+                                <span className={`text-xs font-bold font-mono ${sig.direction === "increases_risk" ? "text-red-400" : "text-emerald-400"}`}>
+                                  {sig.shap_value > 0 ? "+" : ""}{sig.shap_value.toFixed(2)}
                                 </span>
                               </div>
                               <div className="w-full bg-zinc-900 rounded-full h-1 overflow-hidden">
-                                <div 
-                                  className={`h-full ${sig.value > 0 ? "bg-red-500" : "bg-emerald-500"}`}
-                                  style={{ width: `${Math.min(Math.abs(sig.value) * 10, 100)}%` }}
+                                <div
+                                  className={`h-full ${sig.direction === "increases_risk" ? "bg-red-500" : "bg-emerald-500"}`}
+                                  style={{ width: `${Math.min(Math.abs(sig.shap_value) * 10, 100)}%` }}
                                 />
                               </div>
                             </div>
@@ -1144,7 +1166,7 @@ export default function AnalystPortal() {
                       <Info className="h-3.5 w-3.5 text-zinc-500 shrink-0 mt-0.5" />
                       <span>{scoreResult.llm_analysis.uncertainty_caveats}</span>
                     </div>
-                  </div>              </div>
+                  </div>
 
                   {/* Closed-Loop Analyst Feedback Loop */}
                   <div className="rounded-xl border border-zinc-900 bg-zinc-950/40 p-4 border-t-2 border-t-orange-600/50">
@@ -1236,6 +1258,46 @@ export default function AnalystPortal() {
                 </div>
               </div>
             </div>
+
+            {/* Model Provenance Strip -- the frozen as-trained ground truth,
+                distinct from the feedback-adjusted cards below */}
+            {metricsData?.model_provenance && (
+              <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 px-5 py-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px] font-mono">
+                <div className="flex items-center gap-1.5">
+                  <Cpu className="h-3.5 w-3.5 text-orange-500 shrink-0" />
+                  <span className="text-zinc-300 font-bold">
+                    {metricsData.model_provenance.model_version || "unknown model"}
+                  </span>
+                </div>
+                {metricsData.model_provenance.trained_timestamp && (
+                  <span className="text-zinc-500">
+                    trained{" "}
+                    <span className="text-zinc-300">
+                      {new Date(metricsData.model_provenance.trained_timestamp).toLocaleString()}
+                    </span>
+                  </span>
+                )}
+                {metricsData.model_provenance.held_out_attack_family && (
+                  <span className="text-zinc-500">
+                    held-out family{" "}
+                    <span className="text-zinc-300 capitalize">
+                      {metricsData.model_provenance.held_out_attack_family.replace(/_/g, " ")}
+                    </span>
+                  </span>
+                )}
+                {metricsData.model_provenance.test_pr_auc != null && (
+                  <span className="text-zinc-500">
+                    as-trained test PR-AUC{" "}
+                    <span className="text-emerald-400 font-bold">
+                      {(metricsData.model_provenance.test_pr_auc * 100).toFixed(2)}%
+                    </span>
+                  </span>
+                )}
+                <span className="text-zinc-600 italic sm:ml-auto">
+                  Cards below start from this baseline and drift with simulated analyst feedback.
+                </span>
+              </div>
+            )}
 
             {/* Performance Metrics Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1819,6 +1881,53 @@ export default function AnalystPortal() {
                     </div>
                   </div>
                 )
+              )}
+
+              {/* Session Transaction Timeline -- every run accumulated in
+                  this session's graph, reused here for free */}
+              {graphViewMode === "transaction" && scoreResult?.network_graph && scoreResult.network_graph.nodes.length > 0 && (
+                <div className="rounded-2xl border border-zinc-900 bg-zinc-950/40 p-4 backdrop-blur-md">
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-3">
+                    Session Transaction Timeline
+                  </span>
+                  <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                    {scoreResult.network_graph.nodes
+                      .filter((n) => n.type === "payee")
+                      .map((n) => {
+                        const isActive = selectedTransactionNode?.id === n.id;
+                        return (
+                          <button
+                            key={n.id}
+                            onClick={() => setSelectedTransactionNode(n)}
+                            className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-left transition ${
+                              isActive
+                                ? "border-orange-500/40 bg-orange-950/20"
+                                : "border-zinc-900 bg-zinc-950/40 hover:border-zinc-800"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span
+                                className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                                  n.risk === "critical" || n.risk === "high"
+                                    ? "bg-red-500"
+                                    : n.risk === "medium" || n.risk === "warning"
+                                    ? "bg-orange-500"
+                                    : "bg-emerald-500"
+                                }`}
+                              />
+                              <span className="text-xs font-mono text-zinc-300 truncate">
+                                {n.details["Transaction ID"]}
+                              </span>
+                            </div>
+                            <span className="text-[10px] font-mono text-zinc-500 shrink-0">
+                              {n.details["Transfer Value"]}
+                            </span>
+                          </button>
+                        );
+                      })
+                      .reverse()}
+                  </div>
+                </div>
               )}
             </div>
           </div>

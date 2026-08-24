@@ -31,7 +31,7 @@ STAGE5_N_MERCHANTS = 4_000
 # generalisation testing -- needs enough absolute fraud rows that a per-split
 # precision/recall estimate isn't noise. 40 campaigns/family against the 20k
 # consumer baseline lands fraud+lookalike prevalence under ~1%, still well
-# short of IEEE-CIS's ~3.5% enriched benchmark rate. Verify against the
+# short of payment benchmark's ~3.5% enriched benchmark rate. Verify against the
 # printed prevalence in generate_training_data.py's output after any change.
 ATTACK_EXPANSION_FACTOR = 40
 

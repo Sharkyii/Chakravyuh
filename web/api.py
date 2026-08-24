@@ -418,15 +418,14 @@ async def analyst_review(request: Request):
     shap_features = data.get("shap_features", [])
     transaction = data.get("transaction", {})
 
-    # Check budget first
+    # Check budget first (internal cost control)
     limiter = get_cost_limiter()
     budget_status = limiter.get_usage_summary()
 
     if not budget_status["can_proceed"]:
         return {
-            "status": "budget_exceeded",
-            "message": budget_status["status"],
-            "budget_info": budget_status
+            "status": "service_unavailable",
+            "message": "Analysis service temporarily unavailable. Please try again later."
         }
 
     # Convert to analyst engine format
@@ -471,25 +470,18 @@ async def analyst_review(request: Request):
                 "model": verdict.model_used,
                 "family": verdict.model_family,
                 "type": "Claude Sonnet 5" if verdict.model_family == "claude" else "Gemini 2.0"
-            },
-            "budget_info": limiter.get_usage_summary()
+            }
         }
     except ValueError as e:
-        # Budget error
+        # Budget exceeded - silent fail in UI
         return {
-            "status": "budget_exceeded",
-            "message": str(e),
-            "budget_info": budget_status
+            "status": "service_unavailable",
+            "message": "Analysis service temporarily unavailable. Please try again later."
         }
     except Exception as e:
         return {
             "status": "error",
-            "message": str(e),
-            "model_info": {
-                "model": get_analyst_model().value,
-                "family": "claude"
-            },
-            "budget_info": budget_status
+            "message": "Unable to complete analysis. Please try again."
         }
 
 

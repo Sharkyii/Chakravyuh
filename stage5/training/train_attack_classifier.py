@@ -67,18 +67,21 @@ def main():
         sys.exit(1)
     preprocessor = joblib.load(preprocessor_path)
     
-    # 5. Split train/validation/test temporally, never randomly (issues.md I9 --
-    # same rule as train_fraud_model.py: brief section 6 rule 2, "random splits
-    # leak campaign structure across the boundary and inflate everything." A
-    # campaign's own handful of events span minutes to a few days, well inside
-    # one window, so per-row timestamp assignment doesn't fragment a campaign
-    # across the train/val boundary in practice.
+    # 5. Split train/validation/test temporally, never randomly (issues.md I9).
+    # Unlike train_fraud_model.py's per-row assignment, group by campaign_id first
+    # so no campaign's rows ever straddle the train/test boundary -- a per-row
+    # temporal split can let one campaign's handful of events span multiple windows.
+    # Assign each campaign a single split based on its median timestamp, then
+    # propagate that split to all rows in that campaign.
     windows = split_windows(
         TemporalSplitConfig(
             train_fraction=TRAIN_RATIO, validation_fraction=VAL_RATIO, test_fraction=TEST_RATIO
         )
     )
-    fraud_df["split"] = fraud_df["timestamp"].apply(lambda ts: assign_split(ts, windows) or "test")
+    campaign_splits = fraud_df.groupby("campaign_id")["timestamp"].median().apply(
+        lambda ts: assign_split(ts, windows) or "test"
+    )
+    fraud_df["split"] = fraud_df["campaign_id"].map(campaign_splits)
     train_df = fraud_df[fraud_df["split"] == "train"].copy()
     val_df = fraud_df[fraud_df["split"] == "validation"].copy()
     test_df = fraud_df[fraud_df["split"] == "test"].copy()

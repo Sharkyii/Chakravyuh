@@ -1,9 +1,8 @@
 """
 Conditional Gaussian-copula synthesizer for real fraud data.
 
-Learns from a small set of REAL, labelled fraud rows (public benchmark
-datasets: Cifer, BankSim, IEEE-CIS) and samples new synthetic fraud rows
-that preserve:
+Learns from a small set of real, labelled fraud rows and samples new
+synthetic fraud rows that preserve:
   - categorical joint frequencies (resampled from observed combinations)
   - each continuous column's marginal distribution (empirical, per stratum)
   - the correlation structure between continuous columns (shared Gaussian

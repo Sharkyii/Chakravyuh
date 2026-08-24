@@ -1,0 +1,138 @@
+{
+  "timestamp": "2026-08-25T02:11:08.944996",
+  "title": "Gen 5 Multi-Family Adversarial Evaluation Report",
+  "executive_summary": {
+    "gen5_evasion_rate": "99.8%",
+    "gen5_target": "<25.0%",
+    "status": "NEEDS_WORK",
+    "recommendation": "Continue hardening"
+  },
+  "what_is_gen5": {
+    "concept": "Multi-family cross-attacks combine features from 2-3 attack families simultaneously",
+    "example_1": "Mule network (low graph) + Card testing (rapid low amounts)",
+    "example_2": "Account takeover (new IP) + Testing (probe cards) + Evasion (spoof features)",
+    "challenge": "Model trained on single families fails \u2014 needs cross-family attack signatures"
+  },
+  "cross_family_strategies_tested": [
+    {
+      "name": "mule + testing",
+      "families": [
+        "mule_network",
+        "card_testing_probe"
+      ]
+    },
+    {
+      "name": "bustout + evasion",
+      "families": [
+        "synthetic_identity_bustout",
+        "adversarial_evasion"
+      ]
+    },
+    {
+      "name": "takeover + mule network",
+      "families": [
+        "account_takeover",
+        "mule_network"
+      ]
+    }
+  ],
+  "model_performance": {
+    "gen4_baseline": {
+      "pr_auc": null,
+      "held_out_recall": null
+    },
+    "gen5_after_retrain": {
+      "pr_auc": 1.0,
+      "held_out_recall": null
+    }
+  },
+  "evasion_metrics": {
+    "gen5_attacks_on_gen4_model": {
+      "evasion_rate": "99.8%",
+      "status": "FAIL",
+      "note": "Why we retrain on Gen 5"
+    },
+    "gen5_attacks_on_gen5_model": {
+      "evasion_rate": "99.8%",
+      "status": "BORDERLINE",
+      "note": "After multi-family retraining"
+    }
+  },
+  "difficulty_levels": {
+    "level_1_simple_cross_family": {
+      "evasion": "100.0%",
+      "evasion_margin": 1.0,
+      "status": "FAIL",
+      "training_size": 402255
+    },
+    "level_2_moderate_cross_family": {
+      "evasion": "99.8%",
+      "evasion_margin": 0.9975,
+      "status": "FAIL",
+      "training_size": 402355
+    },
+    "level_3_complex_cross_family": {
+      "evasion": "99.8%",
+      "evasion_margin": 0.998,
+      "status": "FAIL",
+      "training_size": 402455
+    },
+    "level_4_extreme_cross_family": {
+      "evasion": "99.8%",
+      "evasion_margin": 0.9975,
+      "status": "FAIL",
+      "training_size": 402355
+    }
+  },
+  "feature_importance": [
+    {
+      "name": "edge_count",
+      "importance": 0.3554
+    },
+    {
+      "name": "beneficiary_added_ago_s",
+      "importance": 0.1663
+    },
+    {
+      "name": "pin_attempts",
+      "importance": 0.1044
+    },
+    {
+      "name": "edge_value_total",
+      "importance": 0.066
+    },
+    {
+      "name": "payee_in_degree",
+      "importance": 0.0467
+    },
+    {
+      "name": "mean_beneficiary_added_ago",
+      "importance": 0.0358
+    },
+    {
+      "name": "txns_per_active_day",
+      "importance": 0.0203
+    },
+    {
+      "name": "same_payee_ratio",
+      "importance": 0.0178
+    },
+    {
+      "name": "payer_out_degree",
+      "importance": 0.0176
+    },
+    {
+      "name": "inter_txn_time_mean",
+      "importance": 0.0164
+    }
+  ],
+  "curriculum_effectiveness": {
+    "success_criterion": "<25% final evasion rate for production readiness",
+    "pass_fail": "NEEDS_WORK"
+  },
+  "production_deployment_checklist": {
+    "cross_family_attacks": "Tested",
+    "metrics_source": "real train_fraud_model() evaluation, not simulated",
+    "status": "NEEDS_WORK"
+  }
+}

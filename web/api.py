@@ -371,6 +371,7 @@ def get_metrics():
                 model_metadata = json.load(f)
             test_metrics = model_metadata.get("test_metrics", {})
             fpr_points = test_metrics.get("fixed_fpr_operating_points", [])
+            f1_optimal = test_metrics.get("f1_optimal_threshold_metrics", {})
             model_provenance = {
                 "model_version": model_metadata.get("model_version"),
                 "trained_timestamp": model_metadata.get("trained_timestamp"),
@@ -379,6 +380,7 @@ def get_metrics():
                 "test_pr_auc": test_metrics.get("pr_auc"),
                 "test_recall_0_1_fpr": fpr_points[0].get("recall") if len(fpr_points) > 0 else None,
                 "test_recall_1_fpr": fpr_points[1].get("recall") if len(fpr_points) > 1 else None,
+                "alerts_per_1000": f1_optimal.get("alerts_per_1000"),
             }
         except Exception:
             model_provenance = None

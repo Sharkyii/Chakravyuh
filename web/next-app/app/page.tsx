@@ -1176,14 +1176,14 @@ export default function AnalystPortal() {
                       Closed-Loop Analyst Feedback Loop
                     </span>
                     <p className="text-xs text-zinc-400 mb-3">
-                      Submit the actual outcome of this transaction to train the model. This triggers an online retraining pass and updates the metrics.
+                      Submit the actual outcome of this transaction. This is a simulated feedback signal for demo purposes — it nudges the displayed metrics but does not retrain the model.
                     </p>
                     {feedbackSuccess ? (
                       <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-950/20 border border-emerald-900/50 text-sm text-emerald-400">
                         <CheckCircle className="h-5 w-5 shrink-0" />
                         <div>
                           <p className="font-bold">Feedback Incorporated Successfully!</p>
-                          <p className="text-[11px] text-emerald-500 mt-0.5">XGBoost updated with sample weight 100. Metrics refreshed in the Closed-Loop tab.</p>
+                          <p className="text-[11px] text-emerald-500 mt-0.5">Simulated metric adjustment recorded. See the Closed-Loop tab — no live model retraining occurs.</p>
                         </div>
                       </div>
                     ) : (
@@ -1406,14 +1406,14 @@ export default function AnalystPortal() {
                 </div>
               ))}
               {/* Alert volume card — shows real-world feasibility: ~5 alerts per 1k means analyst can handle it */}
-              {metricsData?.model_provenance?.test_pr_auc != null && (
+              {metricsData?.model_provenance?.alerts_per_1000 != null && (
                 <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5 backdrop-blur-md flex items-center justify-between">
                   <div>
                     <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">
                       Alerts per 1,000 txns
                     </span>
                     <span className="text-3xl font-black text-white font-mono">
-                      ~4.8
+                      ~{metricsData.model_provenance.alerts_per_1000.toFixed(1)}
                     </span>
                     <span className="text-[9px] text-zinc-500 mt-1 block">at F1-optimal threshold</span>
                   </div>

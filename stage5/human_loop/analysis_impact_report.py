@@ -143,7 +143,7 @@ def format_impact_report(report: dict) -> str:
     lines.append(f"  Current feedback: {report['feedback_collection']['current_feedback']}")
     lines.append(f"  Needed for retrain: {report['feedback_collection']['verdicts_needed_for_retrain']}")
     lines.append(f"  After this: {report['feedback_collection']['after_this_analysis']['verdicts_remaining']} more needed")
-    lines.append(f"  Progress: {report['feedback_collection']['progress_to_retrain_trigger']:.1f}% → {report['feedback_collection']['after_this_analysis']['progress_percent']}")
+    lines.append(f"  Progress: {report['feedback_collection']['progress_to_retrain_trigger']} → {report['feedback_collection']['after_this_analysis']['progress_percent']}")
 
     lines.append("\n🔄 THE RETRAINING WORKFLOW")
     lines.append(f"  Step 1: {report['retrain_workflow']['step_1_this_analysis']}")

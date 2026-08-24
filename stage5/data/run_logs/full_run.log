@@ -763,3 +763,14 @@ Recommendation: Continue hardening with Gen 5 variants
   Gen 5 evasion rate: 99.8%
   Promoted Gen 5 model to /home/sharkyi/Desktop/Chakravyuh/stage5/models for live inference
 GEN5 COMPLETE
+[main 9991fc0] Run Gen 5 curriculum retraining, promote to live inference model
+ 8 files changed, 766 insertions(+)
+ create mode 100644 stage5/data/gen5_evaluation_report.json
+ create mode 100644 stage5/data/gen5_model.pkl
+ create mode 100644 stage5/data/gen5_pipeline/curriculum_log.json
+ create mode 100644 stage5/data/gen5_pipeline/gen5_evaluation_report.json
+ create mode 100644 stage5/data/gen5_preprocessor.pkl
+ create mode 100644 stage5/data/run_logs/05_gen5.log
+To https://github.com/Sharkyii/Chakravyuh
+   7dde339..9991fc0  main -> main
+=== ALL STAGES COMPLETE ===

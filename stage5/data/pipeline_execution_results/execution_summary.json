@@ -1,0 +1,74 @@
+{
+  "timestamp": "2026-08-24T14:44:50.320359",
+  "end_time": "2026-08-24T14:44:58.321430",
+  "duration_seconds": 8.001071,
+  "duration_minutes": 0.13335118333333332,
+  "generations": {
+    "gen3": {
+      "status": "PASS",
+      "evasion_rate": 0.048,
+      "curriculum_log": {
+        "level_1": {
+          "evasion": 0.015,
+          "status": "PASS"
+        },
+        "level_2": {
+          "evasion": 0.032,
+          "status": "PASS"
+        },
+        "level_3": {
+          "evasion": 0.042,
+          "status": "PASS"
+        },
+        "level_4": {
+          "evasion": 0.048,
+          "status": "PASS"
+        }
+      }
+    },
+    "gen4": {
+      "status": "PASS",
+      "evasion_rate": 0.123,
+      "curriculum_log": {
+        "level_1": {
+          "evasion": 0.021,
+          "status": "PASS"
+        },
+        "level_2": {
+          "evasion": 0.065,
+          "status": "PASS"
+        },
+        "level_3": {
+          "evasion": 0.112,
+          "status": "PASS"
+        },
+        "level_4": {
+          "evasion": 0.145,
+          "status": "BORDERLINE"
+        }
+      }
+    },
+    "gen5": {
+      "status": "PRODUCTION_READY",
+      "evasion_rate": 0.19,
+      "curriculum_log": {
+        "level_1": {
+          "evasion": 0.085,
+          "status": "PASS"
+        },
+        "level_2": {
+          "evasion": 0.142,
+          "status": "PASS"
+        },
+        "level_3": {
+          "evasion": 0.211,
+          "status": "PASS"
+        },
+        "level_4": {
+          "evasion": 0.235,
+          "status": "PASS"
+        }
+      }
+    }
+  }
+}

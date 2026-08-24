@@ -166,7 +166,13 @@ def retrain_on_gen3_attacks(
         )
         print(f"    {generation_label} evasion: {this_gen_evasion['evasion_percent']} (target <{target_evasion*100:.0f}%)")
 
-        if this_gen_evasion['evasion_margin'] < best_evasion:
+        # <=, not <: if every level ties (e.g. all at the 1.0 sentinel because
+        # this attack family is hard enough that no level improves at all),
+        # the pipeline must still come out of this with *some* checkpoint
+        # saved -- a strict "<" would leave best_model as None forever and
+        # crash Stage 3's report generation instead of just reporting a
+        # genuinely bad (but real) result.
+        if this_gen_evasion['evasion_margin'] <= best_evasion:
             best_evasion = this_gen_evasion['evasion_margin']
             best_model = level_model
             best_preprocessor = level_preprocessor

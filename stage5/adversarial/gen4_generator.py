@@ -135,10 +135,13 @@ class Gen4AttackGenerator:
 
         # Add complexity-based noise
         if complexity > 1:
-            # Higher complexity = more variation
+            # Higher complexity = more variation. attack[feature] is a scalar
+            # (one row's value), not a Series -- only numpy float scalars
+            # carry .dtype, plain Python strings/bools/None don't.
             for feature in attack.index:
-                if attack[feature].dtype in [float, np.float64] and np.random.random() < 0.05:
-                    attack[feature] *= np.random.uniform(0.90, 1.10)
+                value = attack[feature]
+                if isinstance(value, (float, np.floating)) and not pd.isna(value) and np.random.random() < 0.05:
+                    attack[feature] = value * np.random.uniform(0.90, 1.10)
 
         return {
             'features': attack,

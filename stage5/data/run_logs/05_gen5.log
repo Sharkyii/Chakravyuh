@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/sharkyi/Desktop/Chakravyuh/stage5/training/run_all_generations.py", line 151, in <module>
+    STAGES[args.stage]()
+  File "/home/sharkyi/Desktop/Chakravyuh/stage5/training/run_all_generations.py", line 121, in run_gen5
+    gen4_model = joblib.load(OUT_DIR / "gen4_model.pkl")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/sharkyi/Desktop/Chakravyuh/.venv/lib/python3.11/site-packages/joblib/numpy_pickle.py", line 650, in load
+    with open(filename, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'stage5/data/gen4_model.pkl'
+================================================================================
+GEN 5 PIPELINE
+================================================================================
+  510252 rows loaded

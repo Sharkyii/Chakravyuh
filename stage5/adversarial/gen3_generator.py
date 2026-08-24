@@ -167,9 +167,13 @@ class Gen3AttackGenerator:
         if difficulty_multiplier > 1.0:
             for feature in attack.index:
                 if feature not in features_to_hide and np.random.random() < 0.1:
-                    # Small random variation to avoid signature patterns
-                    if attack[feature].dtype in [float, np.float64]:
-                        attack[feature] *= np.random.uniform(0.95, 1.05)
+                    # Small random variation to avoid signature patterns.
+                    # attack[feature] is a scalar (one row's value), not a
+                    # Series -- only numpy float scalars carry .dtype, plain
+                    # Python strings/bools/None don't.
+                    value = attack[feature]
+                    if isinstance(value, (float, np.floating)) and not pd.isna(value):
+                        attack[feature] = value * np.random.uniform(0.95, 1.05)
 
         return attack
 

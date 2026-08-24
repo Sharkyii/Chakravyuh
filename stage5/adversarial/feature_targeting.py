@@ -23,8 +23,16 @@ def get_top_features(model, threshold=0.10):
     importances = model.feature_importances_
     feature_names = model.get_booster().feature_names
 
+    # The model is fit on a ColumnTransformer's pandas output, whose column
+    # names carry a "cat__"/"num__" transformer prefix (e.g. "num__edge_count").
+    # Callers (Gen 3/4/5 hiding-strategy code) match against the raw,
+    # unprefixed feature name -- strip it here so that match actually fires,
+    # rather than every feature silently failing to be "hidden".
+    def _strip_prefix(name: str) -> str:
+        return name.split("__", 1)[1] if "__" in name else name
+
     features_with_importance = [
-        (name, imp) for name, imp in zip(feature_names, importances)
+        (_strip_prefix(name), imp) for name, imp in zip(feature_names, importances)
         if imp >= threshold
     ]
 

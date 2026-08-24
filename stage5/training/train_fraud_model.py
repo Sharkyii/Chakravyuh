@@ -143,9 +143,58 @@ def train_fraud_model(df: pd.DataFrame, held_out_attack_family: str = HELD_OUT_A
     if test_df.empty:
         test_df = val_df
 
-    X_train, y_train = train_df[ALL_FEATURES], train_df["is_fraud"].astype(int)
-    X_val, y_val = val_df[ALL_FEATURES], val_df["is_fraud"].astype(int)
-    X_test, y_test = test_df[ALL_FEATURES], test_df["is_fraud"].astype(int)
+    y_train = train_df["is_fraud"].astype(int)
+    y_val = val_df["is_fraud"].astype(int)
+    y_test = test_df["is_fraud"].astype(int)
+
+    # Anti-leakage guard: if a feature's presence/absence is itself a near-
+    # perfect proxy for the label (e.g. one data source populates a column
+    # and another never does), the model learns "is this column NaN?" rather
+    # than any real fraud signal -- trivial separation the brief specifically
+    # warns judges will catch. Drop any feature whose missingness rate
+    # differs by more than this much between classes, decided on train only.
+    MISSINGNESS_LEAKAGE_THRESHOLD = 0.90
+    dropped_leaky_features = []
+    # Same failure mode can also show up as a scale gap rather than a missingness
+    # gap: two features can both be fully populated yet occupy near-disjoint
+    # value ranges (e.g. one source's amounts are ~30x another's), which is
+    # just as trivial a shortcut for a tree model to exploit. Catch that too:
+    # drop a numeric feature if the classes' 5th-95th percentile ranges don't
+    # overlap at all on the training split.
+    dropped_scale_features = []
+    usable_features = []
+    fraud_train = train_df[y_train == 1]
+    legit_train = train_df[y_train == 0]
+    for col in ALL_FEATURES:
+        if len(fraud_train) and len(legit_train):
+            fraud_missing = fraud_train[col].isna().mean()
+            legit_missing = legit_train[col].isna().mean()
+            if abs(fraud_missing - legit_missing) >= MISSINGNESS_LEAKAGE_THRESHOLD:
+                dropped_leaky_features.append(col)
+                continue
+
+            if col in NUMERICAL_FEATURES + BEHAVIORAL_FEATURES + GRAPH_FEATURES:
+                f_vals = fraud_train[col].dropna()
+                l_vals = legit_train[col].dropna()
+                if len(f_vals) >= 10 and len(l_vals) >= 10:
+                    f_lo, f_hi = f_vals.quantile(0.05), f_vals.quantile(0.95)
+                    l_lo, l_hi = l_vals.quantile(0.05), l_vals.quantile(0.95)
+                    if f_hi < l_lo or l_hi < f_lo:
+                        dropped_scale_features.append(col)
+                        continue
+        usable_features.append(col)
+
+    if dropped_leaky_features:
+        print(f"  Dropping {len(dropped_leaky_features)} features with class-correlated "
+              f"missingness (leakage guard): {dropped_leaky_features}")
+    if dropped_scale_features:
+        print(f"  Dropping {len(dropped_scale_features)} features with disjoint value "
+              f"ranges between classes (scale-mismatch guard): {dropped_scale_features}")
+
+    active_categorical = [c for c in CATEGORICAL_FEATURES if c in usable_features]
+    active_numeric = [c for c in NUMERICAL_FEATURES + BOOLEAN_FEATURES + BEHAVIORAL_FEATURES + GRAPH_FEATURES if c in usable_features]
+
+    X_train, X_val, X_test = train_df[usable_features], val_df[usable_features], test_df[usable_features]
 
     cat_pipeline = Pipeline([
         ("imputer", SimpleImputer(strategy="constant", fill_value="missing")),
@@ -156,9 +205,15 @@ def train_fraud_model(df: pd.DataFrame, held_out_attack_family: str = HELD_OUT_A
         ("scaler", StandardScaler())
     ])
     preprocessor = ColumnTransformer(transformers=[
-        ("cat", cat_pipeline, CATEGORICAL_FEATURES),
-        ("num", num_pipeline, NUMERICAL_FEATURES + BOOLEAN_FEATURES + BEHAVIORAL_FEATURES + GRAPH_FEATURES)
+        ("cat", cat_pipeline, active_categorical),
+        ("num", num_pipeline, active_numeric)
     ])
+    # Keep named columns through to the fitted model -- with a bare ndarray,
+    # XGBoost's booster records no feature_names at all (None, not the
+    # positional f0/f1/... names one might expect), which breaks anything
+    # downstream that maps feature importances back to names (Gen 3's
+    # get_top_features -> "'NoneType' object is not iterable").
+    preprocessor.set_output(transform="pandas")
 
     X_train_proc = preprocessor.fit_transform(X_train)
     X_val_proc = preprocessor.transform(X_val)
@@ -254,7 +309,9 @@ def train_fraud_model(df: pd.DataFrame, held_out_attack_family: str = HELD_OUT_A
                 },
             })
 
-    feature_names = list(preprocessor.get_feature_names_out())
+    # Strip the ColumnTransformer's "cat__"/"num__" prefix for readability in
+    # reports -- "num__edge_count" means nothing to a reader, "edge_count" does.
+    feature_names = [n.split("__", 1)[1] if "__" in n else n for n in preprocessor.get_feature_names_out()]
     importances = final_model.feature_importances_
     top_features = sorted(
         zip(feature_names, importances.tolist()), key=lambda x: x[1], reverse=True
@@ -282,6 +339,9 @@ def train_fraud_model(df: pd.DataFrame, held_out_attack_family: str = HELD_OUT_A
         "top_features": [{"name": n, "importance": round(i, 4)} for n, i in top_features],
         "train_size": len(train_df), "val_size": len(val_df), "test_size": len(test_df),
         "fraud_count_train": int(y_train.sum()), "fraud_count_test": int(y_test.sum()),
+        "usable_features": usable_features,
+        "dropped_leaky_features": dropped_leaky_features,
+        "dropped_scale_mismatch_features": dropped_scale_features,
     }
 
     return {
@@ -292,25 +352,25 @@ def train_fraud_model(df: pd.DataFrame, held_out_attack_family: str = HELD_OUT_A
     }
 
 
-def main():
-    print("=== Training Stage 5 Primary Fraud Model ===")
+def load_and_prepare(combined_dir: Path = None, held_out_attack_family: str = HELD_OUT_ATTACK_FAMILY) -> pd.DataFrame:
+    """Load the combined dataset, engineer features, and assign temporal splits.
 
-    mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db"))
-    mlflow.set_experiment("chakravyuh-fraud-model")
-    mlflow.start_run(run_name=f"fraud_model_{datetime.now():%Y%m%d_%H%M%S}")
-
-    combined_dir = STAGE5_DATA_DIR / "combined"
+    Shared by main() (from-scratch baseline training) and
+    stage5.training.run_all_generations (curriculum pipeline stages) so
+    both start from the identical, correctly-split DataFrame -- this used
+    to be duplicated ad hoc and drifted (run_all_generations was reading
+    the raw parquet without ever assigning a 'split' column at all).
+    """
+    if combined_dir is None:
+        combined_dir = STAGE5_DATA_DIR / "combined"
     if not combined_dir.exists():
-        print(f"Error: Combined dataset not found at {combined_dir}. Please run generate_training_data.py first.")
-        sys.exit(1)
+        raise FileNotFoundError(f"Combined dataset not found at {combined_dir}. Run generate_training_data first.")
 
-    print("Loading combined dataset...")
     dataset = load_dataset(combined_dir)
 
     from stage5.features.feature_engineering import build_features
     df = build_features(dataset)
 
-    print("Splitting dataset temporally (train/validation/test)...")
     windows = split_windows(
         TemporalSplitConfig(
             train_fraction=TRAIN_RATIO, validation_fraction=VAL_RATIO, test_fraction=TEST_RATIO
@@ -318,10 +378,24 @@ def main():
     )
     df["split"] = df["timestamp"].apply(lambda ts: assign_split(ts, windows) or "test")
 
-    held_out_mask = df["attack_id"] == HELD_OUT_ATTACK_FAMILY
-    df.loc[held_out_mask, "split"] = "test"
+    if held_out_attack_family is not None and "attack_id" in df.columns:
+        held_out_mask = df["attack_id"] == held_out_attack_family
+        df.loc[held_out_mask, "split"] = "test"
+        assert df[(df["split"] != "test") & held_out_mask].empty
 
-    assert df[(df["split"] != "test") & held_out_mask].empty
+    return df
+
+
+def main():
+    print("=== Training Stage 5 Primary Fraud Model ===")
+
+    mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db"))
+    mlflow.set_experiment("chakravyuh-fraud-model")
+    mlflow.start_run(run_name=f"fraud_model_{datetime.now():%Y%m%d_%H%M%S}")
+
+    print("Loading combined dataset and assigning temporal splits...")
+    df = load_and_prepare()
+    held_out_mask = df["attack_id"] == HELD_OUT_ATTACK_FAMILY
 
     print(f"Train size: {(df['split']=='train').sum()}, Val size: {(df['split']=='validation').sum()}, "
           f"Test size: {(df['split']=='test').sum()} (held-out family rows: {int(held_out_mask.sum())})")

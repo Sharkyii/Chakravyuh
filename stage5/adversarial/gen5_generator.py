@@ -165,11 +165,14 @@ class Gen5AttackGenerator:
             elif param_key == 'num_mule_hops' and isinstance(param_value, int):
                 attack['edge_count'] = min(param_value, 10)  # Max hops
 
-        # Add complexity-based variation
+        # Add complexity-based variation. attack[feature] is a scalar (one
+        # row's value), not a Series -- only numpy float scalars carry
+        # .dtype, plain Python strings/bools/None don't.
         if complexity > 1:
             for feature in attack.index:
-                if attack[feature].dtype in [float, np.float64] and np.random.random() < 0.08:
-                    attack[feature] *= np.random.uniform(0.85, 1.15)
+                value = attack[feature]
+                if isinstance(value, (float, np.floating)) and not pd.isna(value) and np.random.random() < 0.08:
+                    attack[feature] = value * np.random.uniform(0.85, 1.15)
 
         return {
             'features': attack,

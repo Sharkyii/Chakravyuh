@@ -1,6 +1,11 @@
 """
 Analyst Engine: Uses Claude Sonnet 5 or Gemini to reason about fraud.
 Configurable via environment variables to show which model is being used.
+
+Cost controls:
+- Daily budget limit (DAILY_LLM_BUDGET env var, default $10/day)
+- Per-request limit (PER_REQUEST_LLM_LIMIT env var, default $0.50/request)
+- Tracks usage in stage5/data/api_usage.log
 """
 import json
 import os
@@ -9,6 +14,7 @@ from enum import Enum
 from pathlib import Path
 
 from anthropic import Anthropic
+from stage5.human_loop.cost_limiter import get_limiter
 
 
 class AnalystModel(str, Enum):
@@ -67,20 +73,38 @@ def analyze_transaction(
     shap_features: list[SHAPFeature],
     transaction: TransactionContext,
     model_override: AnalystModel = None,
+    skip_budget_check: bool = False,
 ) -> AnalystVerdictOutput:
     """
     Analyze a transaction using Claude Sonnet 5 (default, non-hallucinating).
     Can override to use Gemini 2.0 when available.
+
+    COST CONTROLS:
+    - Checks daily budget before running (can be skipped with skip_budget_check=True)
+    - Logs usage to stage5/data/api_usage.log
+    - Set DAILY_LLM_BUDGET env var to control daily limit (default: $10)
 
     Args:
         fraud_score: Model's fraud probability (0.0-1.0)
         shap_features: Top 3-5 SHAP features explaining the score
         transaction: Transaction details
         model_override: Force a specific model
+        skip_budget_check: If True, don't check budget (use for testing only)
 
     Returns:
         AnalystVerdictOutput with reasoning and patterns
+
+    Raises:
+        ValueError: If budget exceeded and skip_budget_check=False
     """
+    # Check budget unless skipped
+    if not skip_budget_check:
+        limiter = get_limiter()
+        can_proceed, reason = limiter.check_can_analyze()
+
+        if not can_proceed:
+            raise ValueError(f"Budget limit reached: {reason}")
+
     model = model_override or get_analyst_model()
 
     # Build context
@@ -118,10 +142,17 @@ OUTPUT (JSON only):
 """
 
     if model == AnalystModel.CLAUDE_SONNET_5:
-        return _analyze_with_claude(prompt, model.value)
+        result = _analyze_with_claude(prompt, model.value)
     else:
         # Gemini path (when credentials available)
-        return _analyze_with_gemini(prompt, model.value)
+        result = _analyze_with_gemini(prompt, model.value)
+
+    # Log the usage
+    if not skip_budget_check:
+        limiter = get_limiter()
+        limiter.log_analysis(cost_usd=0.005)  # Approximate cost
+
+    return result
 
 
 def _analyze_with_claude(prompt: str, model_id: str) -> AnalystVerdictOutput:

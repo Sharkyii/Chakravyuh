@@ -1,15 +1,18 @@
 """
-Cost limiter: Prevent runaway LLM API calls.
-Enforces daily budgets, per-request limits, and asks for confirmation on expensive operations.
+Cost limiter for hackathon: Manual click-based budget enforcement.
+- $1/day maximum budget (hackathon safe)
+- Max 20 runs/day (prevents runaway)
+- Manual click triggers (no auto-execution)
+- Shows detailed impact report before each run
 """
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 
 class CostLimiter:
-    """Track API usage and prevent overspending."""
+    """Track API usage with strict hackathon limits."""
 
     def __init__(self, budget_file: Optional[Path] = None):
         """
@@ -22,9 +25,9 @@ class CostLimiter:
         self.budget_file = Path(budget_file)
         self.budget_file.parent.mkdir(parents=True, exist_ok=True)
 
-        # Daily limits (in USD, approximate)
-        self.daily_limit_usd = float(os.getenv("DAILY_LLM_BUDGET", "10.0"))
-        self.per_request_limit_usd = float(os.getenv("PER_REQUEST_LLM_LIMIT", "0.50"))
+        # Hackathon limits
+        self.daily_limit_usd = 1.0  # $1/day for hackathon
+        self.max_runs_per_day = 20  # Max 20 runs/day
 
         # Usage tracking
         self._load_usage_log()
@@ -64,30 +67,33 @@ class CostLimiter:
     def check_can_analyze(self) -> tuple[bool, str]:
         """
         Check if we can afford another analysis call.
+        Hackathon mode: strict limits to prevent overspending.
 
         Returns:
             (can_proceed, reason)
         """
         # Claude Sonnet 5: ~$0.003 per 1K input tokens, ~$0.015 per 1K output
-        # Rough estimate: 200 input + 150 output = ~$0.005 per call
+        # Estimate: ~$0.005 per call
         estimated_cost = 0.005
 
+        # Check run count first
+        if self.request_count_today >= self.max_runs_per_day:
+            return False, f"❌ Max {self.max_runs_per_day} runs/day reached. ({self.request_count_today}/{self.max_runs_per_day})"
+
+        # Check budget
         if self.usage_today_usd + estimated_cost > self.daily_limit_usd:
             remaining_budget = self.daily_limit_usd - self.usage_today_usd
-            return False, f"Daily budget exceeded. ${self.usage_today_usd:.2f}/${self.daily_limit_usd:.2f} spent. Remaining: ${remaining_budget:.2f}"
+            return False, f"❌ Daily budget exhausted. ${self.usage_today_usd:.3f}/${self.daily_limit_usd:.2f} spent. Need ${estimated_cost:.3f}, have ${remaining_budget:.3f}"
 
-        if estimated_cost > self.per_request_limit_usd:
-            return False, f"Single request exceeds limit: ${estimated_cost:.2f} > ${self.per_request_limit_usd:.2f}"
-
-        return True, "OK"
+        return True, "✓ Budget OK"
 
     def log_analysis(self, cost_usd: float = 0.005):
         """Log an analyst analysis call."""
         self._log_usage(cost_usd)
 
     def get_usage_summary(self) -> dict:
-        """Get today's usage summary."""
-        can_proceed, reason = self.check_can_analyze()
+        """Get today's usage summary for display."""
+        can_proceed, status = self.check_can_analyze()
 
         return {
             "today": self.today.isoformat(),
@@ -95,9 +101,11 @@ class CostLimiter:
             "daily_limit_usd": self.daily_limit_usd,
             "remaining_usd": round(self.daily_limit_usd - self.usage_today_usd, 4),
             "request_count": self.request_count_today,
+            "max_runs": self.max_runs_per_day,
             "can_proceed": can_proceed,
-            "status": reason,
-            "percent_used": round((self.usage_today_usd / self.daily_limit_usd) * 100, 1)
+            "status": status,
+            "percent_budget_used": round((self.usage_today_usd / self.daily_limit_usd) * 100, 1),
+            "percent_runs_used": round((self.request_count_today / self.max_runs_per_day) * 100, 1)
         }
 
 

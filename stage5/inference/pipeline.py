@@ -51,20 +51,41 @@ def load_env_file() -> None:
             except Exception:
                 pass
 
-# Global cache for artifacts
+# Global cache for artifacts and their on-disk mtimes
 _artifacts = {}
+_artifact_mtimes = {}
 
 def load_artifacts():
-    """Loads and caches models, preprocessors, and mappings from stage5/models/."""
-    global _artifacts
+    """Loads and caches models, preprocessors, and mappings from stage5/models/.
+
+    Also tracks the mtime of each artifact file. If a file's mtime changes or a
+    file is deleted, the cache is invalidated so stale models aren't served.
+    Prevents silent ghost-model scenarios (e.g., a deleted pkl but cached copy still scoring).
+    """
+    global _artifacts, _artifact_mtimes
+
+    preprocessor_path = MODELS_DIR / "preprocessor.pkl"
+    fraud_model_path = MODELS_DIR / "fraud_model.pkl"
+    attack_classifier_path = MODELS_DIR / "attack_classifier.pkl"
+    mapping_path = MODELS_DIR / "attack_class_mapping.json"
+
+    if not (preprocessor_path.exists() and fraud_model_path.exists() and attack_classifier_path.exists() and mapping_path.exists()):
+        raise FileNotFoundError("One or more Stage 5 model artifacts are missing in stage5/models/.")
+
+    # Check if any artifact file has changed on disk (new mtime or missing from disk)
+    current_mtimes = {
+        "preprocessor": preprocessor_path.stat().st_mtime,
+        "fraud_model": fraud_model_path.stat().st_mtime,
+        "attack_classifier": attack_classifier_path.stat().st_mtime,
+        "mapping": mapping_path.stat().st_mtime,
+    }
+
+    # Invalidate cache if any mtime changed — force reload
+    if _artifact_mtimes != current_mtimes:
+        _artifacts = {}
+        _artifact_mtimes = {}
+
     if not _artifacts:
-        preprocessor_path = MODELS_DIR / "preprocessor.pkl"
-        fraud_model_path = MODELS_DIR / "fraud_model.pkl"
-        attack_classifier_path = MODELS_DIR / "attack_classifier.pkl"
-        mapping_path = MODELS_DIR / "attack_class_mapping.json"
-        
-        if not (preprocessor_path.exists() and fraud_model_path.exists() and attack_classifier_path.exists() and mapping_path.exists()):
-            raise FileNotFoundError("One or more Stage 5 model artifacts are missing in stage5/models/.")
             
         preprocessor = joblib.load(preprocessor_path)
         fraud_model = joblib.load(fraud_model_path)
@@ -96,6 +117,8 @@ def load_artifacts():
             "attack_to_idx": attack_to_idx,
             "shap_explainer": shap_explainer,
         }
+        _artifact_mtimes = current_mtimes
+
     return _artifacts
 
 

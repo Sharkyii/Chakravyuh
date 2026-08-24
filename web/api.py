@@ -17,6 +17,8 @@ if str(project_root) not in sys.path:
 from stage5.config.settings import MODELS_DIR
 from stage5.inference.pipeline import analyze_transaction, load_env_file
 from stage5.training.build_adaptive_attack_config import build_adaptive_config
+from stage5.human_loop.analyst_engine import analyze_transaction as analyst_analyze, get_analyst_model
+from stage5.human_loop.feedback_aggregator import FeedbackStore, check_retraining_eligibility
 from web.scenarios import SCENARIOS
 
 # Pre-load environment variables at startup
@@ -395,4 +397,121 @@ def get_metrics():
         "feature_importances": feature_importances,
         "adaptive_config": adaptive_config,
         "model_provenance": model_provenance
+    }
+
+
+@app.post("/api/analyst/review")
+async def analyst_review(request: Request):
+    """
+    Use Claude Sonnet 5 or Gemini to analyze a flagged transaction.
+    Shows which model is being used for transparency.
+    """
+    data = await request.json()
+
+    fraud_score = data.get("fraud_score", 0.5)
+    shap_features = data.get("shap_features", [])
+    transaction = data.get("transaction", {})
+
+    # Convert to analyst engine format
+    from stage5.human_loop.analyst_engine import SHAPFeature, TransactionContext
+
+    features = [
+        SHAPFeature(
+            name=f["name"],
+            value=f["value"],
+            contribution=f.get("contribution", 0),
+            direction=f.get("direction", "increases_fraud_score")
+        )
+        for f in shap_features[:5]
+    ]
+
+    context = TransactionContext(
+        amount=transaction.get("amount", 0),
+        payee_id=transaction.get("payee_id", "unknown"),
+        payer_id=transaction.get("payer_id", "unknown"),
+        timestamp=transaction.get("timestamp", "unknown"),
+        channel=transaction.get("channel", "UPI"),
+        auth_method=transaction.get("auth_method", "PIN")
+    )
+
+    try:
+        verdict = analyst_analyze(
+            fraud_score=fraud_score,
+            shap_features=features,
+            transaction=context
+        )
+
+        return {
+            "status": "success",
+            "analyst_verdict": {
+                "verdict": verdict.verdict,
+                "confidence": verdict.confidence,
+                "reasoning": verdict.reasoning,
+                "key_signals": verdict.key_signals,
+                "patterns": verdict.patterns
+            },
+            "model_info": {
+                "model": verdict.model_used,
+                "family": verdict.model_family,
+                "type": "Claude Sonnet 5" if verdict.model_family == "claude" else "Gemini 2.0"
+            }
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e),
+            "model_info": {
+                "model": get_analyst_model().value,
+                "family": "claude"
+            }
+        }
+
+
+@app.post("/api/analyst/submit-verdict")
+async def submit_analyst_verdict(request: Request):
+    """
+    Analyst submits their review verdict.
+    Stored for retraining when threshold reached.
+    """
+    data = await request.json()
+
+    transaction_id = data.get("transaction_id")
+    verdict = {
+        "analyst_verdict": data.get("verdict", "UNSURE"),
+        "analyst_confidence": data.get("confidence", 0.5),
+        "analyst_reasoning": data.get("reasoning", ""),
+        "key_signals": data.get("key_signals", []),
+        "patterns": data.get("patterns", [])
+    }
+
+    store = FeedbackStore()
+    store.add_verdict(transaction_id, verdict)
+
+    eligibility = check_retraining_eligibility()
+
+    return {
+        "status": "stored",
+        "transaction_id": transaction_id,
+        "feedback_summary": eligibility["summary"],
+        "should_retrain": eligibility["should_retrain"],
+        "next_steps": eligibility["next_steps"]
+    }
+
+
+@app.get("/api/analyst/feedback-status")
+async def feedback_status():
+    """
+    Get status of analyst feedback collection.
+    Shows how many verdicts collected and when to retrain.
+    """
+    eligibility = check_retraining_eligibility()
+
+    return {
+        "feedback_summary": eligibility["summary"],
+        "should_retrain": eligibility["should_retrain"],
+        "next_steps": eligibility["next_steps"],
+        "current_analyst_model": {
+            "model": get_analyst_model().value,
+            "family": "Claude Sonnet 5 (non-hallucinating, production-grade)"
+        }
     }

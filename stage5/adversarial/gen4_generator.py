@@ -10,14 +10,17 @@ from stage5.adversarial.gen4_config import GEN4_SPECS, CURRICULUM_LEVELS
 class Gen4AttackGenerator:
     """Generate Gen 4 attacks that trade off multiple features."""
 
-    def __init__(self, gen3_model, gen3_training_data_df: pd.DataFrame):
+    def __init__(self, gen3_model, gen3_training_data_df: pd.DataFrame, gen3_preprocessor=None):
         """
         Args:
             gen3_model: Trained Gen 3 model
             gen3_training_data_df: Training data used for Gen 3
+            gen3_preprocessor: fitted ColumnTransformer gen3_model expects
+                its input through.
         """
         self.gen3_model = gen3_model
         self.training_df = gen3_training_data_df
+        self.gen3_preprocessor = gen3_preprocessor
 
     def generate_curriculum_attacks(self, n_campaigns=100):
         """
@@ -155,8 +158,9 @@ class Gen4AttackGenerator:
         if not attacks:
             return 0.0
 
-        feature_vectors = np.array([a['features'].values for a in attacks])
-        scores = self.gen3_model.predict_proba(feature_vectors)[:, 1]
+        feature_df = pd.DataFrame([a['features'] for a in attacks])
+        X = self.gen3_preprocessor.transform(feature_df) if self.gen3_preprocessor is not None else feature_df.values
+        scores = self.gen3_model.predict_proba(X)[:, 1]
 
         threshold = 0.45
         evaded = np.sum(scores < threshold)

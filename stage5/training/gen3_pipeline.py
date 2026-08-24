@@ -17,6 +17,7 @@ def run_gen3_pipeline(
     gen2_model,
     analyst_feedback_df,
     original_training_df,
+    gen2_preprocessor=None,
     gen2_model_metrics: dict = None,
     output_dir: Path = None
 ):
@@ -55,7 +56,7 @@ def run_gen3_pipeline(
     print("-" * 80)
 
     try:
-        generator = Gen3AttackGenerator(gen2_model, original_training_df)
+        generator = Gen3AttackGenerator(gen2_model, original_training_df, gen2_preprocessor)
 
         # Generate curriculum attacks for all attack families
         families = ['mule_network', 'adversarial_evasion', 'account_takeover']
@@ -87,10 +88,14 @@ def run_gen3_pipeline(
             gen3_attacks_by_level=gen3_attacks_all['adversarial_evasion'],
             original_training_df=original_training_df,
             gen2_model=gen2_model,
+            gen2_preprocessor=gen2_preprocessor,
+            generation_label='gen3',
+            target_evasion=0.05,
             output_dir=output_dir
         )
 
-        gen3_model = retrain_result['gen3_model']
+        gen3_model = retrain_result['model']
+        gen3_preprocessor = retrain_result['preprocessor']
         curriculum_log = retrain_result['curriculum_log']
         best_evasion = retrain_result['best_evasion']
 
@@ -108,17 +113,15 @@ def run_gen3_pipeline(
     print("-" * 80)
 
     try:
-        # Stub metrics for demo (would come from actual model evaluation)
-        gen3_model_metrics = {
-            'pr_auc': 0.9995,
-            'recall_at_0_1_fpr': 0.9980,
-            'held_out_recall': 0.9950
-        }
+        # Real metrics from the winning curriculum level's train_fraud_model() run.
+        gen3_model_metrics = retrain_result['model_metrics']
 
         evaluation_report = generate_gen3_evaluation_report(
             gen2_model_metrics=gen2_model_metrics or {},
             gen3_model_metrics=gen3_model_metrics,
             curriculum_log=curriculum_log,
+            prior_gen_evasion=retrain_result['prior_gen_evasion'],
+            best_evasion=best_evasion,
             analyst_feedback_count=len(analyst_feedback_df),
             output_path=output_dir / "gen3_evaluation_report.json"
         )
@@ -147,6 +150,7 @@ def run_gen3_pipeline(
     return {
         'status': final_status,
         'gen3_model': gen3_model,
+        'gen3_preprocessor': gen3_preprocessor,
         'gen3_attacks': gen3_attacks_all,
         'curriculum_log': curriculum_log,
         'evaluation_report': evaluation_report,

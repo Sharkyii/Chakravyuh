@@ -12,14 +12,18 @@ from stage5.adversarial.feature_targeting import get_top_features
 class Gen3AttackGenerator:
     """Generate Gen 3 attacks that target top detector features."""
 
-    def __init__(self, gen2_model, gen2_training_data_df: pd.DataFrame):
+    def __init__(self, gen2_model, gen2_training_data_df: pd.DataFrame, gen2_preprocessor=None):
         """
         Args:
             gen2_model: Trained Gen 2 fraud detector
             gen2_training_data_df: Original training data (to learn legitimate patterns)
+            gen2_preprocessor: fitted ColumnTransformer gen2_model expects its
+                input through -- an XGBClassifier can't score raw categorical/
+                unscaled features directly.
         """
         self.gen2_model = gen2_model
         self.training_df = gen2_training_data_df
+        self.gen2_preprocessor = gen2_preprocessor
 
         # Extract top features
         self.top_features = get_top_features(gen2_model, threshold=0.10)
@@ -181,10 +185,11 @@ class Gen3AttackGenerator:
             return 0.0
 
         # Extract features
-        feature_vectors = np.array([a['features'].values for a in attacks])
+        feature_df = pd.DataFrame([a['features'] for a in attacks])
+        X = self.gen2_preprocessor.transform(feature_df) if self.gen2_preprocessor is not None else feature_df.values
 
         # Score with Gen 2 model
-        scores = self.gen2_model.predict_proba(feature_vectors)[:, 1]
+        scores = self.gen2_model.predict_proba(X)[:, 1]
 
         # Evasion: How many score < threshold (0.45)?
         threshold = 0.45

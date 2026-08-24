@@ -3,17 +3,18 @@ Measure evasion margin: % of attacks that slip through detector.
 Key metric for evaluating adversarial robustness.
 """
 import numpy as np
+import pandas as pd
 from pathlib import Path
-from typing import dict
 import json
 
 
 def measure_evasion_margin(
     model,
-    attack_variants: np.ndarray,
+    attack_variants,
     target_labels: np.ndarray,
     threshold: float = 0.45,
-    generation: str = 'gen3'
+    generation: str = 'gen3',
+    preprocessor=None,
 ) -> dict:
     """
     Calculate evasion margin for a set of attacks.
@@ -21,11 +22,17 @@ def measure_evasion_margin(
     Evasion margin = (fraud_cases_not_caught) / (total_fraud_cases)
 
     Args:
-        model: Trained fraud detector
-        attack_variants: Feature matrix of attack variants
+        model: Trained fraud detector (expects preprocessed input)
+        attack_variants: Feature matrix of attack variants. If `preprocessor`
+            is given, this must be a DataFrame with the model's raw feature
+            columns (the preprocessor's ColumnTransformer does the one-hot /
+            scaling); otherwise it's assumed to already be preprocessed.
         target_labels: True labels (should all be 1/fraud)
         threshold: Decision threshold for fraud classification
         generation: Gen 1/2/3/4/5 (for context)
+        preprocessor: fitted ColumnTransformer to apply before predict_proba.
+            Passing raw categorical/unscaled features straight into an
+            XGBClassifier without this silently produces garbage predictions.
 
     Returns:
         {
@@ -41,8 +48,8 @@ def measure_evasion_margin(
         }
     """
 
-    # Get fraud probabilities
-    predictions = model.predict_proba(attack_variants)[:, 1]
+    X = preprocessor.transform(attack_variants) if preprocessor is not None else attack_variants
+    predictions = model.predict_proba(X)[:, 1]
 
     # Count how many were caught (score > threshold)
     caught = np.sum(predictions > threshold)

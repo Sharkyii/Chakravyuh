@@ -15,6 +15,8 @@ from stage5.validation.gen4_evaluation_report import generate_gen4_evaluation_re
 def run_gen4_pipeline(
     gen3_model,
     gen3_training_data_df,
+    analyst_feedback_df,
+    gen3_preprocessor=None,
     gen3_model_metrics: dict = None,
     output_dir: Path = None
 ):
@@ -52,7 +54,7 @@ def run_gen4_pipeline(
     print("-" * 80)
 
     try:
-        generator = Gen4AttackGenerator(gen3_model, gen3_training_data_df)
+        generator = Gen4AttackGenerator(gen3_model, gen3_training_data_df, gen3_preprocessor)
 
         print(f"\n  Generating ensemble attacks (6 trading strategies)...")
         gen4_attacks = generator.generate_curriculum_attacks(n_campaigns=100)
@@ -76,22 +78,23 @@ def run_gen4_pipeline(
     print("-" * 80)
 
     try:
-        # Reuse curriculum logic (but with Gen 4 attacks)
         print(f"\n  Retraining on Gen 4 ensemble attacks...")
-        print(f"    Level 1 (simple): 2-feature trades")
-        print(f"    Level 2 (complex): 3-feature trades")
-        print(f"    Level 3 (multi): 4-5 feature trades")
-        print(f"    Level 4 (extreme): all top features + cross-family")
 
-        # Stub: Real implementation would call curriculum_retrain with Gen 4 attacks
-        curriculum_log = {
-            'level_1': {'evasion': 0.021, 'status': 'PASS'},
-            'level_2': {'evasion': 0.065, 'status': 'PASS'},
-            'level_3': {'evasion': 0.112, 'status': 'PASS'},
-            'level_4': {'evasion': 0.145, 'status': 'BORDERLINE'},
-        }
+        retrain_result = retrain_on_gen3_attacks(
+            analyst_feedback_df=analyst_feedback_df,
+            gen3_attacks_by_level=gen4_attacks,
+            original_training_df=gen3_training_data_df,
+            gen2_model=gen3_model,
+            gen2_preprocessor=gen3_preprocessor,
+            generation_label='gen4',
+            target_evasion=0.15,
+            output_dir=output_dir,
+        )
 
-        gen4_evasion = 0.123  # Final evasion after retraining
+        gen4_model = retrain_result['model']
+        gen4_preprocessor = retrain_result['preprocessor']
+        curriculum_log = retrain_result['curriculum_log']
+        gen4_evasion = retrain_result['best_evasion']
 
         print(f"\n  ✓ Retraining complete")
         print(f"    Best evasion achieved: {gen4_evasion*100:.1f}%")
@@ -107,16 +110,13 @@ def run_gen4_pipeline(
     print("-" * 80)
 
     try:
-        gen4_model_metrics = {
-            'pr_auc': 0.9992,
-            'recall_at_0_1_fpr': 0.9960,
-            'held_out_recall': 0.9940
-        }
+        gen4_model_metrics = retrain_result['model_metrics']
 
         evaluation_report = generate_gen4_evaluation_report(
             gen3_model_metrics=gen3_model_metrics or {},
             gen4_model_metrics=gen4_model_metrics,
             curriculum_log=curriculum_log,
+            prior_gen_evasion=retrain_result['prior_gen_evasion'],
             gen4_evasion_rate=gen4_evasion,
             output_path=output_dir / "gen4_evaluation_report.json"
         )
@@ -135,11 +135,15 @@ def run_gen4_pipeline(
     print("GEN 4 PIPELINE COMPLETE")
     print("="*80)
 
+    prior_evasion = retrain_result['prior_gen_evasion']
     final_status = 'PASS' if gen4_evasion < 0.15 else 'FAIL'
     print(f"\nFinal Status: {final_status}")
     print(f"  Evasion Rate: {gen4_evasion*100:.1f}%")
     print(f"  Target: <15.0%")
-    print(f"  Improvement from Gen 3: {'✓ Yes' if gen4_evasion > 0.04 else '✗ No (regression)'}")
+    if prior_evasion is not None:
+        print(f"  Improvement over Gen 3 model on these attacks: "
+              f"{'Yes' if gen4_evasion < prior_evasion else 'No (regression)'} "
+              f"({prior_evasion*100:.1f}% -> {gen4_evasion*100:.1f}%)")
     print(f"\nOutputs saved to: {output_dir}")
 
     recommendation = "Deploy Gen 4 model" if final_status == 'PASS' else "Generate Gen 5 attacks"
@@ -147,6 +151,8 @@ def run_gen4_pipeline(
 
     return {
         'status': final_status,
+        'gen4_model': gen4_model,
+        'gen4_preprocessor': gen4_preprocessor,
         'gen4_attacks': gen4_attacks,
         'curriculum_log': curriculum_log,
         'evaluation_report': evaluation_report,
@@ -157,4 +163,4 @@ def run_gen4_pipeline(
 
 if __name__ == "__main__":
     print("Gen 4 Pipeline is ready to run.")
-    print("Call run_gen4_pipeline(gen3_model, gen3_training_df)")
+    print("Call run_gen4_pipeline(gen3_model, gen3_training_df, analyst_feedback_df)")

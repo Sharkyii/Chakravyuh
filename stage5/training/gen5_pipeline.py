@@ -15,6 +15,8 @@ from stage5.validation.gen5_evaluation_report import generate_gen5_evaluation_re
 def run_gen5_pipeline(
     gen4_model,
     gen4_training_data_df,
+    analyst_feedback_df,
+    gen4_preprocessor=None,
     gen4_model_metrics: dict = None,
     output_dir: Path = None
 ):
@@ -53,7 +55,7 @@ def run_gen5_pipeline(
     print("-" * 80)
 
     try:
-        generator = Gen5AttackGenerator(gen4_model, gen4_training_data_df)
+        generator = Gen5AttackGenerator(gen4_model, gen4_training_data_df, gen4_preprocessor)
 
         print(f"\n  Generating multi-family attacks (6 cross-family specs)...")
         gen5_attacks = generator.generate_curriculum_attacks(n_campaigns=100)
@@ -77,22 +79,23 @@ def run_gen5_pipeline(
     print("-" * 80)
 
     try:
-        # Reuse curriculum logic (but with Gen 5 attacks)
         print(f"\n  Retraining on Gen 5 multi-family attacks...")
-        print(f"    Level 1 (simple): 2-family combinations")
-        print(f"    Level 2 (moderate): 2-family with mixing")
-        print(f"    Level 3 (complex): 3-family combinations")
-        print(f"    Level 4 (extreme): 3+ families + adversarial timing")
 
-        # Stub: Real implementation would call curriculum_retrain with Gen 5 attacks
-        curriculum_log = {
-            'level_1': {'evasion': 0.085, 'status': 'PASS'},
-            'level_2': {'evasion': 0.142, 'status': 'PASS'},
-            'level_3': {'evasion': 0.211, 'status': 'PASS'},
-            'level_4': {'evasion': 0.235, 'status': 'PASS'},
-        }
+        retrain_result = retrain_on_gen3_attacks(
+            analyst_feedback_df=analyst_feedback_df,
+            gen3_attacks_by_level=gen5_attacks,
+            original_training_df=gen4_training_data_df,
+            gen2_model=gen4_model,
+            gen2_preprocessor=gen4_preprocessor,
+            generation_label='gen5',
+            target_evasion=0.25,
+            output_dir=output_dir,
+        )
 
-        gen5_evasion = 0.19  # Final evasion after retraining
+        gen5_model = retrain_result['model']
+        gen5_preprocessor = retrain_result['preprocessor']
+        curriculum_log = retrain_result['curriculum_log']
+        gen5_evasion = retrain_result['best_evasion']
 
         print(f"\n  ✓ Retraining complete")
         print(f"    Best evasion achieved: {gen5_evasion*100:.1f}%")
@@ -108,16 +111,13 @@ def run_gen5_pipeline(
     print("-" * 80)
 
     try:
-        gen5_model_metrics = {
-            'pr_auc': 0.9988,
-            'recall_at_0_1_fpr': 0.9940,
-            'held_out_recall': 0.9920
-        }
+        gen5_model_metrics = retrain_result['model_metrics']
 
         evaluation_report = generate_gen5_evaluation_report(
             gen4_model_metrics=gen4_model_metrics or {},
             gen5_model_metrics=gen5_model_metrics,
             curriculum_log=curriculum_log,
+            prior_gen_evasion=retrain_result['prior_gen_evasion'],
             gen5_evasion_rate=gen5_evasion,
             output_path=output_dir / "gen5_evaluation_report.json"
         )
@@ -136,22 +136,14 @@ def run_gen5_pipeline(
     print("GEN 5 PIPELINE COMPLETE — PRODUCTION DEPLOYMENT READY")
     print("="*80)
 
+    prior_evasion = retrain_result['prior_gen_evasion']
     final_status = 'PRODUCTION_READY' if gen5_evasion < 0.25 else 'NEEDS_WORK'
     print(f"\nFinal Status: {final_status}")
     print(f"  Evasion Rate: {gen5_evasion*100:.1f}%")
     print(f"  Target: <25.0%")
-    print(f"\n  Generation Progression:")
-    print(f"    Gen 1 (baseline): N/A")
-    print(f"    Gen 2 (analyst feedback): 5.2% → 4.8%")
-    print(f"    Gen 3 (feature hiding): 4.8% (target <5%)")
-    print(f"    Gen 4 (ensemble trading): 12.3% (target <15%)")
-    print(f"    Gen 5 (multi-family): {gen5_evasion*100:.1f}% (target <25%)")
-    print(f"\n  Robustness Journey:")
-    print(f"    ✓ Single family attacks defended")
-    print(f"    ✓ Feature trading attacks defended")
-    print(f"    ✓ Multi-family combo attacks defended")
-    print(f"    ✓ Analyst feedback integrated")
-    print(f"    ✓ Closed-loop improvement demonstrated")
+    if prior_evasion is not None:
+        print(f"  Gen 4 model on these Gen 5 attacks (before retraining): {prior_evasion*100:.1f}%")
+        print(f"  Gen 5 model on these attacks (after retraining):        {gen5_evasion*100:.1f}%")
 
     print(f"\nOutputs saved to: {output_dir}")
 
@@ -160,6 +152,8 @@ def run_gen5_pipeline(
 
     return {
         'status': final_status,
+        'gen5_model': gen5_model,
+        'gen5_preprocessor': gen5_preprocessor,
         'gen5_attacks': gen5_attacks,
         'curriculum_log': curriculum_log,
         'evaluation_report': evaluation_report,
@@ -170,4 +164,4 @@ def run_gen5_pipeline(
 
 if __name__ == "__main__":
     print("Gen 5 Pipeline is ready to run.")
-    print("Call run_gen5_pipeline(gen4_model, gen4_training_df)")
+    print("Call run_gen5_pipeline(gen4_model, gen4_training_df, analyst_feedback_df)")

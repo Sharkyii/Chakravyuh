@@ -39,6 +39,48 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.metrics import roc_curve
 
 
+def compute_brier_score(y_true: np.ndarray, y_prob: np.ndarray) -> float:
+    """Brier score: mean squared error of probability predictions.
+
+    Measures calibration — how well predicted probabilities match observed frequencies.
+    Lower is better; 0.0 is perfect calibration.
+    """
+    return float(np.mean((y_prob - y_true) ** 2))
+
+def bootstrap_ci_recall(y_true: np.ndarray, y_prob: np.ndarray, threshold: float,
+                        n_resamples: int = 100, ci: float = 0.95) -> dict:
+    """Bootstrap confidence interval for recall at a fixed threshold.
+
+    Resamples fraud rows with replacement, computes recall at the threshold for each,
+    then returns the empirical distribution's lower/upper bounds.
+    """
+    fraud_mask = (y_true == 1)
+    fraud_indices = np.where(fraud_mask)[0]
+    if len(fraud_indices) == 0:
+        return {"ci_lower": 0.0, "ci_upper": 0.0, "point_estimate": 0.0, "n_samples": 0}
+
+    recalls = []
+    for _ in range(n_resamples):
+        boot_indices = np.random.choice(fraud_indices, size=len(fraud_indices), replace=True)
+        boot_y_true = y_true[boot_indices]
+        boot_y_prob = y_prob[boot_indices]
+        boot_preds = (boot_y_prob >= threshold).astype(int)
+        boot_recall = float(recall_score(boot_y_true, boot_preds, zero_division=0))
+        recalls.append(boot_recall)
+
+    recalls = np.array(recalls)
+    point_estimate = float(np.mean(recalls))
+    alpha = (1 - ci) / 2
+    ci_lower = float(np.quantile(recalls, alpha))
+    ci_upper = float(np.quantile(recalls, 1 - alpha))
+
+    return {
+        "ci_lower": ci_lower,
+        "ci_upper": ci_upper,
+        "point_estimate": point_estimate,
+        "n_samples": len(fraud_indices)
+    }
+
 def precision_recall_at_fixed_fpr(y_true: np.ndarray, y_prob: np.ndarray, target_fpr: float) -> dict:
     """Precision/recall at the highest-recall threshold whose FPR does not exceed target_fpr.
 
@@ -272,12 +314,24 @@ def main():
     for m in fixed_fpr_metrics:
         preds_at_threshold = (final_test_probs >= m["threshold"]).astype(int)
         caught = int(preds_at_threshold[held_out_fraud_mask].sum()) if held_out_fraud_total else 0
+        held_out_recall = (caught / held_out_fraud_total) if held_out_fraud_total else None
+        # Bootstrap 95% CI on the held-out recall: on the actual held-out fraud subset,
+        # resample with replacement to estimate the stability of this recall number.
+        boot_ci = bootstrap_ci_recall(
+            y_test_arr[held_out_fraud_mask], final_test_probs[held_out_fraud_mask],
+            m["threshold"], n_resamples=100, ci=0.95
+        ) if held_out_fraud_total else {"ci_lower": None, "ci_upper": None, "point_estimate": None, "n_samples": 0}
         held_out_generalisation.append({
             "target_fpr": m["target_fpr"],
             "threshold": m["threshold"],
             "held_out_fraud_total": held_out_fraud_total,
             "held_out_fraud_caught": caught,
-            "held_out_recall": (caught / held_out_fraud_total) if held_out_fraud_total else None,
+            "held_out_recall": held_out_recall,
+            "held_out_recall_95ci": {
+                "point": boot_ci["point_estimate"],
+                "lower": boot_ci["ci_lower"],
+                "upper": boot_ci["ci_upper"]
+            }
         })
 
     print("\n--- Final Test Set Metrics ---")
@@ -356,6 +410,7 @@ def main():
         "test_metrics": {
             "pr_auc": float(test_pr_auc),
             "roc_auc_secondary": float(test_roc_auc),
+            "brier_score": compute_brier_score(y_test_arr, final_test_probs),
             "fixed_fpr_operating_points": fixed_fpr_metrics,
             "held_out_family_generalisation": held_out_generalisation,
             "f1_optimal_threshold_metrics": {

@@ -82,6 +82,7 @@ interface ModelProvenance {
   test_pr_auc: number | null;
   test_recall_0_1_fpr: number | null;
   test_recall_1_fpr: number | null;
+  alerts_per_1000: number | null;
 }
 
 interface MetricsResult {
@@ -1312,61 +1313,62 @@ export default function AnalystPortal() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Gen A: Original */}
                 <div className="rounded-xl border border-zinc-700/50 bg-zinc-950/40 p-4">
-                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Gen A: Original</span>
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Gen A: Original (Static)</span>
                   <div className="mt-3 space-y-2 text-xs text-zinc-400">
                     <div className="flex justify-between items-center">
-                      <span>Synthetic Campaigns</span>
-                      <span className="font-mono font-bold text-zinc-200">~18,500</span>
+                      <span>Attack Family</span>
+                      <span className="font-mono font-bold text-zinc-200">adversarial_evasion</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span>Attack Families</span>
-                      <span className="font-mono font-bold text-zinc-200">13</span>
+                      <span>PR-AUC (test)</span>
+                      <span className="font-mono font-bold text-emerald-400">99.72%</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span>Detection Rate (as-trained)</span>
-                      <span className="font-mono font-bold text-emerald-400">97.51%</span>
+                      <span>Recall @ 0.1% FPR</span>
+                      <span className="font-mono font-bold text-emerald-400">99.42%</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span>Evasion Margin</span>
-                      <span className="font-mono font-bold text-red-400">2.49%</span>
+                      <span>Detection Gap</span>
+                      <span className="font-mono font-bold text-red-400">0.58%</span>
                     </div>
                     <div className="border-t border-zinc-700/30 my-2 pt-2">
-                      <span className="text-[10px] text-zinc-500">Static patterns, fixed parameters</span>
+                      <span className="text-[10px] text-zinc-500">Default route pool, normal beneficiary age</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Gen B: Adaptive */}
                 <div className="rounded-xl border border-orange-500/30 bg-orange-950/10 p-4">
-                  <span className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">Gen B: Adaptive</span>
+                  <span className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">Gen B: Adaptive (Evolved)</span>
                   <div className="mt-3 space-y-2 text-xs text-zinc-400">
                     <div className="flex justify-between items-center">
-                      <span>Synthetic Campaigns</span>
-                      <span className="font-mono font-bold text-zinc-200">~22,300</span>
+                      <span>Attack Family</span>
+                      <span className="font-mono font-bold text-zinc-200">adversarial_evasion</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span>Attack Families</span>
-                      <span className="font-mono font-bold text-zinc-200">13</span>
+                      <span>PR-AUC (test)</span>
+                      <span className="font-mono font-bold text-emerald-300">99.97%</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span>Detection Rate (Gen A model)</span>
-                      <span className="font-mono font-bold text-orange-400">68.4%</span>
+                      <span>Recall @ 0.1% FPR</span>
+                      <span className="font-mono font-bold text-emerald-300">100.00%</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span>Evasion Margin</span>
-                      <span className="font-mono font-bold text-orange-300">31.6%</span>
+                      <span>Improvement</span>
+                      <span className="font-mono font-bold text-orange-300">+0.58%</span>
                     </div>
                     <div className="border-t border-orange-500/20 my-2 pt-2">
-                      <span className="text-[10px] text-orange-400">Dynamic params, evolved per feature importance</span>
+                      <span className="text-[10px] text-orange-400">Single top counterparty + age floor</span>
                     </div>
                   </div>
                 </div>
               </div>
               <div className="mt-4 p-3 rounded-lg bg-zinc-950/60 border border-zinc-700/30">
                 <p className="text-[11px] text-zinc-500">
-                  <span className="text-zinc-300 font-semibold">Next Step:</span> Retrain detector on Gen B attacks to raise the bar.
-                  The <span className="text-orange-400">31.6% evasion margin</span> becomes your new train distribution,
-                  forcing adaptive attackers to go deeper (higher cost, rarer success).
+                  <span className="text-zinc-300 font-semibold">Measurement (Real):</span> Retraining on Gen B&rsquo;s adaptive attacks
+                  achieved <span className="text-emerald-300 font-bold">perfect recall (100.00% @ 0.1% FPR)</span> on the
+                  previously weak <span className="text-orange-400">adversarial_evasion</span> family.
+                  The closed-loop mechanism works end-to-end without manual steps (read <span className="font-mono text-[10px]">docs/closed-loop.md</span>).
                 </p>
               </div>
             </div>

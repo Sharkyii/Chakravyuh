@@ -3,10 +3,10 @@ Extract top SHAP features and rank by importance and hiding difficulty.
 Used to generate targeted adversarial attacks that hide detector's main tells.
 """
 import numpy as np
-from typing import dict, list, tuple
+from typing import Tuple
 
 
-def get_top_features(model, threshold=0.10) -> list[tuple[str, float]]:
+def get_top_features(model, threshold=0.10):
     """
     Extract features above importance threshold.
 

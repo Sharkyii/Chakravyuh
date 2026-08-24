@@ -19,6 +19,7 @@ from stage5.inference.pipeline import analyze_transaction, load_env_file
 from stage5.training.build_adaptive_attack_config import build_adaptive_config
 from stage5.human_loop.analyst_engine import analyze_transaction as analyst_analyze, get_analyst_model
 from stage5.human_loop.feedback_aggregator import FeedbackStore, check_retraining_eligibility
+from stage5.human_loop.cost_limiter import get_limiter as get_cost_limiter
 from web.scenarios import SCENARIOS
 
 # Pre-load environment variables at startup
@@ -405,12 +406,28 @@ async def analyst_review(request: Request):
     """
     Use Claude Sonnet 5 or Gemini to analyze a flagged transaction.
     Shows which model is being used for transparency.
+
+    COST CONTROLS:
+    - Checks daily budget before running
+    - Returns budget status in response
+    - Set DAILY_LLM_BUDGET env var to control limit
     """
     data = await request.json()
 
     fraud_score = data.get("fraud_score", 0.5)
     shap_features = data.get("shap_features", [])
     transaction = data.get("transaction", {})
+
+    # Check budget first
+    limiter = get_cost_limiter()
+    budget_status = limiter.get_usage_summary()
+
+    if not budget_status["can_proceed"]:
+        return {
+            "status": "budget_exceeded",
+            "message": budget_status["status"],
+            "budget_info": budget_status
+        }
 
     # Convert to analyst engine format
     from stage5.human_loop.analyst_engine import SHAPFeature, TransactionContext
@@ -454,7 +471,15 @@ async def analyst_review(request: Request):
                 "model": verdict.model_used,
                 "family": verdict.model_family,
                 "type": "Claude Sonnet 5" if verdict.model_family == "claude" else "Gemini 2.0"
-            }
+            },
+            "budget_info": limiter.get_usage_summary()
+        }
+    except ValueError as e:
+        # Budget error
+        return {
+            "status": "budget_exceeded",
+            "message": str(e),
+            "budget_info": budget_status
         }
     except Exception as e:
         return {
@@ -463,7 +488,8 @@ async def analyst_review(request: Request):
             "model_info": {
                 "model": get_analyst_model().value,
                 "family": "claude"
-            }
+            },
+            "budget_info": budget_status
         }
 
 

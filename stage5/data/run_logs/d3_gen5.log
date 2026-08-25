@@ -1,0 +1,121 @@
+/home/sharkyi/Desktop/Chakravyuh/stage5/training/curriculum_retrain.py:177: FutureWarning: The behavior of DataFrame concatenation with empty or all-NA entries is deprecated. In a future version, this will no longer exclude empty or all-NA columns when determining the result dtypes. To retain the old behavior, exclude the relevant entries before the concat operation.
+  training_df = pd.concat(concat_parts, ignore_index=True, sort=False)
+/home/sharkyi/Desktop/Chakravyuh/.venv/lib/python3.11/site-packages/sklearn/metrics/_ranking.py:1174: UndefinedMetricWarning: No negative samples in y_true, false positive value should be meaningless
+  warnings.warn(
+/home/sharkyi/Desktop/Chakravyuh/.venv/lib/python3.11/site-packages/sklearn/metrics/_ranking.py:1174: UndefinedMetricWarning: No negative samples in y_true, false positive value should be meaningless
+  warnings.warn(
+================================================================================
+GEN 5 PIPELINE
+================================================================================
+Computing sequential behavioral features...
+Merging party/account features...
+Merging graph features...
+Merging target labels...
+  514750 rows loaded
+
+================================================================================
+GEN 5 FINAL PIPELINE: Multi-Family Cross-Attacks → Retrain → Production Ready
+================================================================================
+
+[STAGE 1] GENERATING GEN 5 MULTI-FAMILY ATTACKS
+--------------------------------------------------------------------------------
+
+  Generating multi-family attacks (6 cross-family specs)...
+
+Generating Gen 5 multi-family attacks (6 cross-family specs)
+
+  level_1_simple_cross_family: 2-family cross-attack (mule + testing)
+    Generated 300 multi-family variants
+
+  level_2_moderate_cross_family: 2-family combinations with more sophisticated mixing
+    Generated 400 multi-family variants
+
+  level_3_complex_cross_family: 3-family combinations (takeover + testing + evasion)
+    Generated 500 multi-family variants
+
+  level_4_extreme_cross_family: 3+ family combinations with adversarial timing
+    Generated 400 multi-family variants
+  ✓ Generated 1600 multi-family attack variants
+    Estimated evasion on Gen 4 model: 6.5%
+
+[STAGE 2] CURRICULUM RETRAINING ON MULTI-FAMILY ATTACKS
+--------------------------------------------------------------------------------
+
+  Retraining on Gen 5 multi-family attacks...
+
+  Carrying forward 720 retained attack rows from prior generations
+
+======================================================================
+GEN5 CURRICULUM RETRAINING
+======================================================================
+
+  Baseline: gen5 attacks vs prior-generation model: 6.5% evasion (why we retrain)
+
+[1/4] LEVEL_1_SIMPLE_CROSS_FAMILY
+----------------------------------------------------------------------
+  Training data size: 406543
+    Original: 514750
+    Analyst feedback: 0
+    gen5 (train): 240   gen5 (held-out test): 60
+    Retained from prior generations: 720
+
+  Evaluation:
+    Prior-gen evasion: 1.0% (should be near 0%)
+    gen5 evasion: 3.3% (target <25%)
+
+  Action: Target achieved (<25%), ready to deploy
+
+======================================================================
+CURRICULUM TRAINING COMPLETE
+======================================================================
+Best gen5 evasion achieved: 3.3%
+Target: <25%
+Status: PASS
+Retained 240 gen5 attack rows for next generation's training
+Log saved: stage5/data/gen5_pipeline/curriculum_log.json
+
+  ✓ Retraining complete
+    Best evasion achieved: 3.3%
+
+[STAGE 3] EVALUATION & REPORTING
+--------------------------------------------------------------------------------
+  ✓ Evaluation report generated
+
+======================================================================
+GEN 5 MULTI-FAMILY ADVERSARIAL EVALUATION REPORT
+======================================================================
+
+EXECUTIVE SUMMARY
+  gen5_evasion_rate: 3.3%
+  gen5_target: <25.0%
+  status: PRODUCTION_READY
+  recommendation: Deploy to production
+
+EVASION METRICS
+  gen5_attacks_on_gen4_model: 6.5% (PASS) -- Why we retrain on Gen 5
+  gen5_attacks_on_gen5_model: 3.3% (PASS) -- After multi-family retraining
+
+PRODUCTION READINESS
+  cross_family_attacks: Tested
+  metrics_source: real train_fraud_model() evaluation, not simulated
+  status: PRODUCTION_READY
+======================================================================
+
+================================================================================
+GEN 5 PIPELINE COMPLETE — PRODUCTION DEPLOYMENT READY
+================================================================================
+
+Final Status: PRODUCTION_READY
+  Evasion Rate: 3.3%
+  Target: <25.0%
+  Gen 4 model on these Gen 5 attacks (before retraining): 6.5%
+  Gen 5 model on these attacks (after retraining):        3.3%
+
+Outputs saved to: stage5/data/gen5_pipeline
+
+Recommendation: DEPLOY TO PRODUCTION
+  Saved 240 retained attack rows to stage5/data/gen5_retained_attacks.parquet
+
+  Gen 5 evasion rate: 3.3%
+  Promoted Gen 5 model to /home/sharkyi/Desktop/Chakravyuh/stage5/models for live inference
+GEN5 COMPLETE

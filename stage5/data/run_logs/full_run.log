@@ -166,3 +166,40 @@ Fraud prevalence: 964/510252 (0.19%) -- lookalike: 964/510252 (0.19%). Check thi
 Building final graph edges on the combined dataset...
 Writing combined tables...
 === Stage 5 training dataset generation complete! ===
+[main d89752f] Generate reduced-scale single-simulator training dataset
+ 24 files changed, 2582 deletions(-)
+ delete mode 100644 stage5/data/baseline_evaluation_report.json
+ delete mode 100644 stage5/data/baseline_model.pkl
+ delete mode 100644 stage5/data/baseline_preprocessor.pkl
+ delete mode 100644 stage5/data/gen3_evaluation_report.json
+ delete mode 100644 stage5/data/gen3_model.pkl
+ delete mode 100644 stage5/data/gen3_pipeline/curriculum_log.json
+ delete mode 100644 stage5/data/gen3_pipeline/gen3_evaluation_report.json
+ delete mode 100644 stage5/data/gen3_preprocessor.pkl
+ delete mode 100644 stage5/data/gen4_evaluation_report.json
+ delete mode 100644 stage5/data/gen4_model.pkl
+ delete mode 100644 stage5/data/gen4_pipeline/curriculum_log.json
+ delete mode 100644 stage5/data/gen4_pipeline/gen4_evaluation_report.json
+ delete mode 100644 stage5/data/gen4_preprocessor.pkl
+ delete mode 100644 stage5/data/gen5_evaluation_report.json
+ delete mode 100644 stage5/data/gen5_model.pkl
+ delete mode 100644 stage5/data/gen5_pipeline/curriculum_log.json
+ delete mode 100644 stage5/data/gen5_pipeline/gen5_evaluation_report.json
+ delete mode 100644 stage5/data/gen5_preprocessor.pkl
+ delete mode 100644 stage5/data/run_logs/02_baseline_train.log
+ delete mode 100644 stage5/data/run_logs/03a_baseline_stage.log
+ delete mode 100644 stage5/data/run_logs/03b_gen3.log
+ delete mode 100644 stage5/data/run_logs/04_gen4.log
+ delete mode 100644 stage5/data/run_logs/05_gen5.log
+To https://github.com/Sharkyii/Chakravyuh
+   a874be2..d89752f  main -> main
+=== [2/4] Baseline training ===
+=== Training Stage 5 Primary Fraud Model ===
+Loading combined dataset and assigning temporal splits...
+Computing sequential behavioral features...
+Merging party/account features...
+Merging graph features...
+Merging target labels...
+Train size: 302901, Val size: 99054, Test size: 108297 (held-out family rows: 91)
+Saving final model artifacts to /home/sharkyi/Desktop/Chakravyuh/stage5/models...
+=== Model training and saving complete! ===

@@ -1,4 +1,3 @@
-import os
 import sys
 import json
 import shutil
@@ -22,35 +21,18 @@ import pyarrow.parquet as pq
 # Load config settings
 from stage5.config.settings import (
     STAGE5_DATA_DIR,
-    STAGE2_OUTPUT_DIR,
     STAGE5_N_CONSUMERS,
     STAGE5_N_MERCHANTS,
+    ATTACK_FAMILIES,
     ATTACK_EXPANSION_FACTOR,
 )
 
-ATTACK_SCENARIOS = [
-    {"attack_id": "scam_induced_push", "seed": 101, "intensity": "MEDIUM"},
-    {"attack_id": "mule_network", "seed": 102, "intensity": "MEDIUM"},
-    {"attack_id": "card_testing_probe", "seed": 103, "intensity": "MEDIUM"},
-    {"attack_id": "adversarial_evasion", "seed": 104, "intensity": "MEDIUM"},
-    {"attack_id": "first_party_dispute", "seed": 105, "intensity": "MEDIUM"},
-    {"attack_id": "stealth_mandate", "seed": 106, "intensity": "MEDIUM"},
-    {"attack_id": "synthetic_merchant", "seed": 107, "intensity": "MEDIUM"},
-    {"attack_id": "transaction_laundering", "seed": 108, "intensity": "MEDIUM"},
-    {"attack_id": "credential_takeover", "seed": 109, "intensity": "MEDIUM"},
-    {"attack_id": "synthetic_identity_bustout", "seed": 110, "intensity": "MEDIUM"},
-    {"attack_id": "subthreshold_fragmentation", "seed": 111, "intensity": "MEDIUM"},
-    {"attack_id": "agentic_injection", "seed": 112, "intensity": "MEDIUM"},
-    {"attack_id": "insider_abuse", "seed": 113, "intensity": "MEDIUM"},
-    {"attack_id": "device_fan_out", "seed": 114, "intensity": "MEDIUM"},
-    {"attack_id": "balance_drain_exit", "seed": 115, "intensity": "MEDIUM"},
-]
 # Expand each attack family to multiple distinct campaigns for richer fraud data,
 # varying the seed. Factor and baseline population size are both centralised in
 # stage5/config/settings.py -- see the comment there on why this isn't 100.
 EXPANSION_FACTOR = ATTACK_EXPANSION_FACTOR
 expanded_scenarios = []
-for base in ATTACK_SCENARIOS:
+for base in ATTACK_FAMILIES:
     for i in range(EXPANSION_FACTOR):
         expanded_scenarios.append({
             "attack_id": base["attack_id"],
@@ -166,7 +148,7 @@ def main():
         
         # Standardize dataclasses/objects to dicts if needed
         txs_dicts = [_row_dict(t) for t in attack_txs]
-        labels_dicts = [_row_dict(l) for l in attack_labels]
+        labels_dicts = [_row_dict(label) for label in attack_labels]
 
         # legit_lookalike companion population -- without this the classifier
         # never has to separate fraud from its legitimate near-neighbour, and
@@ -183,8 +165,8 @@ def main():
         scenario_id = f"{attack_id}_seed{seed}"
         for t in txs_dicts:
             t["scenario_id"] = scenario_id
-        for l in labels_dicts:
-            l["scenario_id"] = scenario_id
+        for label in labels_dicts:
+            label["scenario_id"] = scenario_id
             
         all_transactions.extend(txs_dicts)
         all_labels.extend(labels_dicts)
@@ -197,12 +179,14 @@ def main():
             "scenario_id": scenario_id,
             "n_transactions": len(txs_dicts),
             "n_labels": len(labels_dicts),
-            "n_fraud": sum(1 for l in labels_dicts if l["is_fraud"]),
-            "n_lookalike": sum(1 for l in labels_dicts if l.get("is_legit_lookalike", False))
+            "n_fraud": sum(1 for label in labels_dicts if label["is_fraud"]),
+            "n_lookalike": sum(
+                1 for label in labels_dicts if label.get("is_legit_lookalike", False)
+            ),
         })
         
-    n_fraud = sum(1 for l in all_labels if l.get("is_fraud"))
-    n_lookalike = sum(1 for l in all_labels if l.get("is_legit_lookalike"))
+    n_fraud = sum(1 for label in all_labels if label.get("is_fraud"))
+    n_lookalike = sum(1 for label in all_labels if label.get("is_legit_lookalike"))
     n_total = len(all_transactions)
     print(f"Total transactions after layering: {n_total}")
     print(f"Total labels after layering: {len(all_labels)}")

@@ -35,6 +35,27 @@ STAGE5_N_MERCHANTS = 4_000
 # printed prevalence in generate_training_data.py's output after any change.
 ATTACK_EXPANSION_FACTOR = 40
 
+# Canonical Stage 5 training families.  Keep the campaign seed separate for
+# each family: generate_training_data.py expands it into a non-overlapping
+# per-campaign seed range so generated transaction ids remain unique.
+ATTACK_FAMILIES = (
+    {"attack_id": "scam_induced_push", "seed": 101, "intensity": "MEDIUM"},
+    {"attack_id": "mule_network", "seed": 102, "intensity": "MEDIUM"},
+    {"attack_id": "card_testing_probe", "seed": 103, "intensity": "MEDIUM"},
+    {"attack_id": "adversarial_evasion", "seed": 104, "intensity": "MEDIUM"},
+    {"attack_id": "first_party_dispute", "seed": 105, "intensity": "MEDIUM"},
+    {"attack_id": "stealth_mandate", "seed": 106, "intensity": "MEDIUM"},
+    {"attack_id": "synthetic_merchant", "seed": 107, "intensity": "MEDIUM"},
+    {"attack_id": "transaction_laundering", "seed": 108, "intensity": "MEDIUM"},
+    {"attack_id": "credential_takeover", "seed": 109, "intensity": "MEDIUM"},
+    {"attack_id": "synthetic_identity_bustout", "seed": 110, "intensity": "MEDIUM"},
+    {"attack_id": "subthreshold_fragmentation", "seed": 111, "intensity": "MEDIUM"},
+    {"attack_id": "agentic_injection", "seed": 112, "intensity": "MEDIUM"},
+    {"attack_id": "insider_abuse", "seed": 113, "intensity": "MEDIUM"},
+    {"attack_id": "device_fan_out", "seed": 114, "intensity": "MEDIUM"},
+    {"attack_id": "balance_drain_exit", "seed": 115, "intensity": "MEDIUM"},
+)
+
 # Splits -- temporal, matching docs/master-project-brief.md section 6 rule 2
 # ("split temporally, never randomly"). Windows are derived from
 # src.dataset.splits.split_windows() over the simulation calendar, not by

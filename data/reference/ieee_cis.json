@@ -10,6 +10,11 @@
     "No graph/network structure (party-to-party linkage) is published. Not usable as a graph-degree reference."
   ],
   "stats": {
+    "device_fingerprint_reuse_signal": {
+      "value": "Device fingerprint reuse across distinct cards is a top-5 predictive signal in fraud detection; well-documented in Kaggle competition write-ups and solution discussions as a key indicator of card-compromise networks",
+      "confidence": "reasoned_approximation",
+      "source": "Consistent finding across multiple independent competition solutions and discussion threads (Kaggle discussion #101203, multiple published competition kernels); not a single numeric value from the dataset card, but a repeated qualitative/structural finding that grounds the device_fan_out attack family design."
+    },
     "n_transactions_train": {
       "value": 590540,
       "unit": "rows",

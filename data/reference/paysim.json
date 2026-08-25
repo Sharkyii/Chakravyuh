@@ -13,6 +13,11 @@
     "Fraud in this dataset is restricted by construction to TRANSFER and CASH_OUT types only -- a well-documented data-generating-process quirk, not something to expect in our generated data (our fraud rows are labelled independently)."
   ],
   "stats": {
+    "balance_drain_fraud_mechanism": {
+      "value": "PaySim's fraud generation is explicitly designed around account takeover → TRANSFER → CASH_OUT sequences (documented in the PaySim paper), where receiver accounts are rapidly liquidated after receiving funds. This mechanism is the signature of balance-drain-exit fraud.",
+      "confidence": "published",
+      "source": "Lopez-Rojas et al., PaySim paper: fraud generation process description; Kaggle dataset card notes on isFraud generation logic restricted to TRANSFER and CASH_OUT types."
+    },
     "n_transactions": {
       "value": 6362620,
       "unit": "rows",

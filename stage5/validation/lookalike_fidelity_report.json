@@ -1,0 +1,16 @@
+{
+  "status": "FAIL",
+  "reason": "Lookalikes too similar to legitimate rows -- trivial separation risk",
+  "metrics": {
+    "fraud_count": 964,
+    "lookalike_count": 964,
+    "legitimate_count": 508324,
+    "feature_overlap_pct": 98.0,
+    "centroid_distances": {
+      "fraud_to_lookalike": 8.790525313437076,
+      "fraud_to_legit": 9.811140661883007,
+      "lookalike_to_legit": 4.147896032532867
+    },
+    "separation_ratio": 2.119272789196804
+  }
+}

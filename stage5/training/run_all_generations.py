@@ -18,6 +18,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import pandas as pd
 
+from stage5.config.settings import (
+    NUMERICAL_FEATURES, BOOLEAN_FEATURES, BEHAVIORAL_FEATURES, GRAPH_FEATURES,
+)
+
+NON_CATEGORICAL_FEATURES = NUMERICAL_FEATURES + BOOLEAN_FEATURES + BEHAVIORAL_FEATURES + GRAPH_FEATURES
+
 from stage5.training.train_fraud_model import train_fraud_model, load_and_prepare
 from stage5.training.gen3_pipeline import run_gen3_pipeline
 from stage5.training.gen4_pipeline import run_gen4_pipeline
@@ -55,6 +61,19 @@ def load_retained_attacks(*paths: Path) -> pd.DataFrame | None:
 
 
 def save_retained_attacks(df: pd.DataFrame, path: Path) -> None:
+    # Attack dicts populate non-categorical features inconsistently (real
+    # bool/int in some rows, np.float64 0.0/NaN in others depending on which
+    # generator built the row), leaving object-dtype columns pyarrow can't
+    # infer a single type for -- not just BOOLEAN_FEATURES (first fix missed
+    # new_ip_indicator etc., which are listed under BEHAVIORAL_FEATURES
+    # despite being 0/1 flags). Coerce every non-categorical feature to
+    # float uniformly -- same numeric treatment these columns already get
+    # in train_fraud_model()'s preprocessing pipeline, so this changes
+    # nothing about how they're used downstream.
+    df = df.copy()
+    for col in NON_CATEGORICAL_FEATURES:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
     df.to_parquet(path, index=False)
     print(f"  Saved {len(df)} retained attack rows to {path}")
 

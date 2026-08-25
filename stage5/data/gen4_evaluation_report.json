@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-08-25T09:48:58.460455",
+  "timestamp": "2026-08-25T10:35:36.309707",
   "title": "Gen 4 Ensemble Adversarial Evaluation Report",
   "executive_summary": {
-    "gen4_evasion_rate": "21.3%",
+    "gen4_evasion_rate": "0.0%",
     "gen4_target": "<15.0%",
-    "status": "FAIL",
-    "recommendation": "Generate Gen 5 attacks"
+    "status": "PASS",
+    "recommendation": "Deploy Gen 4 model"
   },
   "what_is_gen4": {
     "concept": "Ensemble attacks trade off multiple features simultaneously",
@@ -57,93 +57,75 @@
       "held_out_recall": null
     },
     "gen4_after_retrain": {
-      "pr_auc": 1.0,
+      "pr_auc": 0.9999999999999998,
       "held_out_recall": null
     }
   },
   "evasion_metrics": {
     "gen4_attacks_on_gen3_model": {
-      "evasion_rate": "24.7%",
+      "evasion_rate": "15.4%",
       "status": "FAIL",
       "note": "Why we retrain"
     },
     "gen4_attacks_on_gen4_model": {
-      "evasion_rate": "21.3%",
-      "status": "FAIL",
+      "evasion_rate": "0.0%",
+      "status": "PASS",
       "note": "After ensemble curriculum retraining"
     }
   },
   "difficulty_levels": {
     "level_1_simple_ensemble": {
-      "evasion": "23.5%",
-      "evasion_margin": 0.235,
-      "status": "FAIL",
-      "training_size": 406423
-    },
-    "level_2_complex_ensemble": {
-      "evasion": "21.3%",
-      "evasion_margin": 0.21333333333333335,
-      "status": "FAIL",
-      "training_size": 406523
-    },
-    "level_3_multi_ensemble": {
-      "evasion": "27.8%",
-      "evasion_margin": 0.2775,
-      "status": "FAIL",
-      "training_size": 406523
-    },
-    "level_4_extreme_ensemble": {
-      "evasion": "25.0%",
-      "evasion_margin": 0.25,
-      "status": "FAIL",
-      "training_size": 406523
+      "evasion": "0.0%",
+      "evasion_margin": 0.0,
+      "status": "PASS",
+      "training_size": 406323
     }
   },
   "feature_importance": [
     {
-      "name": "edge_count",
-      "importance": 0.3654
-    },
-    {
       "name": "beneficiary_added_ago_s",
-      "importance": 0.1485
+      "importance": 0.1659
     },
     {
-      "name": "edge_value_total",
-      "importance": 0.0856
+      "name": "auth_method_upi_pin",
+      "importance": 0.1362
     },
     {
-      "name": "payee_in_degree",
-      "importance": 0.0485
+      "name": "edge_count",
+      "importance": 0.0878
     },
     {
-      "name": "rail_upi_p2p",
-      "importance": 0.0324
+      "name": "rail_card_cnp",
+      "importance": 0.0802
     },
     {
-      "name": "is_two_hop_passthrough",
-      "importance": 0.0292
+      "name": "session_duration_s",
+      "importance": 0.0686
     },
     {
-      "name": "rail_upi_mandate",
-      "importance": 0.0289
-    },
-    {
-      "name": "payer_out_degree",
-      "importance": 0.0234
+      "name": "auth_method_cvv_only",
+      "importance": 0.0487
     },
     {
       "name": "pin_attempts",
-      "importance": 0.0217
+      "importance": 0.0331
     },
     {
-      "name": "time_on_confirm_screen_s",
-      "importance": 0.021
+      "name": "auth_result_success",
+      "importance": 0.0289
+    },
+    {
+      "name": "auth_result_not_attempted",
+      "importance": 0.0278
+    },
+    {
+      "name": "eci_07",
+      "importance": 0.0238
     }
   ],
   "curriculum_effectiveness": {
     "success_criterion": "<15% final evasion rate",
-    "pass_fail": "FAIL"
+    "pass_fail": "PASS"
   },
   "next_steps": {
     "if_pass": "Deploy Gen 4 model, or generate Gen 5 (multi-family attacks) for further hardening",

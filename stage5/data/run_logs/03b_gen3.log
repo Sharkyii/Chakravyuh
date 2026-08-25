@@ -1,0 +1,197 @@
+/home/sharkyi/Desktop/Chakravyuh/stage5/training/curriculum_retrain.py:128: FutureWarning: The behavior of DataFrame concatenation with empty or all-NA entries is deprecated. In a future version, this will no longer exclude empty or all-NA columns when determining the result dtypes. To retain the old behavior, exclude the relevant entries before the concat operation.
+  training_df = pd.concat([
+/home/sharkyi/Desktop/Chakravyuh/.venv/lib/python3.11/site-packages/sklearn/metrics/_ranking.py:1174: UndefinedMetricWarning: No negative samples in y_true, false positive value should be meaningless
+  warnings.warn(
+/home/sharkyi/Desktop/Chakravyuh/.venv/lib/python3.11/site-packages/sklearn/metrics/_ranking.py:1174: UndefinedMetricWarning: No negative samples in y_true, false positive value should be meaningless
+  warnings.warn(
+/home/sharkyi/Desktop/Chakravyuh/stage5/training/curriculum_retrain.py:128: FutureWarning: The behavior of DataFrame concatenation with empty or all-NA entries is deprecated. In a future version, this will no longer exclude empty or all-NA columns when determining the result dtypes. To retain the old behavior, exclude the relevant entries before the concat operation.
+  training_df = pd.concat([
+/home/sharkyi/Desktop/Chakravyuh/.venv/lib/python3.11/site-packages/sklearn/metrics/_ranking.py:1174: UndefinedMetricWarning: No negative samples in y_true, false positive value should be meaningless
+  warnings.warn(
+/home/sharkyi/Desktop/Chakravyuh/.venv/lib/python3.11/site-packages/sklearn/metrics/_ranking.py:1174: UndefinedMetricWarning: No negative samples in y_true, false positive value should be meaningless
+  warnings.warn(
+/home/sharkyi/Desktop/Chakravyuh/stage5/training/curriculum_retrain.py:128: FutureWarning: The behavior of DataFrame concatenation with empty or all-NA entries is deprecated. In a future version, this will no longer exclude empty or all-NA columns when determining the result dtypes. To retain the old behavior, exclude the relevant entries before the concat operation.
+  training_df = pd.concat([
+/home/sharkyi/Desktop/Chakravyuh/.venv/lib/python3.11/site-packages/sklearn/metrics/_ranking.py:1174: UndefinedMetricWarning: No negative samples in y_true, false positive value should be meaningless
+  warnings.warn(
+/home/sharkyi/Desktop/Chakravyuh/.venv/lib/python3.11/site-packages/sklearn/metrics/_ranking.py:1174: UndefinedMetricWarning: No negative samples in y_true, false positive value should be meaningless
+  warnings.warn(
+/home/sharkyi/Desktop/Chakravyuh/stage5/training/curriculum_retrain.py:128: FutureWarning: The behavior of DataFrame concatenation with empty or all-NA entries is deprecated. In a future version, this will no longer exclude empty or all-NA columns when determining the result dtypes. To retain the old behavior, exclude the relevant entries before the concat operation.
+  training_df = pd.concat([
+/home/sharkyi/Desktop/Chakravyuh/.venv/lib/python3.11/site-packages/sklearn/metrics/_ranking.py:1174: UndefinedMetricWarning: No negative samples in y_true, false positive value should be meaningless
+  warnings.warn(
+/home/sharkyi/Desktop/Chakravyuh/.venv/lib/python3.11/site-packages/sklearn/metrics/_ranking.py:1174: UndefinedMetricWarning: No negative samples in y_true, false positive value should be meaningless
+  warnings.warn(
+================================================================================
+GEN 3 PIPELINE
+================================================================================
+Computing sequential behavioral features...
+Merging party/account features...
+Merging graph features...
+Merging target labels...
+  510252 rows loaded
+
+================================================================================
+GEN 3 FULL PIPELINE: Analyst Feedback → Harder Attacks → Improved Detector
+================================================================================
+
+[STAGE 1] GENERATING GEN 3 ATTACKS
+--------------------------------------------------------------------------------
+Gen 3 targeting top features: ['edge_count', 'beneficiary_added_ago_s', 'pin_attempts']
+
+  Generating mule_network...
+
+  Generating level_1_easy: Hide 1-2 features only
+    Generated 500 variants
+
+  Generating level_2_medium: Hide 2-3 features
+    Generated 750 variants
+
+  Generating level_3_hard: Hide 3-4 features
+    Generated 1000 variants
+
+  Generating level_4_extreme: Hide all top 5 features + add noise
+    Generated 500 variants
+
+  Generating adversarial_evasion...
+
+  Generating level_1_easy: Hide 1-2 features only
+    Generated 500 variants
+
+  Generating level_2_medium: Hide 2-3 features
+    Generated 750 variants
+
+  Generating level_3_hard: Hide 3-4 features
+    Generated 1000 variants
+
+  Generating level_4_extreme: Hide all top 5 features + add noise
+    Generated 500 variants
+
+  Generating account_takeover...
+
+  Generating level_1_easy: Hide 1-2 features only
+    Generated 500 variants
+
+  Generating level_2_medium: Hide 2-3 features
+    Generated 750 variants
+
+  Generating level_3_hard: Hide 3-4 features
+    Generated 1000 variants
+
+  Generating level_4_extreme: Hide all top 5 features + add noise
+    Generated 500 variants
+
+  ✓ Generated attacks for 3 families
+
+[STAGE 2] CURRICULUM RETRAINING
+--------------------------------------------------------------------------------
+
+======================================================================
+GEN3 CURRICULUM RETRAINING
+======================================================================
+
+  Baseline: gen3 attacks vs prior-generation model: 86.7% evasion (why we retrain)
+
+[1/4] LEVEL_1_EASY
+----------------------------------------------------------------------
+  Training data size: 402455
+    Original: 510252
+    Analyst feedback: 0
+    gen3 (for curriculum): 500
+
+  Evaluation:
+    Prior-gen evasion: 10.0% (should be near 0%)
+    gen3 evasion: 41.2% (target <5%)
+
+  Action: Evasion too high, continue to level_2_medium
+
+[2/4] LEVEL_2_MEDIUM
+----------------------------------------------------------------------
+  Training data size: 402455
+    Original: 510252
+    Analyst feedback: 0
+    gen3 (for curriculum): 500
+
+  Evaluation:
+    Prior-gen evasion: 10.0% (should be near 0%)
+    gen3 evasion: 95.1% (target <5%)
+
+  Action: Evasion too high, continue to level_3_hard
+
+[3/4] LEVEL_3_HARD
+----------------------------------------------------------------------
+  Training data size: 402455
+    Original: 510252
+    Analyst feedback: 0
+    gen3 (for curriculum): 500
+
+  Evaluation:
+    Prior-gen evasion: 10.0% (should be near 0%)
+    gen3 evasion: 98.4% (target <5%)
+
+  Action: Evasion too high, continue to level_4_extreme
+
+[4/4] LEVEL_4_EXTREME
+----------------------------------------------------------------------
+  Training data size: 402455
+    Original: 510252
+    Analyst feedback: 0
+    gen3 (for curriculum): 500
+
+  Evaluation:
+    Prior-gen evasion: 10.0% (should be near 0%)
+    gen3 evasion: 96.4% (target <5%)
+
+  Action: Final level reached
+
+======================================================================
+CURRICULUM TRAINING COMPLETE
+======================================================================
+Best gen3 evasion achieved: 41.2%
+Target: <5%
+Status: FAIL
+Log saved: stage5/data/gen3_pipeline/curriculum_log.json
+
+  ✓ Retraining complete
+    Best evasion achieved: 41.2%
+
+[STAGE 3] EVALUATION & REPORTING
+--------------------------------------------------------------------------------
+  ✓ Evaluation report generated
+
+======================================================================
+GEN 3 ADVERSARIAL EVALUATION REPORT
+======================================================================
+
+EXECUTIVE SUMMARY
+  analyst_feedback_collected: 0
+  gen3_evasion_rate: 41.2%
+  gen3_target: <5.0%
+  status: FAIL
+  recommendation: Continue Gen 3 hardening
+
+EVASION METRICS
+  gen3_attacks_on_prior_model: 86.7% (FAIL) -- Why we retrained
+  gen3_attacks_on_gen3_model: 41.2% (FAIL) -- After curriculum retraining
+
+MODEL COMPARISON
+  Gen 2 PR-AUC: 0.9551094868879505  |  Gen 3 PR-AUC: 1.0
+
+CONCLUSION
+  Status: FAIL
+  Recommendation: Continue Gen 3 hardening
+======================================================================
+
+================================================================================
+GEN 3 PIPELINE COMPLETE
+================================================================================
+
+Final Status: FAIL
+  Evasion Rate: 41.2%
+  Target: <5.0%
+  Improvement: ✗ No
+
+Outputs saved to: stage5/data/gen3_pipeline
+
+  Gen 3 best evasion: 41.2%
+GEN3 COMPLETE

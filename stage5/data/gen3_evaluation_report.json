@@ -1,0 +1,118 @@
+{
+  "timestamp": "2026-08-25T06:06:26.053779",
+  "title": "Gen 3 Adversarial Evaluation Report",
+  "executive_summary": {
+    "analyst_feedback_collected": 0,
+    "gen3_evasion_rate": "41.2%",
+    "gen3_target": "<5.0%",
+    "status": "FAIL",
+    "recommendation": "Continue Gen 3 hardening"
+  },
+  "model_performance_comparison": {
+    "gen2_baseline": {
+      "pr_auc": 0.9551094868879505,
+      "held_out_recall": 1.0,
+      "description": "Prior generation, before this retraining cycle"
+    },
+    "gen3_after_curriculum": {
+      "pr_auc": 1.0,
+      "held_out_recall": null,
+      "description": "After curriculum retraining on Gen 3 attacks"
+    }
+  },
+  "evasion_metrics": {
+    "gen3_attacks_on_prior_model": {
+      "evasion_rate": "86.7%",
+      "status": "FAIL",
+      "note": "Why we retrained"
+    },
+    "gen3_attacks_on_gen3_model": {
+      "evasion_rate": "41.2%",
+      "status": "FAIL",
+      "note": "After curriculum retraining"
+    }
+  },
+  "curriculum_effectiveness": {
+    "level_1_easy": {
+      "evasion": "41.2%",
+      "evasion_margin": 0.412,
+      "status": "FAIL",
+      "training_size": 402455
+    },
+    "level_2_medium": {
+      "evasion": "95.1%",
+      "evasion_margin": 0.9506666666666667,
+      "status": "FAIL",
+      "training_size": 402455
+    },
+    "level_3_hard": {
+      "evasion": "98.4%",
+      "evasion_margin": 0.984,
+      "status": "FAIL",
+      "training_size": 402455
+    },
+    "level_4_extreme": {
+      "evasion": "96.4%",
+      "evasion_margin": 0.964,
+      "status": "FAIL",
+      "training_size": 402455
+    }
+  },
+  "analyst_feedback_impact": {
+    "feedback_collected": 0,
+    "impact": "Analyst verdicts mixed with synthetic + attack data during retraining, providing ground truth beyond synthetic labels."
+  },
+  "feature_importance": [
+    {
+      "name": "edge_count",
+      "importance": 0.3554
+    },
+    {
+      "name": "beneficiary_added_ago_s",
+      "importance": 0.1663
+    },
+    {
+      "name": "pin_attempts",
+      "importance": 0.1044
+    },
+    {
+      "name": "edge_value_total",
+      "importance": 0.066
+    },
+    {
+      "name": "payee_in_degree",
+      "importance": 0.0467
+    },
+    {
+      "name": "mean_beneficiary_added_ago",
+      "importance": 0.0358
+    },
+    {
+      "name": "txns_per_active_day",
+      "importance": 0.0203
+    },
+    {
+      "name": "same_payee_ratio",
+      "importance": 0.0178
+    },
+    {
+      "name": "payer_out_degree",
+      "importance": 0.0176
+    },
+    {
+      "name": "inter_txn_time_mean",
+      "importance": 0.0164
+    }
+  ],
+  "closed_loop_cycle_proof": {
+    "step_1_collect_feedback": "0 analyst verdicts collected",
+    "step_2_generate_attacks": "Gen 3 attacks generated (feature-hiding curriculum)",
+    "step_3_retrain": "Model retrained per curriculum level, best-evasion checkpoint kept",
+    "step_4_measure_evasion": "Evasion margin: 41.2% (target <5%)",
+    "result": "FAIL"
+  },
+  "next_steps": {
+    "if_pass": "Deploy Gen 3 model, or proceed to Gen 4 (ensemble attacks) for further hardening",
+    "if_fail": "Add curriculum levels or extract more real attack patterns before proceeding"
+  }
+}

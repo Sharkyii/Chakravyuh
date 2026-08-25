@@ -78,9 +78,16 @@ class Gen4AttackGenerator:
         4. Result: Mixed signal that confuses single-feature detection
         """
 
-        # Get legitimate template
-        legit_samples = self.training_df[self.training_df['is_fraud'] == False]
-        template = legit_samples.sample(1).iloc[0].copy()
+        # Template must be a genuine fraud row: an ensemble attack is a real
+        # fraudulent transaction where the attacker trades off which
+        # features to hide vs. deliberately expose. Starting from a legit
+        # row (the previous behaviour) meant only 2-4 features ever differed
+        # from genuine legitimate traffic, so the overall vector still read
+        # as legitimate regardless of the hide/expose trade-off being tested.
+        fraud_samples = self.training_df[self.training_df['is_fraud'] == True]
+        if fraud_samples.empty:
+            fraud_samples = self.training_df[self.training_df['is_fraud'] == False]
+        template = fraud_samples.sample(1).iloc[0].copy()
 
         # Apply spec parameters
         attack = template.copy()

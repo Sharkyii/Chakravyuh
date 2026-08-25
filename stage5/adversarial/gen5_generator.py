@@ -78,9 +78,15 @@ class Gen5AttackGenerator:
         4. Result: Attack signature spans multiple family profiles
         """
 
-        # Get legitimate template
-        legit_samples = self.training_df[self.training_df['is_fraud'] == False]
-        template = legit_samples.sample(1).iloc[0].copy()
+        # Template must be a genuine fraud row: a cross-family attack is a
+        # real fraudulent transaction whose signature spans multiple attack
+        # profiles. Starting from a legit row (the previous behaviour) left
+        # the vector reading as legitimate everywhere the spec's parameters
+        # didn't explicitly override it.
+        fraud_samples = self.training_df[self.training_df['is_fraud'] == True]
+        if fraud_samples.empty:
+            fraud_samples = self.training_df[self.training_df['is_fraud'] == False]
+        template = fraud_samples.sample(1).iloc[0].copy()
 
         attack = template.copy()
 

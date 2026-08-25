@@ -91,12 +91,19 @@ class Gen3AttackGenerator:
         spec = GEN3_SPECS[attack_family]
         attacks = []
 
-        # Get legitimate distribution to match
+        # The template must be a genuine fraud row -- an attacker is
+        # disguising a real fraudulent transaction, not manufacturing one
+        # from a legitimate one. Starting from a legit row (the previous
+        # behaviour) made every "attack" statistically identical to real
+        # legitimate traffic except for 1-2 cosmetic flags, which is not a
+        # solvable separation problem for any classifier.
+        fraud_samples = self.training_df[self.training_df['is_fraud'] == True]
         legit_samples = self.training_df[self.training_df['is_fraud'] == False]
+        if fraud_samples.empty:
+            fraud_samples = legit_samples  # degrade gracefully rather than crash
 
         for i in range(n_samples):
-            # Pick random legitimate transaction as template
-            template = legit_samples.sample(1).iloc[0]
+            template = fraud_samples.sample(1).iloc[0]
 
             # Select features to hide (top N_features_to_hide)
             features_to_hide = [f[0] for f in self.top_features[:n_features_to_hide]]
@@ -108,6 +115,16 @@ class Gen3AttackGenerator:
                 features_to_hide,
                 difficulty_multiplier
             )
+
+            # Generic mechanism, on top of whatever the family's named
+            # parameters covered: for each targeted feature, overwrite it
+            # with a value drawn from the legitimate population's own
+            # distribution for that column. This is what "hiding a feature"
+            # actually means, and doesn't depend on every family's
+            # parameter keys happening to be wired up in _apply_hiding_strategy.
+            for feature in features_to_hide:
+                if feature in legit_samples.columns and legit_samples[feature].notna().any():
+                    attack_features[feature] = legit_samples[feature].dropna().sample(1).iloc[0]
 
             attacks.append({
                 'features': attack_features,
@@ -143,14 +160,16 @@ class Gen3AttackGenerator:
                 # Ensure beneficiary looks old
                 attack['beneficiary_added_ago_s'] = max(param_value, float(attack.get('beneficiary_added_ago_s', param_value)))
 
-            elif param_key == 'use_existing_payees_only' and param_value and 'edge_count' in features_to_hide:
+            elif param_key in ('use_existing_payees_only', 'use_existing_payee_pool') and param_value and 'edge_count' in features_to_hide:
                 # Don't add new counterparties
                 attack['new_ip_indicator'] = False
                 attack['new_device_indicator'] = False
 
             elif param_key == 'max_txn_per_hour' and 'txn_count_last_1h' in features_to_hide:
-                # Reduce transaction velocity
-                attack['txn_count_last_1h'] = min(param_value, int(attack.get('txn_count_last_1h', param_value)))
+                # Reduce transaction velocity. Fraud templates can have NaN
+                # here (unlike legit rows, which always have it populated).
+                current = attack.get('txn_count_last_1h', param_value)
+                attack['txn_count_last_1h'] = param_value if pd.isna(current) else min(param_value, int(current))
 
             elif param_key == 'use_known_device' and 'device_is_known_for_payer' in features_to_hide:
                 # Use familiar device

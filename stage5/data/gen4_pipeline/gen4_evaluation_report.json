@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-08-25T08:20:48.532429",
+  "timestamp": "2026-08-25T09:48:58.460455",
   "title": "Gen 4 Ensemble Adversarial Evaluation Report",
   "executive_summary": {
-    "gen4_evasion_rate": "23.2%",
+    "gen4_evasion_rate": "21.3%",
     "gen4_target": "<15.0%",
     "status": "FAIL",
     "recommendation": "Generate Gen 5 attacks"
@@ -63,40 +63,40 @@
   },
   "evasion_metrics": {
     "gen4_attacks_on_gen3_model": {
-      "evasion_rate": "24.3%",
+      "evasion_rate": "24.7%",
       "status": "FAIL",
       "note": "Why we retrain"
     },
     "gen4_attacks_on_gen4_model": {
-      "evasion_rate": "23.2%",
+      "evasion_rate": "21.3%",
       "status": "FAIL",
       "note": "After ensemble curriculum retraining"
     }
   },
   "difficulty_levels": {
     "level_1_simple_ensemble": {
-      "evasion": "24.5%",
-      "evasion_margin": 0.245,
+      "evasion": "23.5%",
+      "evasion_margin": 0.235,
       "status": "FAIL",
-      "training_size": 405923
+      "training_size": 406423
     },
     "level_2_complex_ensemble": {
-      "evasion": "24.8%",
-      "evasion_margin": 0.24833333333333332,
+      "evasion": "21.3%",
+      "evasion_margin": 0.21333333333333335,
       "status": "FAIL",
-      "training_size": 406023
+      "training_size": 406523
     },
     "level_3_multi_ensemble": {
-      "evasion": "23.2%",
-      "evasion_margin": 0.2325,
+      "evasion": "27.8%",
+      "evasion_margin": 0.2775,
       "status": "FAIL",
-      "training_size": 406023
+      "training_size": 406523
     },
     "level_4_extreme_ensemble": {
       "evasion": "25.0%",
       "evasion_margin": 0.25,
       "status": "FAIL",
-      "training_size": 406023
+      "training_size": 406523
     }
   },
   "feature_importance": [

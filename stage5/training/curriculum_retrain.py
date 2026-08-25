@@ -109,6 +109,7 @@ def retrain_on_gen3_attacks(
 
     levels = list(gen3_attacks_by_level.keys())
     this_gen_levels_seen: list[pd.DataFrame] = []
+    this_gen_test_seen: list[pd.DataFrame] = []
 
     n_accumulated = len(accumulated_attacks_df) if accumulated_attacks_df is not None else 0
     if n_accumulated:
@@ -164,13 +165,21 @@ def retrain_on_gen3_attacks(
         gen3_train_rows['split'] = 'train'
         gen3_test_rows = gen3_df.iloc[shuffled[n_train:]].copy()
         gen3_test_rows['split'] = 'test'
-        this_gen_levels_seen.append(gen3_train_rows.head(RETAINED_SAMPLE_CAP))
+
+        # Accumulate across levels WITHIN this generation -- not just across
+        # generations via accumulated_attacks_df. Without this, level 2's
+        # training set discards level 1's attacks entirely (fresh batch each
+        # level), so a model that reaches level 4 has forgotten level 1's
+        # easy patterns by the time it's learned level 4's extreme ones.
+        this_gen_levels_seen.append(gen3_train_rows)
+        this_gen_test_seen.append(gen3_test_rows)
+        cumulative_train_this_gen = pd.concat(this_gen_levels_seen, ignore_index=True, sort=False)
+        cumulative_test_this_gen = pd.concat(this_gen_test_seen, ignore_index=True, sort=False)
 
         concat_parts = [
             original_training_df[original_training_df['split'].isin(['train', 'validation'])],
             analyst_feedback_df.assign(split='train') if len(analyst_feedback_df) else analyst_feedback_df,
-            gen3_train_rows,
-            gen3_test_rows,
+            cumulative_train_this_gen,
         ]
         if accumulated_attacks_df is not None and len(accumulated_attacks_df):
             concat_parts.append(accumulated_attacks_df)
@@ -179,7 +188,7 @@ def retrain_on_gen3_attacks(
         print(f"  Training data size: {len(training_df)}")
         print(f"    Original: {len(original_training_df)}")
         print(f"    Analyst feedback: {len(analyst_feedback_df)}")
-        print(f"    {generation_label} (train): {len(gen3_train_rows)}   {generation_label} (held-out test): {len(gen3_test_rows)}")
+        print(f"    {generation_label} (train, cumulative through this level): {len(cumulative_train_this_gen)}   {generation_label} (held-out test, cumulative): {len(cumulative_test_this_gen)}")
         print(f"    Retained from prior generations: {n_accumulated}")
 
         try:
@@ -206,11 +215,17 @@ def retrain_on_gen3_attacks(
             )
             print(f"    Prior-gen evasion: {gen2_margin['evasion_percent']} (should be near 0%)")
 
-        # Measured on the held-out test rows only -- the ones this level's
-        # model did NOT train on -- so this is genuine generalisation, not
-        # the model grading its own training data.
+        # Measured on the CUMULATIVE held-out test rows across every level
+        # trained so far this generation -- not just the level just trained.
+        # A model that only ever saw "easy" attacks can hit a low evasion
+        # number on an "easy" held-out set while still failing badly on
+        # medium/hard/extreme variants it was never exposed to; scoring
+        # against the full spectrum trained so far is what makes this number
+        # honest. (Confirmed via cross_generation_eval.py: a checkpoint that
+        # looked like 2% evasion here was actually 43%+ against the full
+        # 4-level attack set, because it had stopped after level 1.)
         this_gen_evasion = measure_evasion_margin(
-            level_model, gen3_test_rows[ALL_FEATURES], gen3_test_rows['is_fraud'].values,
+            level_model, cumulative_test_this_gen[ALL_FEATURES], cumulative_test_this_gen['is_fraud'].values,
             generation=generation_label, preprocessor=level_preprocessor,
         )
         print(f"    {generation_label} evasion: {this_gen_evasion['evasion_percent']} (target <{target_evasion*100:.0f}%)")
@@ -235,12 +250,17 @@ def retrain_on_gen3_attacks(
             'status': 'PASS' if this_gen_evasion['status'] == 'PASS' else 'FAIL',
         }
 
-        if this_gen_evasion['evasion_margin'] > target_evasion and level_idx < len(levels) - 1:
-            print(f"\n  Action: Evasion too high, continue to {levels[level_idx+1]}")
-        elif this_gen_evasion['evasion_margin'] <= target_evasion:
-            print(f"\n  Action: Target achieved (<{target_evasion*100:.0f}%), ready to deploy")
-            break
-        elif level_idx == len(levels) - 1:
+        # Always continue through every level -- no early exit. Stopping as
+        # soon as any single level's evasion dips below target used to mean
+        # a model that passed on level 1's "easy" held-out set alone got
+        # deployed having never trained on levels 2-4 (medium/hard/extreme).
+        # Since evaluation is now against the CUMULATIVE held-out set (all
+        # levels trained so far), "target achieved" only means something once
+        # every level has been folded in -- so just report status and move on.
+        if level_idx < len(levels) - 1:
+            status_note = "target already met on cumulative set" if this_gen_evasion['evasion_margin'] <= target_evasion else "above target"
+            print(f"\n  Action: {status_note}; continuing to {levels[level_idx+1]} for full curriculum coverage")
+        else:
             print(f"\n  Action: Final level reached")
 
     log_path = output_dir / "curriculum_log.json"

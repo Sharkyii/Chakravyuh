@@ -1,0 +1,72 @@
+================================================================================
+CROSS-GENERATION EVALUATION: final deployed model vs. Gen 3/4/5 attacks
+================================================================================
+
+Loading dataset + prior-generation checkpoints...
+Computing sequential behavioral features...
+Merging party/account features...
+Merging graph features...
+Merging target labels...
+  Deployed model loaded from stage5/models/fraud_model.pkl (the Gen 5 checkpoint)
+
+Regenerating Gen 3 attacks (adversarial_evasion family, the one used for retraining)...
+Gen 3 targeting top features: ['edge_count', 'beneficiary_added_ago_s']
+
+  Generating level_1_easy: Hide 1-2 features only
+    Generated 500 variants
+
+  Generating level_2_medium: Hide 2-3 features
+    Generated 750 variants
+
+  Generating level_3_hard: Hide 3-4 features
+    Generated 1000 variants
+
+  Generating level_4_extreme: Hide all top 5 features + add noise
+    Generated 500 variants
+  2750 Gen 3 attack variants
+
+Regenerating Gen 4 ensemble attacks...
+
+Generating Gen 4 ensemble attacks (6 trading strategies)
+
+  level_1_simple_ensemble: Trade off 2 features (1 hidden, 1 exposed)
+    Generated 400 ensemble variants
+
+  level_2_complex_ensemble: Trade off 3 features (2 hidden, 1-2 exposed)
+    Generated 600 ensemble variants
+
+  level_3_multi_ensemble: Trade off 4-5 features (multiple simultaneous trades)
+    Generated 800 ensemble variants
+
+  level_4_extreme_ensemble: Trade off all top features + add cross-family combinations
+    Generated 500 ensemble variants
+  2300 Gen 4 attack variants
+
+Regenerating Gen 5 multi-family attacks...
+
+Generating Gen 5 multi-family attacks (6 cross-family specs)
+
+  level_1_simple_cross_family: 2-family cross-attack (mule + testing)
+    Generated 300 multi-family variants
+
+  level_2_moderate_cross_family: 2-family combinations with more sophisticated mixing
+    Generated 400 multi-family variants
+
+  level_3_complex_cross_family: 3-family combinations (takeover + testing + evasion)
+    Generated 500 multi-family variants
+
+  level_4_extreme_cross_family: 3+ family combinations with adversarial timing
+    Generated 400 multi-family variants
+  1600 Gen 5 attack variants
+
+================================================================================
+SCORING DEPLOYED MODEL AGAINST EACH ATTACK GENERATION
+================================================================================
+
+  gen3_attacks    n= 2750  evasion=    0.9%  caught=2724/2750  status=PASS
+
+  gen4_attacks    n= 2300  evasion=    0.0%  caught=2299/2300  status=PASS
+
+  gen5_attacks    n= 1600  evasion=    0.1%  caught=1599/1600  status=PASS
+
+Report saved: stage5/validation/cross_generation_evaluation.json

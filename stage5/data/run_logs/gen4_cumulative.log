@@ -1,0 +1,163 @@
+/home/sharkyi/Desktop/Chakravyuh/stage5/training/curriculum_retrain.py:186: FutureWarning: The behavior of DataFrame concatenation with empty or all-NA entries is deprecated. In a future version, this will no longer exclude empty or all-NA columns when determining the result dtypes. To retain the old behavior, exclude the relevant entries before the concat operation.
+  training_df = pd.concat(concat_parts, ignore_index=True, sort=False)
+/home/sharkyi/Desktop/Chakravyuh/stage5/training/curriculum_retrain.py:186: FutureWarning: The behavior of DataFrame concatenation with empty or all-NA entries is deprecated. In a future version, this will no longer exclude empty or all-NA columns when determining the result dtypes. To retain the old behavior, exclude the relevant entries before the concat operation.
+  training_df = pd.concat(concat_parts, ignore_index=True, sort=False)
+/home/sharkyi/Desktop/Chakravyuh/stage5/training/curriculum_retrain.py:186: FutureWarning: The behavior of DataFrame concatenation with empty or all-NA entries is deprecated. In a future version, this will no longer exclude empty or all-NA columns when determining the result dtypes. To retain the old behavior, exclude the relevant entries before the concat operation.
+  training_df = pd.concat(concat_parts, ignore_index=True, sort=False)
+/home/sharkyi/Desktop/Chakravyuh/stage5/training/curriculum_retrain.py:186: FutureWarning: The behavior of DataFrame concatenation with empty or all-NA entries is deprecated. In a future version, this will no longer exclude empty or all-NA columns when determining the result dtypes. To retain the old behavior, exclude the relevant entries before the concat operation.
+  training_df = pd.concat(concat_parts, ignore_index=True, sort=False)
+================================================================================
+GEN 4 PIPELINE
+================================================================================
+Computing sequential behavioral features...
+Merging party/account features...
+Merging graph features...
+Merging target labels...
+  514750 rows loaded
+
+================================================================================
+GEN 4 FULL PIPELINE: Ensemble Evasion → Curriculum Retrain → Evaluation
+================================================================================
+
+[STAGE 1] GENERATING GEN 4 ENSEMBLE ATTACKS
+--------------------------------------------------------------------------------
+
+  Generating ensemble attacks (6 trading strategies)...
+
+Generating Gen 4 ensemble attacks (6 trading strategies)
+
+  level_1_simple_ensemble: Trade off 2 features (1 hidden, 1 exposed)
+    Generated 400 ensemble variants
+
+  level_2_complex_ensemble: Trade off 3 features (2 hidden, 1-2 exposed)
+    Generated 600 ensemble variants
+
+  level_3_multi_ensemble: Trade off 4-5 features (multiple simultaneous trades)
+    Generated 800 ensemble variants
+
+  level_4_extreme_ensemble: Trade off all top features + add cross-family combinations
+    Generated 500 ensemble variants
+  ✓ Generated 2300 ensemble attack variants
+    Estimated evasion on Gen 3 model: 16.0%
+
+[STAGE 2] CURRICULUM RETRAINING ON ENSEMBLE ATTACKS
+--------------------------------------------------------------------------------
+
+  Retraining on Gen 4 ensemble attacks...
+
+  Carrying forward 1500 retained attack rows from prior generations
+
+======================================================================
+GEN4 CURRICULUM RETRAINING
+======================================================================
+
+  Baseline: gen4 attacks vs prior-generation model: 16.0% evasion (why we retrain)
+
+[1/4] LEVEL_1_SIMPLE_ENSEMBLE
+----------------------------------------------------------------------
+  Training data size: 407343
+    Original: 514750
+    Analyst feedback: 0
+    gen4 (train, cumulative through this level): 320   gen4 (held-out test, cumulative): 80
+    Retained from prior generations: 1500
+
+  Evaluation:
+    Prior-gen evasion: 0.0% (should be near 0%)
+    gen4 evasion: 0.0% (target <15%)
+
+  Action: target already met on cumulative set; continuing to level_2_complex_ensemble for full curriculum coverage
+
+[2/4] LEVEL_2_COMPLEX_ENSEMBLE
+----------------------------------------------------------------------
+  Training data size: 407823
+    Original: 514750
+    Analyst feedback: 0
+    gen4 (train, cumulative through this level): 800   gen4 (held-out test, cumulative): 200
+    Retained from prior generations: 1500
+
+  Evaluation:
+    Prior-gen evasion: 0.0% (should be near 0%)
+    gen4 evasion: 0.5% (target <15%)
+
+  Action: target already met on cumulative set; continuing to level_3_multi_ensemble for full curriculum coverage
+
+[3/4] LEVEL_3_MULTI_ENSEMBLE
+----------------------------------------------------------------------
+  Training data size: 408303
+    Original: 514750
+    Analyst feedback: 0
+    gen4 (train, cumulative through this level): 1280   gen4 (held-out test, cumulative): 320
+    Retained from prior generations: 1500
+
+  Evaluation:
+    Prior-gen evasion: 0.0% (should be near 0%)
+    gen4 evasion: 0.0% (target <15%)
+
+  Action: target already met on cumulative set; continuing to level_4_extreme_ensemble for full curriculum coverage
+
+[4/4] LEVEL_4_EXTREME_ENSEMBLE
+----------------------------------------------------------------------
+  Training data size: 408703
+    Original: 514750
+    Analyst feedback: 0
+    gen4 (train, cumulative through this level): 1680   gen4 (held-out test, cumulative): 420
+    Retained from prior generations: 1500
+
+  Evaluation:
+    Prior-gen evasion: 0.0% (should be near 0%)
+    gen4 evasion: 0.0% (target <15%)
+
+  Action: Final level reached
+
+======================================================================
+CURRICULUM TRAINING COMPLETE
+======================================================================
+Best gen4 evasion achieved: 0.0%
+Target: <15%
+Status: PASS
+Retained 1500 gen4 attack rows for next generation's training
+Log saved: stage5/data/gen4_pipeline/curriculum_log.json
+
+  ✓ Retraining complete
+    Best evasion achieved: 0.0%
+
+[STAGE 3] EVALUATION & REPORTING
+--------------------------------------------------------------------------------
+  ✓ Evaluation report generated
+
+======================================================================
+GEN 4 ENSEMBLE ADVERSARIAL EVALUATION REPORT
+======================================================================
+
+EXECUTIVE SUMMARY
+  gen4_evasion_rate: 0.0%
+  gen4_target: <15.0%
+  status: PASS
+  recommendation: Deploy Gen 4 model
+
+EVASION METRICS
+  gen4_attacks_on_gen3_model: 16.0% (FAIL) -- Why we retrain
+  gen4_attacks_on_gen4_model: 0.0% (PASS) -- After ensemble curriculum retraining
+
+CONCLUSION
+  Evasion Rate: 0.0%
+  Target: <15.0%
+  Status: PASS
+  Recommendation: Deploy Gen 4 model
+======================================================================
+
+================================================================================
+GEN 4 PIPELINE COMPLETE
+================================================================================
+
+Final Status: PASS
+  Evasion Rate: 0.0%
+  Target: <15.0%
+  Improvement over Gen 3 model on these attacks: Yes (16.0% -> 0.0%)
+
+Outputs saved to: stage5/data/gen4_pipeline
+Recommendation: Deploy Gen 4 model
+  Saved 1500 retained attack rows to stage5/data/gen4_retained_attacks.parquet
+
+  Gen 4 evasion rate: 0.0%
+GEN4 COMPLETE

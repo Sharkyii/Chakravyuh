@@ -1,41 +1,134 @@
 {
-  "timestamp": "2026-08-25T13:29:02.492318",
+  "timestamp": "2026-08-25T14:00:17.328725",
   "generation": "gen4",
   "curriculum_log": {
     "level_1_simple_ensemble": {
       "prior_gen_evasion": {
         "generation": "prior",
-        "evasion_margin": 0.01,
-        "evasion_percent": "1.0%",
-        "caught": 99,
-        "slipped": 1,
+        "evasion_margin": 0.0,
+        "evasion_percent": "0.0%",
+        "caught": 100,
+        "slipped": 0,
         "total": 100,
         "threshold_used": 0.45,
         "target": 0.05,
         "target_percent": "5.0%",
         "status": "PASS",
-        "margin_to_target": -0.04
+        "margin_to_target": -0.05
       },
       "gen4_evasion": {
         "generation": "gen4",
-        "evasion_margin": 0.0125,
-        "evasion_percent": "1.2%",
-        "caught": 79,
-        "slipped": 1,
+        "evasion_margin": 0.0,
+        "evasion_percent": "0.0%",
+        "caught": 80,
+        "slipped": 0,
         "total": 80,
         "threshold_used": 0.45,
         "target": 0.15,
         "target_percent": "15.0%",
         "status": "PASS",
-        "margin_to_target": -0.13749999999999998
+        "margin_to_target": -0.15
       },
-      "training_size": 406323,
+      "training_size": 407343,
+      "status": "PASS"
+    },
+    "level_2_complex_ensemble": {
+      "prior_gen_evasion": {
+        "generation": "prior",
+        "evasion_margin": 0.0,
+        "evasion_percent": "0.0%",
+        "caught": 100,
+        "slipped": 0,
+        "total": 100,
+        "threshold_used": 0.45,
+        "target": 0.05,
+        "target_percent": "5.0%",
+        "status": "PASS",
+        "margin_to_target": -0.05
+      },
+      "gen4_evasion": {
+        "generation": "gen4",
+        "evasion_margin": 0.005,
+        "evasion_percent": "0.5%",
+        "caught": 199,
+        "slipped": 1,
+        "total": 200,
+        "threshold_used": 0.45,
+        "target": 0.15,
+        "target_percent": "15.0%",
+        "status": "PASS",
+        "margin_to_target": -0.145
+      },
+      "training_size": 407823,
+      "status": "PASS"
+    },
+    "level_3_multi_ensemble": {
+      "prior_gen_evasion": {
+        "generation": "prior",
+        "evasion_margin": 0.0,
+        "evasion_percent": "0.0%",
+        "caught": 100,
+        "slipped": 0,
+        "total": 100,
+        "threshold_used": 0.45,
+        "target": 0.05,
+        "target_percent": "5.0%",
+        "status": "PASS",
+        "margin_to_target": -0.05
+      },
+      "gen4_evasion": {
+        "generation": "gen4",
+        "evasion_margin": 0.0,
+        "evasion_percent": "0.0%",
+        "caught": 320,
+        "slipped": 0,
+        "total": 320,
+        "threshold_used": 0.45,
+        "target": 0.15,
+        "target_percent": "15.0%",
+        "status": "PASS",
+        "margin_to_target": -0.15
+      },
+      "training_size": 408303,
+      "status": "PASS"
+    },
+    "level_4_extreme_ensemble": {
+      "prior_gen_evasion": {
+        "generation": "prior",
+        "evasion_margin": 0.0,
+        "evasion_percent": "0.0%",
+        "caught": 100,
+        "slipped": 0,
+        "total": 100,
+        "threshold_used": 0.45,
+        "target": 0.05,
+        "target_percent": "5.0%",
+        "status": "PASS",
+        "margin_to_target": -0.05
+      },
+      "gen4_evasion": {
+        "generation": "gen4",
+        "evasion_margin": 0.0,
+        "evasion_percent": "0.0%",
+        "caught": 420,
+        "slipped": 0,
+        "total": 420,
+        "threshold_used": 0.45,
+        "target": 0.15,
+        "target_percent": "15.0%",
+        "status": "PASS",
+        "margin_to_target": -0.15
+      },
+      "training_size": 408703,
       "status": "PASS"
     }
   },
-  "best_evasion": 0.0125,
-  "prior_gen_evasion": 0.16434782608695653,
+  "best_evasion": 0.0,
+  "prior_gen_evasion": 0.15956521739130436,
   "all_models_trained": [
-    "level_1_simple_ensemble"
+    "level_1_simple_ensemble",
+    "level_2_complex_ensemble",
+    "level_3_multi_ensemble",
+    "level_4_extreme_ensemble"
   ]
 }

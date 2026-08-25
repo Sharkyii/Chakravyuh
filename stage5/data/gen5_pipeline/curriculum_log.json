@@ -1,41 +1,134 @@
 {
-  "timestamp": "2026-08-25T13:31:42.184817",
+  "timestamp": "2026-08-25T14:13:53.180350",
   "generation": "gen5",
   "curriculum_log": {
     "level_1_simple_cross_family": {
       "prior_gen_evasion": {
         "generation": "prior",
-        "evasion_margin": 0.01,
-        "evasion_percent": "1.0%",
-        "caught": 99,
-        "slipped": 1,
+        "evasion_margin": 0.0,
+        "evasion_percent": "0.0%",
+        "caught": 100,
+        "slipped": 0,
         "total": 100,
         "threshold_used": 0.45,
         "target": 0.05,
         "target_percent": "5.0%",
         "status": "PASS",
-        "margin_to_target": -0.04
+        "margin_to_target": -0.05
       },
       "gen5_evasion": {
         "generation": "gen5",
-        "evasion_margin": 0.03333333333333333,
-        "evasion_percent": "3.3%",
-        "caught": 58,
-        "slipped": 2,
+        "evasion_margin": 0.0,
+        "evasion_percent": "0.0%",
+        "caught": 60,
+        "slipped": 0,
         "total": 60,
         "threshold_used": 0.45,
         "target": 0.3,
         "target_percent": "30.0%",
         "status": "PASS",
-        "margin_to_target": -0.26666666666666666
+        "margin_to_target": -0.3
       },
-      "training_size": 406543,
+      "training_size": 408763,
+      "status": "PASS"
+    },
+    "level_2_moderate_cross_family": {
+      "prior_gen_evasion": {
+        "generation": "prior",
+        "evasion_margin": 0.0,
+        "evasion_percent": "0.0%",
+        "caught": 100,
+        "slipped": 0,
+        "total": 100,
+        "threshold_used": 0.45,
+        "target": 0.05,
+        "target_percent": "5.0%",
+        "status": "PASS",
+        "margin_to_target": -0.05
+      },
+      "gen5_evasion": {
+        "generation": "gen5",
+        "evasion_margin": 0.0,
+        "evasion_percent": "0.0%",
+        "caught": 140,
+        "slipped": 0,
+        "total": 140,
+        "threshold_used": 0.45,
+        "target": 0.3,
+        "target_percent": "30.0%",
+        "status": "PASS",
+        "margin_to_target": -0.3
+      },
+      "training_size": 409083,
+      "status": "PASS"
+    },
+    "level_3_complex_cross_family": {
+      "prior_gen_evasion": {
+        "generation": "prior",
+        "evasion_margin": 0.0,
+        "evasion_percent": "0.0%",
+        "caught": 100,
+        "slipped": 0,
+        "total": 100,
+        "threshold_used": 0.45,
+        "target": 0.05,
+        "target_percent": "5.0%",
+        "status": "PASS",
+        "margin_to_target": -0.05
+      },
+      "gen5_evasion": {
+        "generation": "gen5",
+        "evasion_margin": 0.0,
+        "evasion_percent": "0.0%",
+        "caught": 240,
+        "slipped": 0,
+        "total": 240,
+        "threshold_used": 0.45,
+        "target": 0.3,
+        "target_percent": "30.0%",
+        "status": "PASS",
+        "margin_to_target": -0.3
+      },
+      "training_size": 409483,
+      "status": "PASS"
+    },
+    "level_4_extreme_cross_family": {
+      "prior_gen_evasion": {
+        "generation": "prior",
+        "evasion_margin": 0.0,
+        "evasion_percent": "0.0%",
+        "caught": 100,
+        "slipped": 0,
+        "total": 100,
+        "threshold_used": 0.45,
+        "target": 0.05,
+        "target_percent": "5.0%",
+        "status": "PASS",
+        "margin_to_target": -0.05
+      },
+      "gen5_evasion": {
+        "generation": "gen5",
+        "evasion_margin": 0.0,
+        "evasion_percent": "0.0%",
+        "caught": 320,
+        "slipped": 0,
+        "total": 320,
+        "threshold_used": 0.45,
+        "target": 0.3,
+        "target_percent": "30.0%",
+        "status": "PASS",
+        "margin_to_target": -0.3
+      },
+      "training_size": 409803,
       "status": "PASS"
     }
   },
-  "best_evasion": 0.03333333333333333,
-  "prior_gen_evasion": 0.05375,
+  "best_evasion": 0.0,
+  "prior_gen_evasion": 0.005,
   "all_models_trained": [
-    "level_1_simple_cross_family"
+    "level_1_simple_cross_family",
+    "level_2_moderate_cross_family",
+    "level_3_complex_cross_family",
+    "level_4_extreme_cross_family"
   ]
 }

@@ -36,7 +36,7 @@ Generating Gen 4 ensemble attacks (6 trading strategies)
   level_4_extreme_ensemble: Trade off all top features + add cross-family combinations
     Generated 500 ensemble variants
   ✓ Generated 2300 ensemble attack variants
-    Estimated evasion on Gen 3 model: 15.4%
+    Estimated evasion on Gen 3 model: 14.9%
 
 [STAGE 2] CURRICULUM RETRAINING ON ENSEMBLE ATTACKS
 --------------------------------------------------------------------------------
@@ -49,7 +49,7 @@ Generating Gen 4 ensemble attacks (6 trading strategies)
 GEN4 CURRICULUM RETRAINING
 ======================================================================
 
-  Baseline: gen4 attacks vs prior-generation model: 15.4% evasion (why we retrain)
+  Baseline: gen4 attacks vs prior-generation model: 14.9% evasion (why we retrain)
 
 [1/4] LEVEL_1_SIMPLE_ENSEMBLE
 ----------------------------------------------------------------------
@@ -61,21 +61,21 @@ GEN4 CURRICULUM RETRAINING
 
   Evaluation:
     Prior-gen evasion: 1.0% (should be near 0%)
-    gen4 evasion: 0.0% (target <15%)
+    gen4 evasion: 3.8% (target <15%)
 
   Action: Target achieved (<15%), ready to deploy
 
 ======================================================================
 CURRICULUM TRAINING COMPLETE
 ======================================================================
-Best gen4 evasion achieved: 0.0%
+Best gen4 evasion achieved: 3.8%
 Target: <15%
 Status: PASS
 Retained 320 gen4 attack rows for next generation's training
 Log saved: stage5/data/gen4_pipeline/curriculum_log.json
 
   ✓ Retraining complete
-    Best evasion achieved: 0.0%
+    Best evasion achieved: 3.8%
 
 [STAGE 3] EVALUATION & REPORTING
 --------------------------------------------------------------------------------
@@ -86,17 +86,17 @@ GEN 4 ENSEMBLE ADVERSARIAL EVALUATION REPORT
 ======================================================================
 
 EXECUTIVE SUMMARY
-  gen4_evasion_rate: 0.0%
+  gen4_evasion_rate: 3.8%
   gen4_target: <15.0%
   status: PASS
   recommendation: Deploy Gen 4 model
 
 EVASION METRICS
-  gen4_attacks_on_gen3_model: 15.4% (FAIL) -- Why we retrain
-  gen4_attacks_on_gen4_model: 0.0% (PASS) -- After ensemble curriculum retraining
+  gen4_attacks_on_gen3_model: 14.9% (PASS) -- Why we retrain
+  gen4_attacks_on_gen4_model: 3.8% (PASS) -- After ensemble curriculum retraining
 
 CONCLUSION
-  Evasion Rate: 0.0%
+  Evasion Rate: 3.8%
   Target: <15.0%
   Status: PASS
   Recommendation: Deploy Gen 4 model
@@ -107,13 +107,13 @@ GEN 4 PIPELINE COMPLETE
 ================================================================================
 
 Final Status: PASS
-  Evasion Rate: 0.0%
+  Evasion Rate: 3.8%
   Target: <15.0%
-  Improvement over Gen 3 model on these attacks: Yes (15.4% -> 0.0%)
+  Improvement over Gen 3 model on these attacks: Yes (14.9% -> 3.8%)
 
 Outputs saved to: stage5/data/gen4_pipeline
 Recommendation: Deploy Gen 4 model
   Saved 320 retained attack rows to stage5/data/gen4_retained_attacks.parquet
 
-  Gen 4 evasion rate: 0.0%
+  Gen 4 evasion rate: 3.8%
 GEN4 COMPLETE

@@ -3,42 +3,42 @@
   "results_by_attack_generation": {
     "gen3_attacks": {
       "generation": "gen3_attacks",
-      "evasion_margin": 0.43127272727272725,
-      "evasion_percent": "43.1%",
-      "caught": 1564,
-      "slipped": 1186,
+      "evasion_margin": 0.46836363636363637,
+      "evasion_percent": "46.8%",
+      "caught": 1462,
+      "slipped": 1288,
       "total": 2750,
       "threshold_used": 0.45,
       "target": 0.05,
       "target_percent": "5.0%",
       "status": "FAIL",
-      "margin_to_target": 0.38127272727272726
+      "margin_to_target": 0.4183636363636364
     },
     "gen4_attacks": {
       "generation": "gen4_attacks",
-      "evasion_margin": 0.008695652173913044,
-      "evasion_percent": "0.9%",
-      "caught": 2280,
-      "slipped": 20,
+      "evasion_margin": 0.020869565217391306,
+      "evasion_percent": "2.1%",
+      "caught": 2252,
+      "slipped": 48,
       "total": 2300,
       "threshold_used": 0.45,
       "target": 0.05,
       "target_percent": "5.0%",
       "status": "PASS",
-      "margin_to_target": -0.04130434782608696
+      "margin_to_target": -0.029130434782608697
     },
     "gen5_attacks": {
       "generation": "gen5_attacks",
-      "evasion_margin": 0.015625,
-      "evasion_percent": "1.6%",
-      "caught": 1575,
-      "slipped": 25,
+      "evasion_margin": 0.020625,
+      "evasion_percent": "2.1%",
+      "caught": 1567,
+      "slipped": 33,
       "total": 1600,
       "threshold_used": 0.45,
       "target": 0.05,
       "target_percent": "5.0%",
       "status": "PASS",
-      "margin_to_target": -0.034375
+      "margin_to_target": -0.029375000000000002
     }
   },
   "interpretation": "Each row is the SAME deployed model scored against a different generation's attack set. A materially higher evasion rate on gen3/gen4 attacks than the gen5 curriculum log reported would mean the model regressed on easier attacks while being hardened against harder ones -- the thing this check exists to catch."

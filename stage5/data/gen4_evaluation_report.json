@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-08-25T10:35:36.309707",
+  "timestamp": "2026-08-25T12:45:25.310255",
   "title": "Gen 4 Ensemble Adversarial Evaluation Report",
   "executive_summary": {
-    "gen4_evasion_rate": "0.0%",
+    "gen4_evasion_rate": "3.8%",
     "gen4_target": "<15.0%",
     "status": "PASS",
     "recommendation": "Deploy Gen 4 model"
@@ -57,26 +57,26 @@
       "held_out_recall": null
     },
     "gen4_after_retrain": {
-      "pr_auc": 0.9999999999999998,
+      "pr_auc": 0.9999999999999997,
       "held_out_recall": null
     }
   },
   "evasion_metrics": {
     "gen4_attacks_on_gen3_model": {
-      "evasion_rate": "15.4%",
-      "status": "FAIL",
+      "evasion_rate": "14.9%",
+      "status": "PASS",
       "note": "Why we retrain"
     },
     "gen4_attacks_on_gen4_model": {
-      "evasion_rate": "0.0%",
+      "evasion_rate": "3.8%",
       "status": "PASS",
       "note": "After ensemble curriculum retraining"
     }
   },
   "difficulty_levels": {
     "level_1_simple_ensemble": {
-      "evasion": "0.0%",
-      "evasion_margin": 0.0,
+      "evasion": "3.8%",
+      "evasion_margin": 0.0375,
       "status": "PASS",
       "training_size": 406323
     }
@@ -84,43 +84,43 @@
   "feature_importance": [
     {
       "name": "beneficiary_added_ago_s",
-      "importance": 0.1659
+      "importance": 0.1597
     },
     {
       "name": "auth_method_upi_pin",
-      "importance": 0.1362
+      "importance": 0.1121
     },
     {
       "name": "edge_count",
-      "importance": 0.0878
-    },
-    {
-      "name": "rail_card_cnp",
-      "importance": 0.0802
-    },
-    {
-      "name": "session_duration_s",
-      "importance": 0.0686
-    },
-    {
-      "name": "auth_method_cvv_only",
-      "importance": 0.0487
+      "importance": 0.1001
     },
     {
       "name": "pin_attempts",
-      "importance": 0.0331
+      "importance": 0.0799
     },
     {
-      "name": "auth_result_success",
-      "importance": 0.0289
+      "name": "rail_card_cnp",
+      "importance": 0.0634
+    },
+    {
+      "name": "beneficiary_first_time",
+      "importance": 0.0423
+    },
+    {
+      "name": "auth_method_cvv_only",
+      "importance": 0.0423
+    },
+    {
+      "name": "session_duration_s",
+      "importance": 0.0382
     },
     {
       "name": "auth_result_not_attempted",
-      "importance": 0.0278
+      "importance": 0.0332
     },
     {
-      "name": "eci_07",
-      "importance": 0.0238
+      "name": "rail_upi_mandate",
+      "importance": 0.0292
     }
   ],
   "curriculum_effectiveness": {

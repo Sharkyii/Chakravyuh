@@ -1,20 +1,20 @@
 {
-  "timestamp": "2026-08-25T10:38:05.506481",
+  "timestamp": "2026-08-25T13:06:55.343714",
   "generation": "gen5",
   "curriculum_log": {
     "level_1_simple_cross_family": {
       "prior_gen_evasion": {
         "generation": "prior",
-        "evasion_margin": 0.01,
-        "evasion_percent": "1.0%",
-        "caught": 99,
-        "slipped": 1,
+        "evasion_margin": 0.0,
+        "evasion_percent": "0.0%",
+        "caught": 100,
+        "slipped": 0,
         "total": 100,
         "threshold_used": 0.45,
         "target": 0.05,
         "target_percent": "5.0%",
         "status": "PASS",
-        "margin_to_target": -0.04
+        "margin_to_target": -0.05
       },
       "gen5_evasion": {
         "generation": "gen5",
@@ -34,7 +34,7 @@
     }
   },
   "best_evasion": 0.03333333333333333,
-  "prior_gen_evasion": 0.065,
+  "prior_gen_evasion": 0.049375,
   "all_models_trained": [
     "level_1_simple_cross_family"
   ]

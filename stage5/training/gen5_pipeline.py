@@ -18,7 +18,8 @@ def run_gen5_pipeline(
     analyst_feedback_df,
     gen4_preprocessor=None,
     gen4_model_metrics: dict = None,
-    output_dir: Path = None
+    output_dir: Path = None,
+    accumulated_attacks_df=None,
 ):
     """
     Full Gen 5 pipeline: generate multi-family attacks → retrain → evaluate.
@@ -90,6 +91,7 @@ def run_gen5_pipeline(
             generation_label='gen5',
             target_evasion=0.25,
             output_dir=output_dir,
+            accumulated_attacks_df=accumulated_attacks_df,
         )
 
         gen5_model = retrain_result['model']
@@ -155,6 +157,7 @@ def run_gen5_pipeline(
         'gen5_model': gen5_model,
         'gen5_preprocessor': gen5_preprocessor,
         'gen5_attacks': gen5_attacks,
+        'retained_attacks': retrain_result['retained_attacks'],
         'curriculum_log': curriculum_log,
         'evaluation_report': evaluation_report,
         'evasion_rate': gen5_evasion,

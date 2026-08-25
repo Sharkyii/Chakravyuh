@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-08-25T08:16:59.600212",
+  "timestamp": "2026-08-25T09:45:14.517717",
   "generation": "gen3",
   "curriculum_log": {
     "level_1_easy": {
@@ -18,16 +18,16 @@
       },
       "gen3_evasion": {
         "generation": "gen3",
-        "evasion_margin": 0.342,
-        "evasion_percent": "34.2%",
-        "caught": 329,
-        "slipped": 171,
+        "evasion_margin": 0.344,
+        "evasion_percent": "34.4%",
+        "caught": 328,
+        "slipped": 172,
         "total": 500,
         "threshold_used": 0.45,
         "target": 0.05,
         "target_percent": "5.0%",
         "status": "FAIL",
-        "margin_to_target": 0.29200000000000004
+        "margin_to_target": 0.294
       },
       "training_size": 406023,
       "status": "FAIL"
@@ -48,16 +48,16 @@
       },
       "gen3_evasion": {
         "generation": "gen3",
-        "evasion_margin": 0.9533333333333334,
-        "evasion_percent": "95.3%",
-        "caught": 35,
-        "slipped": 715,
+        "evasion_margin": 0.9453333333333334,
+        "evasion_percent": "94.5%",
+        "caught": 41,
+        "slipped": 709,
         "total": 750,
         "threshold_used": 0.45,
         "target": 0.05,
         "target_percent": "5.0%",
         "status": "FAIL",
-        "margin_to_target": 0.9033333333333333
+        "margin_to_target": 0.8953333333333333
       },
       "training_size": 406023,
       "status": "FAIL"
@@ -78,16 +78,16 @@
       },
       "gen3_evasion": {
         "generation": "gen3",
-        "evasion_margin": 0.954,
-        "evasion_percent": "95.4%",
-        "caught": 46,
-        "slipped": 954,
+        "evasion_margin": 0.962,
+        "evasion_percent": "96.2%",
+        "caught": 38,
+        "slipped": 962,
         "total": 1000,
         "threshold_used": 0.45,
         "target": 0.05,
         "target_percent": "5.0%",
         "status": "FAIL",
-        "margin_to_target": 0.9039999999999999
+        "margin_to_target": 0.9119999999999999
       },
       "training_size": 406023,
       "status": "FAIL"
@@ -123,8 +123,8 @@
       "status": "FAIL"
     }
   },
-  "best_evasion": 0.342,
-  "prior_gen_evasion": 0.8421818181818181,
+  "best_evasion": 0.344,
+  "prior_gen_evasion": 0.8432727272727273,
   "all_models_trained": [
     "level_1_easy",
     "level_2_medium",

@@ -19,7 +19,8 @@ def run_gen3_pipeline(
     original_training_df,
     gen2_preprocessor=None,
     gen2_model_metrics: dict = None,
-    output_dir: Path = None
+    output_dir: Path = None,
+    accumulated_attacks_df=None,
 ):
     """
     Full Gen 3 pipeline: analyst feedback → Gen 3 attacks → retrain → evaluate.
@@ -91,7 +92,8 @@ def run_gen3_pipeline(
             gen2_preprocessor=gen2_preprocessor,
             generation_label='gen3',
             target_evasion=0.05,
-            output_dir=output_dir
+            output_dir=output_dir,
+            accumulated_attacks_df=accumulated_attacks_df,
         )
 
         gen3_model = retrain_result['model']
@@ -152,6 +154,7 @@ def run_gen3_pipeline(
         'gen3_model': gen3_model,
         'gen3_preprocessor': gen3_preprocessor,
         'gen3_attacks': gen3_attacks_all,
+        'retained_attacks': retrain_result['retained_attacks'],
         'curriculum_log': curriculum_log,
         'evaluation_report': evaluation_report,
         'best_evasion': best_evasion,

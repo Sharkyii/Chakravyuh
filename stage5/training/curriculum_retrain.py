@@ -26,6 +26,9 @@ def _as_feature_frame(attacks: list) -> pd.DataFrame:
     return df.reindex(columns=ALL_FEATURES)
 
 
+RETAINED_SAMPLE_CAP = 500
+
+
 def retrain_on_gen3_attacks(
     analyst_feedback_df: pd.DataFrame,
     gen3_attacks_by_level: dict,
@@ -34,7 +37,8 @@ def retrain_on_gen3_attacks(
     gen2_preprocessor=None,
     generation_label: str = 'gen3',
     target_evasion: float = 0.05,
-    output_dir: Path = None
+    output_dir: Path = None,
+    accumulated_attacks_df: pd.DataFrame = None,
 ) -> dict:
     """
     Retrain on a generation's attacks using curriculum learning.
@@ -64,6 +68,16 @@ def retrain_on_gen3_attacks(
             below this value (Gen 3: 0.05, Gen 4: 0.15, Gen 5: 0.25 per the
             brief's escalating targets)
         output_dir: Where to save training logs
+        accumulated_attacks_df: prior generations' retained attack rows (see
+            `retained_attacks` in this function's return value), mixed into
+            every level's training set alongside this generation's own
+            attacks. Without this, each generation trains from scratch on
+            (base data + only its own new attacks) and has zero exposure to
+            earlier generations' attack patterns -- confirmed via
+            cross_generation_eval.py to cause exactly the regression this
+            parameter exists to prevent: a Gen 5-trained model evading 85%
+            of Gen 3's attacks despite Gen 3 itself having gotten that down
+            to 34%. Pass None only for the first generation in the chain.
 
     Returns:
         {
@@ -74,6 +88,8 @@ def retrain_on_gen3_attacks(
             'best_evasion': float,
             'improvement_from_gen2': bool,
             'prior_gen_evasion': float | None,  # this generation's attacks against gen2_model, before retraining
+            'retained_attacks': pd.DataFrame,  # this generation's attack sample, to pass as
+                                                # the NEXT generation's accumulated_attacks_df
         }
     """
 
@@ -90,6 +106,11 @@ def retrain_on_gen3_attacks(
     all_models = {}
 
     levels = list(gen3_attacks_by_level.keys())
+    this_gen_levels_seen: list[pd.DataFrame] = []
+
+    n_accumulated = len(accumulated_attacks_df) if accumulated_attacks_df is not None else 0
+    if n_accumulated:
+        print(f"\n  Carrying forward {n_accumulated} retained attack rows from prior generations")
 
     print("\n" + "="*70)
     print(f"{generation_label.upper()} CURRICULUM RETRAINING")
@@ -124,17 +145,22 @@ def retrain_on_gen3_attacks(
         gen3_df = _as_feature_frame(gen3_attacks)
         gen3_df['is_fraud'] = 1
         gen3_df['split'] = 'test'
+        this_gen_levels_seen.append(gen3_df.head(RETAINED_SAMPLE_CAP))
 
-        training_df = pd.concat([
+        concat_parts = [
             original_training_df[original_training_df['split'].isin(['train', 'validation'])],
             analyst_feedback_df.assign(split='train') if len(analyst_feedback_df) else analyst_feedback_df,
             gen3_df.head(500),
-        ], ignore_index=True, sort=False)
+        ]
+        if accumulated_attacks_df is not None and len(accumulated_attacks_df):
+            concat_parts.append(accumulated_attacks_df)
+        training_df = pd.concat(concat_parts, ignore_index=True, sort=False)
 
         print(f"  Training data size: {len(training_df)}")
         print(f"    Original: {len(original_training_df)}")
         print(f"    Analyst feedback: {len(analyst_feedback_df)}")
         print(f"    {generation_label} (for curriculum): {min(500, len(gen3_df))}")
+        print(f"    Retained from prior generations: {n_accumulated}")
 
         try:
             train_result = train_fraud_model(training_df)
@@ -205,12 +231,25 @@ def retrain_on_gen3_attacks(
             'all_models_trained': list(all_models.keys()),
         }, f, indent=2, default=str)
 
+    # Retained sample to carry into the NEXT generation's accumulated_attacks_df:
+    # a slice across every level actually trained this generation (not just the
+    # hardest), so the next generation sees this generation's easy-to-extreme
+    # spectrum rather than only its endpoint. Capped so accumulated size grows
+    # linearly (one cap's worth per generation), not with each level's own count.
+    if this_gen_levels_seen:
+        retained_attacks = pd.concat(this_gen_levels_seen, ignore_index=True, sort=False)
+        if len(retained_attacks) > RETAINED_SAMPLE_CAP:
+            retained_attacks = retained_attacks.sample(RETAINED_SAMPLE_CAP, random_state=42)
+    else:
+        retained_attacks = pd.DataFrame(columns=ALL_FEATURES + ['is_fraud', 'split'])
+
     print("\n" + "="*70)
     print("CURRICULUM TRAINING COMPLETE")
     print("="*70)
     print(f"Best {generation_label} evasion achieved: {best_evasion*100:.1f}%")
     print(f"Target: <{target_evasion*100:.0f}%")
     print(f"Status: {'PASS' if best_evasion < target_evasion else 'FAIL'}")
+    print(f"Retained {len(retained_attacks)} {generation_label} attack rows for next generation's training")
     print(f"Log saved: {log_path}")
 
     return {
@@ -224,4 +263,5 @@ def retrain_on_gen3_attacks(
         'improvement_from_gen2': (prior_gen_evasion is not None and best_evasion < prior_gen_evasion),
         'all_models': all_models,
         'log_path': log_path,
+        'retained_attacks': retained_attacks,
     }

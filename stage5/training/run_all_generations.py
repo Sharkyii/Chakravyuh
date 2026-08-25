@@ -41,6 +41,24 @@ def empty_feedback(df):
     return pd.DataFrame(columns=df.columns)
 
 
+def load_retained_attacks(*paths: Path) -> pd.DataFrame | None:
+    """Concatenate whichever of the given retained-attack parquet files exist.
+
+    Each generation's retained sample is saved separately (gen3_retained_attacks.parquet,
+    etc.) so a generation only needs to know about the ones before it, not maintain
+    one ever-growing file itself.
+    """
+    frames = [pd.read_parquet(p) for p in paths if p.exists()]
+    if not frames:
+        return None
+    return pd.concat(frames, ignore_index=True, sort=False)
+
+
+def save_retained_attacks(df: pd.DataFrame, path: Path) -> None:
+    df.to_parquet(path, index=False)
+    print(f"  Saved {len(df)} retained attack rows to {path}")
+
+
 def run_baseline():
     print("=" * 80)
     print("BASELINE TRAINING (pre-curriculum)")
@@ -85,6 +103,7 @@ def run_gen3():
         gen2_preprocessor=gen2_preprocessor,
         gen2_model_metrics=gen2_model_metrics,
         output_dir=OUT_DIR / "gen3_pipeline",
+        accumulated_attacks_df=None,  # Gen 3 is first in the chain, nothing to carry forward yet
     )
     if result.get("status") == "FAILED":
         print(f"Gen 3 FAILED: {result.get('error')}")
@@ -95,6 +114,7 @@ def run_gen3():
     (OUT_DIR / "gen3_evaluation_report.json").write_text(
         json.dumps(result["evaluation_report"], indent=2, default=str)
     )
+    save_retained_attacks(result["retained_attacks"], OUT_DIR / "gen3_retained_attacks.parquet")
     print(f"\n  Gen 3 best evasion: {result['best_evasion']*100:.1f}%")
     print("GEN3 COMPLETE")
 
@@ -107,6 +127,8 @@ def run_gen4():
     gen3_model = joblib.load(OUT_DIR / "gen3_model.pkl")
     gen3_preprocessor = joblib.load(OUT_DIR / "gen3_preprocessor.pkl")
 
+    accumulated = load_retained_attacks(OUT_DIR / "gen3_retained_attacks.parquet")
+
     result = run_gen4_pipeline(
         gen3_model=gen3_model,
         gen3_training_data_df=df,
@@ -114,6 +136,7 @@ def run_gen4():
         gen3_preprocessor=gen3_preprocessor,
         gen3_model_metrics=None,
         output_dir=OUT_DIR / "gen4_pipeline",
+        accumulated_attacks_df=accumulated,
     )
     if result.get("status") == "FAILED":
         print(f"Gen 4 FAILED: {result.get('error')}")
@@ -124,6 +147,7 @@ def run_gen4():
     (OUT_DIR / "gen4_evaluation_report.json").write_text(
         json.dumps(result["evaluation_report"], indent=2, default=str)
     )
+    save_retained_attacks(result["retained_attacks"], OUT_DIR / "gen4_retained_attacks.parquet")
     print(f"\n  Gen 4 evasion rate: {result['evasion_rate']*100:.1f}%")
     print("GEN4 COMPLETE")
 
@@ -136,6 +160,10 @@ def run_gen5():
     gen4_model = joblib.load(OUT_DIR / "gen4_model.pkl")
     gen4_preprocessor = joblib.load(OUT_DIR / "gen4_preprocessor.pkl")
 
+    accumulated = load_retained_attacks(
+        OUT_DIR / "gen3_retained_attacks.parquet", OUT_DIR / "gen4_retained_attacks.parquet",
+    )
+
     result = run_gen5_pipeline(
         gen4_model=gen4_model,
         gen4_training_data_df=df,
@@ -143,6 +171,7 @@ def run_gen5():
         gen4_preprocessor=gen4_preprocessor,
         gen4_model_metrics=None,
         output_dir=OUT_DIR / "gen5_pipeline",
+        accumulated_attacks_df=accumulated,
     )
     if result.get("status") == "FAILED":
         print(f"Gen 5 FAILED: {result.get('error')}")
@@ -153,6 +182,7 @@ def run_gen5():
     (OUT_DIR / "gen5_evaluation_report.json").write_text(
         json.dumps(result["evaluation_report"], indent=2, default=str)
     )
+    save_retained_attacks(result["retained_attacks"], OUT_DIR / "gen5_retained_attacks.parquet")
     print(f"\n  Gen 5 evasion rate: {result['evasion_rate']*100:.1f}%")
 
     # Promote the fully-hardened Gen 5 model to the path the live inference

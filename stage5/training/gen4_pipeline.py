@@ -18,7 +18,8 @@ def run_gen4_pipeline(
     analyst_feedback_df,
     gen3_preprocessor=None,
     gen3_model_metrics: dict = None,
-    output_dir: Path = None
+    output_dir: Path = None,
+    accumulated_attacks_df=None,
 ):
     """
     Full Gen 4 pipeline: generate ensemble attacks → retrain → evaluate.
@@ -89,6 +90,7 @@ def run_gen4_pipeline(
             generation_label='gen4',
             target_evasion=0.15,
             output_dir=output_dir,
+            accumulated_attacks_df=accumulated_attacks_df,
         )
 
         gen4_model = retrain_result['model']
@@ -154,6 +156,7 @@ def run_gen4_pipeline(
         'gen4_model': gen4_model,
         'gen4_preprocessor': gen4_preprocessor,
         'gen4_attacks': gen4_attacks,
+        'retained_attacks': retrain_result['retained_attacks'],
         'curriculum_log': curriculum_log,
         'evaluation_report': evaluation_report,
         'evasion_rate': gen4_evasion,

@@ -1,0 +1,45 @@
+{
+  "model": "deployed (stage5/models/fraud_model.pkl, promoted from Gen 5 checkpoint)",
+  "results_by_attack_generation": {
+    "gen3_attacks": {
+      "generation": "gen3_attacks",
+      "evasion_margin": 0.8505454545454545,
+      "evasion_percent": "85.1%",
+      "caught": 411,
+      "slipped": 2339,
+      "total": 2750,
+      "threshold_used": 0.45,
+      "target": 0.05,
+      "target_percent": "5.0%",
+      "status": "FAIL",
+      "margin_to_target": 0.8005454545454544
+    },
+    "gen4_attacks": {
+      "generation": "gen4_attacks",
+      "evasion_margin": 0.2426086956521739,
+      "evasion_percent": "24.3%",
+      "caught": 1742,
+      "slipped": 558,
+      "total": 2300,
+      "threshold_used": 0.45,
+      "target": 0.05,
+      "target_percent": "5.0%",
+      "status": "FAIL",
+      "margin_to_target": 0.19260869565217392
+    },
+    "gen5_attacks": {
+      "generation": "gen5_attacks",
+      "evasion_margin": 0.306875,
+      "evasion_percent": "30.7%",
+      "caught": 1109,
+      "slipped": 491,
+      "total": 1600,
+      "threshold_used": 0.45,
+      "target": 0.05,
+      "target_percent": "5.0%",
+      "status": "FAIL",
+      "margin_to_target": 0.256875
+    }
+  },
+  "interpretation": "Each row is the SAME deployed model scored against a different generation's attack set. A materially higher evasion rate on gen3/gen4 attacks than the gen5 curriculum log reported would mean the model regressed on easier attacks while being hardened against harder ones -- the thing this check exists to catch."
+}

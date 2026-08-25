@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-08-25T08:24:29.676545",
+  "timestamp": "2026-08-25T09:52:41.069260",
   "title": "Gen 5 Multi-Family Adversarial Evaluation Report",
   "executive_summary": {
-    "gen5_evasion_rate": "26.8%",
+    "gen5_evasion_rate": "27.0%",
     "gen5_target": "<25.0%",
     "status": "NEEDS_WORK",
     "recommendation": "Continue hardening"
@@ -48,40 +48,40 @@
   },
   "evasion_metrics": {
     "gen5_attacks_on_gen4_model": {
-      "evasion_rate": "28.2%",
+      "evasion_rate": "28.7%",
       "status": "FAIL",
       "note": "Why we retrain on Gen 5"
     },
     "gen5_attacks_on_gen5_model": {
-      "evasion_rate": "26.8%",
+      "evasion_rate": "27.0%",
       "status": "BORDERLINE",
       "note": "After multi-family retraining"
     }
   },
   "difficulty_levels": {
     "level_1_simple_cross_family": {
-      "evasion": "29.0%",
-      "evasion_margin": 0.29,
-      "status": "PASS",
-      "training_size": 405823
+      "evasion": "31.0%",
+      "evasion_margin": 0.31,
+      "status": "FAIL",
+      "training_size": 406823
     },
     "level_2_moderate_cross_family": {
-      "evasion": "28.2%",
-      "evasion_margin": 0.2825,
+      "evasion": "27.0%",
+      "evasion_margin": 0.27,
       "status": "PASS",
-      "training_size": 405923
+      "training_size": 406923
     },
     "level_3_complex_cross_family": {
-      "evasion": "28.8%",
-      "evasion_margin": 0.288,
+      "evasion": "27.2%",
+      "evasion_margin": 0.272,
       "status": "PASS",
-      "training_size": 406023
+      "training_size": 407023
     },
     "level_4_extreme_cross_family": {
-      "evasion": "26.8%",
-      "evasion_margin": 0.2675,
-      "status": "PASS",
-      "training_size": 405923
+      "evasion": "30.8%",
+      "evasion_margin": 0.3075,
+      "status": "FAIL",
+      "training_size": 406923
     }
   },
   "feature_importance": [

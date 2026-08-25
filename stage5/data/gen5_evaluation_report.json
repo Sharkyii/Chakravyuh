@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-08-25T06:14:04.555728",
+  "timestamp": "2026-08-25T08:24:29.676545",
   "title": "Gen 5 Multi-Family Adversarial Evaluation Report",
   "executive_summary": {
-    "gen5_evasion_rate": "29.5%",
+    "gen5_evasion_rate": "26.8%",
     "gen5_target": "<25.0%",
     "status": "NEEDS_WORK",
     "recommendation": "Continue hardening"
@@ -48,82 +48,82 @@
   },
   "evasion_metrics": {
     "gen5_attacks_on_gen4_model": {
-      "evasion_rate": "29.8%",
+      "evasion_rate": "28.2%",
       "status": "FAIL",
       "note": "Why we retrain on Gen 5"
     },
     "gen5_attacks_on_gen5_model": {
-      "evasion_rate": "29.5%",
+      "evasion_rate": "26.8%",
       "status": "BORDERLINE",
       "note": "After multi-family retraining"
     }
   },
   "difficulty_levels": {
     "level_1_simple_cross_family": {
-      "evasion": "30.3%",
-      "evasion_margin": 0.30333333333333334,
-      "status": "FAIL",
-      "training_size": 402255
+      "evasion": "29.0%",
+      "evasion_margin": 0.29,
+      "status": "PASS",
+      "training_size": 405823
     },
     "level_2_moderate_cross_family": {
-      "evasion": "29.8%",
-      "evasion_margin": 0.2975,
+      "evasion": "28.2%",
+      "evasion_margin": 0.2825,
       "status": "PASS",
-      "training_size": 402355
+      "training_size": 405923
     },
     "level_3_complex_cross_family": {
-      "evasion": "29.8%",
-      "evasion_margin": 0.298,
+      "evasion": "28.8%",
+      "evasion_margin": 0.288,
       "status": "PASS",
-      "training_size": 402455
+      "training_size": 406023
     },
     "level_4_extreme_cross_family": {
-      "evasion": "29.5%",
-      "evasion_margin": 0.295,
+      "evasion": "26.8%",
+      "evasion_margin": 0.2675,
       "status": "PASS",
-      "training_size": 402355
+      "training_size": 405923
     }
   },
   "feature_importance": [
     {
       "name": "edge_count",
-      "importance": 0.3554
+      "importance": 0.3654
     },
     {
       "name": "beneficiary_added_ago_s",
-      "importance": 0.1663
-    },
-    {
-      "name": "pin_attempts",
-      "importance": 0.1044
+      "importance": 0.1485
     },
     {
       "name": "edge_value_total",
-      "importance": 0.066
+      "importance": 0.0856
     },
     {
       "name": "payee_in_degree",
-      "importance": 0.0467
+      "importance": 0.0485
     },
     {
-      "name": "mean_beneficiary_added_ago",
-      "importance": 0.0358
+      "name": "rail_upi_p2p",
+      "importance": 0.0324
     },
     {
-      "name": "txns_per_active_day",
-      "importance": 0.0203
+      "name": "is_two_hop_passthrough",
+      "importance": 0.0292
     },
     {
-      "name": "same_payee_ratio",
-      "importance": 0.0178
+      "name": "rail_upi_mandate",
+      "importance": 0.0289
     },
     {
       "name": "payer_out_degree",
-      "importance": 0.0176
+      "importance": 0.0234
     },
     {
-      "name": "inter_txn_time_mean",
-      "importance": 0.0164
+      "name": "pin_attempts",
+      "importance": 0.0217
+    },
+    {
+      "name": "time_on_confirm_screen_s",
+      "importance": 0.021
     }
   ],
   "curriculum_effectiveness": {

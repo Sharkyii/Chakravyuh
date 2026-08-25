@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-08-25T13:06:55.433985",
+  "timestamp": "2026-08-25T13:31:42.296049",
   "title": "Gen 5 Multi-Family Adversarial Evaluation Report",
   "executive_summary": {
     "gen5_evasion_rate": "3.3%",
@@ -48,7 +48,7 @@
   },
   "evasion_metrics": {
     "gen5_attacks_on_gen4_model": {
-      "evasion_rate": "4.9%",
+      "evasion_rate": "5.4%",
       "status": "PASS",
       "note": "Why we retrain on Gen 5"
     },
@@ -69,43 +69,43 @@
   "feature_importance": [
     {
       "name": "beneficiary_added_ago_s",
-      "importance": 0.1934
+      "importance": 0.1599
     },
     {
       "name": "auth_method_upi_pin",
-      "importance": 0.1263
+      "importance": 0.1517
     },
     {
       "name": "edge_count",
-      "importance": 0.1038
+      "importance": 0.0789
     },
     {
       "name": "auth_result_not_attempted",
-      "importance": 0.0506
+      "importance": 0.0631
+    },
+    {
+      "name": "rail_card_cnp",
+      "importance": 0.0586
     },
     {
       "name": "auth_method_cvv_only",
-      "importance": 0.0492
-    },
-    {
-      "name": "pin_attempts",
-      "importance": 0.0437
-    },
-    {
-      "name": "txn_count_last_1h",
-      "importance": 0.0349
-    },
-    {
-      "name": "txn_count_last_24h",
-      "importance": 0.0324
-    },
-    {
-      "name": "inter_txn_time_min",
-      "importance": 0.0316
+      "importance": 0.0514
     },
     {
       "name": "session_duration_s",
-      "importance": 0.0286
+      "importance": 0.0483
+    },
+    {
+      "name": "txn_count_last_24h",
+      "importance": 0.0327
+    },
+    {
+      "name": "active_hours_count",
+      "importance": 0.0279
+    },
+    {
+      "name": "auth_result_success",
+      "importance": 0.0255
     }
   ],
   "curriculum_effectiveness": {

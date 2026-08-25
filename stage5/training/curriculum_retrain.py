@@ -26,7 +26,7 @@ def _as_feature_frame(attacks: list) -> pd.DataFrame:
     return df.reindex(columns=ALL_FEATURES)
 
 
-RETAINED_SAMPLE_CAP = 500
+RETAINED_SAMPLE_CAP = 1500
 LEVEL_ATTACK_CAP = 600
 TRAIN_FRACTION = 0.8
 

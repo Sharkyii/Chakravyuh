@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-08-25T12:42:48.925860",
+  "timestamp": "2026-08-25T13:25:56.749865",
   "title": "Gen 3 Adversarial Evaluation Report",
   "executive_summary": {
     "analyst_feedback_collected": 0,
-    "gen3_evasion_rate": "0.0%",
+    "gen3_evasion_rate": "2.0%",
     "gen3_target": "<5.0%",
     "status": "PASS",
     "recommendation": "Deploy Gen 3-trained model"
@@ -22,20 +22,20 @@
   },
   "evasion_metrics": {
     "gen3_attacks_on_prior_model": {
-      "evasion_rate": "84.4%",
+      "evasion_rate": "84.6%",
       "status": "FAIL",
       "note": "Why we retrained"
     },
     "gen3_attacks_on_gen3_model": {
-      "evasion_rate": "0.0%",
+      "evasion_rate": "2.0%",
       "status": "PASS",
       "note": "After curriculum retraining"
     }
   },
   "curriculum_effectiveness": {
     "level_1_easy": {
-      "evasion": "0.0%",
-      "evasion_margin": 0.0,
+      "evasion": "2.0%",
+      "evasion_margin": 0.02,
       "status": "PASS",
       "training_size": 406023
     }
@@ -47,50 +47,50 @@
   "feature_importance": [
     {
       "name": "beneficiary_added_ago_s",
-      "importance": 0.2187
+      "importance": 0.2231
     },
     {
       "name": "pin_attempts",
-      "importance": 0.1337
-    },
-    {
-      "name": "edge_count",
-      "importance": 0.108
+      "importance": 0.1428
     },
     {
       "name": "session_duration_s",
-      "importance": 0.0934
+      "importance": 0.0966
     },
     {
-      "name": "beneficiary_first_time",
-      "importance": 0.0479
-    },
-    {
-      "name": "auth_method_cvv_only",
-      "importance": 0.0477
+      "name": "edge_count",
+      "importance": 0.0919
     },
     {
       "name": "auth_result_success",
-      "importance": 0.0422
+      "importance": 0.0515
+    },
+    {
+      "name": "auth_method_cvv_only",
+      "importance": 0.0506
     },
     {
       "name": "payee_in_degree",
-      "importance": 0.0328
+      "importance": 0.0326
     },
     {
-      "name": "txn_count_last_24h",
-      "importance": 0.0223
+      "name": "beneficiary_first_time",
+      "importance": 0.0315
     },
     {
-      "name": "payer_out_degree",
-      "importance": 0.0187
+      "name": "eci_None",
+      "importance": 0.0262
+    },
+    {
+      "name": "active_days_count",
+      "importance": 0.0259
     }
   ],
   "closed_loop_cycle_proof": {
     "step_1_collect_feedback": "0 analyst verdicts collected",
     "step_2_generate_attacks": "Gen 3 attacks generated (feature-hiding curriculum)",
     "step_3_retrain": "Model retrained per curriculum level, best-evasion checkpoint kept",
-    "step_4_measure_evasion": "Evasion margin: 0.0% (target <5%)",
+    "step_4_measure_evasion": "Evasion margin: 2.0% (target <5%)",
     "result": "PASS"
   },
   "next_steps": {

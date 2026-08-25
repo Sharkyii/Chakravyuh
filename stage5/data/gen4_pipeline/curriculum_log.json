@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-08-25T12:45:25.191525",
+  "timestamp": "2026-08-25T13:29:02.492318",
   "generation": "gen4",
   "curriculum_log": {
     "level_1_simple_ensemble": {
@@ -18,23 +18,23 @@
       },
       "gen4_evasion": {
         "generation": "gen4",
-        "evasion_margin": 0.0375,
-        "evasion_percent": "3.8%",
-        "caught": 77,
-        "slipped": 3,
+        "evasion_margin": 0.0125,
+        "evasion_percent": "1.2%",
+        "caught": 79,
+        "slipped": 1,
         "total": 80,
         "threshold_used": 0.45,
         "target": 0.15,
         "target_percent": "15.0%",
         "status": "PASS",
-        "margin_to_target": -0.11249999999999999
+        "margin_to_target": -0.13749999999999998
       },
       "training_size": 406323,
       "status": "PASS"
     }
   },
-  "best_evasion": 0.0375,
-  "prior_gen_evasion": 0.14869565217391303,
+  "best_evasion": 0.0125,
+  "prior_gen_evasion": 0.16434782608695653,
   "all_models_trained": [
     "level_1_simple_ensemble"
   ]

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-08-25T10:12:54.422406",
+  "timestamp": "2026-08-25T12:42:48.837729",
   "generation": "gen3",
   "curriculum_log": {
     "level_1_easy": {
@@ -34,7 +34,7 @@
     }
   },
   "best_evasion": 0.0,
-  "prior_gen_evasion": 0.8374545454545455,
+  "prior_gen_evasion": 0.8436363636363636,
   "all_models_trained": [
     "level_1_easy"
   ]

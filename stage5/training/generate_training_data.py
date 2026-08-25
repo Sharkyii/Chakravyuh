@@ -42,6 +42,8 @@ ATTACK_SCENARIOS = [
     {"attack_id": "subthreshold_fragmentation", "seed": 111, "intensity": "MEDIUM"},
     {"attack_id": "agentic_injection", "seed": 112, "intensity": "MEDIUM"},
     {"attack_id": "insider_abuse", "seed": 113, "intensity": "MEDIUM"},
+    {"attack_id": "device_fan_out", "seed": 114, "intensity": "MEDIUM"},
+    {"attack_id": "balance_drain_exit", "seed": 115, "intensity": "MEDIUM"},
 ]
 # Expand each attack family to multiple distinct campaigns for richer fraud data,
 # varying the seed. Factor and baseline population size are both centralised in

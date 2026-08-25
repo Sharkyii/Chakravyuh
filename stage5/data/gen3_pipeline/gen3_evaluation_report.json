@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-08-25T10:12:54.512545",
+  "timestamp": "2026-08-25T12:42:48.925860",
   "title": "Gen 3 Adversarial Evaluation Report",
   "executive_summary": {
     "analyst_feedback_collected": 0,
@@ -22,7 +22,7 @@
   },
   "evasion_metrics": {
     "gen3_attacks_on_prior_model": {
-      "evasion_rate": "83.7%",
+      "evasion_rate": "84.4%",
       "status": "FAIL",
       "note": "Why we retrained"
     },
@@ -47,43 +47,43 @@
   "feature_importance": [
     {
       "name": "beneficiary_added_ago_s",
-      "importance": 0.2282
+      "importance": 0.2187
     },
     {
       "name": "pin_attempts",
-      "importance": 0.148
+      "importance": 0.1337
     },
     {
       "name": "edge_count",
-      "importance": 0.1134
+      "importance": 0.108
     },
     {
       "name": "session_duration_s",
-      "importance": 0.0899
+      "importance": 0.0934
+    },
+    {
+      "name": "beneficiary_first_time",
+      "importance": 0.0479
     },
     {
       "name": "auth_method_cvv_only",
-      "importance": 0.0534
+      "importance": 0.0477
     },
     {
       "name": "auth_result_success",
       "importance": 0.0422
     },
     {
-      "name": "beneficiary_first_time",
-      "importance": 0.0377
-    },
-    {
       "name": "payee_in_degree",
-      "importance": 0.0287
+      "importance": 0.0328
     },
     {
       "name": "txn_count_last_24h",
-      "importance": 0.0244
+      "importance": 0.0223
     },
     {
-      "name": "eci_None",
-      "importance": 0.023
+      "name": "payer_out_degree",
+      "importance": 0.0187
     }
   ],
   "closed_loop_cycle_proof": {

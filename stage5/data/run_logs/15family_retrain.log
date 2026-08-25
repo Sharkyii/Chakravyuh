@@ -1,3 +1,4 @@
+=== [1/3] Gen 3 curriculum retraining (now actually trains on attack rows) ===
 /home/sharkyi/Desktop/Chakravyuh/stage5/training/curriculum_retrain.py:177: FutureWarning: The behavior of DataFrame concatenation with empty or all-NA entries is deprecated. In a future version, this will no longer exclude empty or all-NA columns when determining the result dtypes. To retain the old behavior, exclude the relevant entries before the concat operation.
   training_df = pd.concat(concat_parts, ignore_index=True, sort=False)
 /home/sharkyi/Desktop/Chakravyuh/.venv/lib/python3.11/site-packages/sklearn/metrics/_ranking.py:1174: UndefinedMetricWarning: No negative samples in y_true, false positive value should be meaningless

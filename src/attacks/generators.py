@@ -1894,3 +1894,154 @@ __all__ = [
     "AgenticInjectionAttack",
     "InsiderAbuseAttack",
 ]
+
+
+class DeviceFanOutAttack(AttackGenerator):
+    """
+    Single compromised device initiates transactions with 4-6 distinct payment
+    cards in a tight time window (2 hours), each to different merchants.
+    Signature: per-device card clustering, not per-account velocity.
+    """
+    attack_id = "device_fan_out"
+
+    def generate(
+        self,
+        baseline: PaymentDataset,
+        *,
+        seed: int,
+        intensity: AttackIntensity | str,
+        config: dict[str, Any] | None = None,
+    ):
+        rng = np.random.default_rng(seed)
+        intensity_value = (
+            intensity
+            if isinstance(intensity, AttackIntensity)
+            else AttackIntensity(str(intensity).upper())
+        )
+
+        device_id = baseline.tables["devices"][min(10, len(baseline.tables["devices"]) - 1)]["device_id"]
+        n_cards = _intensity_count(intensity_value, low=4, medium=5, high=6)
+
+        consumer_ids = [
+            row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"
+        ]
+        payer_ids = consumer_ids[:n_cards]
+
+        merchant_ids = [row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "merchant"]
+
+        start_ts = _random_start_ts(baseline, rng)
+        rows: list[dict[str, Any]] = []
+        labels: list[dict[str, Any]] = []
+
+        for card_idx, payer_id in enumerate(payer_ids):
+            merchant_id = merchant_ids[card_idx % len(merchant_ids)]
+            event_ts = start_ts + timedelta(minutes=float(rng.uniform(5, 120)))
+            amount = _money(float(rng.lognormal(mean=4.0, sigma=0.5)) + float(rng.normal(0, 20)))
+
+            txn = _transaction_row(
+                rng=rng, payer_id=payer_id, payee_id=merchant_id, amount=amount, ts=event_ts,
+                device_id=device_id, known_device=True, rail="card", channel="online",
+                merchant_id=merchant_id, mcc=rng.integers(4000, 8500), auth_method="cvv",
+                auth_result="success", decision="approved", session_duration_s=int(20 + rng.integers(0, 60)),
+                time_on_confirm_screen_s=float(rng.uniform(1.0, 3.0)), beneficiary_first_time=True,
+                beneficiary_added_ago_s=int(rng.integers(5, 120)), pin_attempts=1, screen_share_active=False,
+                call_active_during_txn=False, geo_matches_home=False, purpose_code="00", issuer_risk_score=0.25,
+            )
+            rows.append(txn)
+            labels.append(_label_row(txn["txn_id"], attack_id=self.attack_id, campaign_id="",
+                                     pretext="compromised_device", detectable_at=DetectableAt.PRE_AUTH))
+
+        campaign = _build_campaign(
+            self.attack_id, seed=seed, intensity=intensity_value, start_time=rows[0]["timestamp"],
+            end_time=rows[-1]["timestamp"], affected_entities=payer_ids + [device_id], event_count=len(rows),
+            pretext="compromised_device", config={"device_id": device_id, "n_cards": n_cards},
+        )
+        for label in labels:
+            label["campaign_id"] = campaign.campaign_id
+
+        return campaign, rows, labels
+
+
+class BalanceDrainExitAttack(AttackGenerator):
+    """
+    Account receives a large transfer, then immediately liquidates 85-95% of
+    it to a newly-added beneficiary within 5 minutes. Money-movement fraud
+    signature: receive-then-drain pattern.
+    """
+    attack_id = "balance_drain_exit"
+
+    def generate(
+        self,
+        baseline: PaymentDataset,
+        *,
+        seed: int,
+        intensity: AttackIntensity | str,
+        config: dict[str, Any] | None = None,
+    ):
+        rng = np.random.default_rng(seed)
+        intensity_value = (
+            intensity
+            if isinstance(intensity, AttackIntensity)
+            else AttackIntensity(str(intensity).upper())
+        )
+
+        consumer_ids = [
+            row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"
+        ]
+
+        payer_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
+        receiver_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
+        while receiver_id == payer_id:
+            receiver_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
+
+        beneficiary_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
+        while beneficiary_id in (payer_id, receiver_id):
+            beneficiary_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
+
+        start_ts = _random_start_ts(baseline, rng)
+        rows: list[dict[str, Any]] = []
+        labels: list[dict[str, Any]] = []
+
+        receive_amount = _money(float(rng.lognormal(mean=5.0, sigma=0.7)))
+        device_id = _choose_device_for_party(baseline, payer_id) or baseline.tables["devices"][0]["device_id"]
+
+        rxn = _transaction_row(
+            rng=rng, payer_id=payer_id, payee_id=receiver_id, amount=receive_amount, ts=start_ts,
+            device_id=device_id, known_device=True, rail="upi_p2p", channel="app", merchant_id=None, mcc=None,
+            auth_method="upi_pin", auth_result="success", decision="approved",
+            session_duration_s=int(30 + rng.integers(0, 20)), time_on_confirm_screen_s=float(rng.uniform(1.5, 3.0)),
+            beneficiary_first_time=False, beneficiary_added_ago_s=int(rng.integers(200, 1000)), pin_attempts=1,
+            screen_share_active=False, call_active_during_txn=False, geo_matches_home=True, purpose_code="00",
+            issuer_risk_score=0.05,
+        )
+        rows.append(rxn)
+        labels.append(_label_row(rxn["txn_id"], attack_id=self.attack_id, campaign_id="",
+                                 pretext="money_movement_fraud", detectable_at=DetectableAt.PRE_AUTH))
+
+        drain_ratio = rng.uniform(0.85, 0.95)
+        drain_amount = _money(float(receive_amount) * drain_ratio)
+        device_id_recv = _choose_device_for_party(baseline, receiver_id) or baseline.tables["devices"][0]["device_id"]
+        drain_ts = start_ts + timedelta(minutes=float(rng.uniform(1.0, 5.0)))
+
+        txn = _transaction_row(
+            rng=rng, payer_id=receiver_id, payee_id=beneficiary_id, amount=drain_amount, ts=drain_ts,
+            device_id=device_id_recv, known_device=True, rail="upi_p2p", channel="app", merchant_id=None, mcc=None,
+            auth_method="upi_pin", auth_result="success", decision="approved",
+            session_duration_s=int(20 + rng.integers(0, 15)), time_on_confirm_screen_s=float(rng.uniform(1.2, 2.5)),
+            beneficiary_first_time=True, beneficiary_added_ago_s=int(rng.integers(5, 60)), pin_attempts=1,
+            screen_share_active=False, call_active_during_txn=False, geo_matches_home=True, purpose_code="00",
+            issuer_risk_score=0.30,
+        )
+        rows.append(txn)
+        labels.append(_label_row(txn["txn_id"], attack_id=self.attack_id, campaign_id="",
+                                 pretext="money_movement_fraud", detectable_at=DetectableAt.PRE_AUTH))
+
+        campaign = _build_campaign(
+            self.attack_id, seed=seed, intensity=intensity_value, start_time=rows[0]["timestamp"],
+            end_time=rows[-1]["timestamp"], affected_entities=[payer_id, receiver_id, beneficiary_id],
+            event_count=len(rows), pretext="money_movement_fraud", config={"drain_ratio": drain_ratio},
+        )
+        for label in labels:
+            label["campaign_id"] = campaign.campaign_id
+
+        return campaign, rows, labels

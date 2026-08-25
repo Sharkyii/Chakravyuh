@@ -3,42 +3,42 @@
   "results_by_attack_generation": {
     "gen3_attacks": {
       "generation": "gen3_attacks",
-      "evasion_margin": 0.8381818181818181,
-      "evasion_percent": "83.8%",
-      "caught": 445,
-      "slipped": 2305,
+      "evasion_margin": 0.43127272727272725,
+      "evasion_percent": "43.1%",
+      "caught": 1564,
+      "slipped": 1186,
       "total": 2750,
       "threshold_used": 0.45,
       "target": 0.05,
       "target_percent": "5.0%",
       "status": "FAIL",
-      "margin_to_target": 0.7881818181818181
+      "margin_to_target": 0.38127272727272726
     },
     "gen4_attacks": {
       "generation": "gen4_attacks",
-      "evasion_margin": 0.22826086956521738,
-      "evasion_percent": "22.8%",
-      "caught": 1775,
-      "slipped": 525,
+      "evasion_margin": 0.008695652173913044,
+      "evasion_percent": "0.9%",
+      "caught": 2280,
+      "slipped": 20,
       "total": 2300,
       "threshold_used": 0.45,
       "target": 0.05,
       "target_percent": "5.0%",
-      "status": "FAIL",
-      "margin_to_target": 0.17826086956521736
+      "status": "PASS",
+      "margin_to_target": -0.04130434782608696
     },
     "gen5_attacks": {
       "generation": "gen5_attacks",
-      "evasion_margin": 0.29125,
-      "evasion_percent": "29.1%",
-      "caught": 1134,
-      "slipped": 466,
+      "evasion_margin": 0.015625,
+      "evasion_percent": "1.6%",
+      "caught": 1575,
+      "slipped": 25,
       "total": 1600,
       "threshold_used": 0.45,
       "target": 0.05,
       "target_percent": "5.0%",
-      "status": "FAIL",
-      "margin_to_target": 0.24125000000000002
+      "status": "PASS",
+      "margin_to_target": -0.034375
     }
   },
   "interpretation": "Each row is the SAME deployed model scored against a different generation's attack set. A materially higher evasion rate on gen3/gen4 attacks than the gen5 curriculum log reported would mean the model regressed on easier attacks while being hardened against harder ones -- the thing this check exists to catch."

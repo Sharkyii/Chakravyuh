@@ -22,8 +22,10 @@ from src.attacks.framework import (
 from src.attacks.generators import (
     AdversarialEvasionAttack,
     AgenticInjectionAttack,
+    BalanceDrainExitAttack,
     CardTestingProbeAttack,
     CredentialTakeoverAttack,
+    DeviceFanOutAttack,
     FirstPartyDisputeAttack,
     InsiderAbuseAttack,
     MuleNetworkAttack,
@@ -56,6 +58,8 @@ def build_attack_generator(attack_id: str) -> AttackGenerator:
         "subthreshold_fragmentation": SubthresholdFragmentationAttack,
         "agentic_injection": AgenticInjectionAttack,
         "insider_abuse": InsiderAbuseAttack,
+        "device_fan_out": DeviceFanOutAttack,
+        "balance_drain_exit": BalanceDrainExitAttack,
     }
     try:
         return factory[attack_id]()

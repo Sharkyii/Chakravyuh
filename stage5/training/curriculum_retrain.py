@@ -27,6 +27,8 @@ def _as_feature_frame(attacks: list) -> pd.DataFrame:
 
 
 RETAINED_SAMPLE_CAP = 500
+LEVEL_ATTACK_CAP = 600
+TRAIN_FRACTION = 0.8
 
 
 def retrain_on_gen3_attacks(
@@ -144,13 +146,31 @@ def retrain_on_gen3_attacks(
 
         gen3_df = _as_feature_frame(gen3_attacks)
         gen3_df['is_fraud'] = 1
-        gen3_df['split'] = 'test'
-        this_gen_levels_seen.append(gen3_df.head(RETAINED_SAMPLE_CAP))
+        gen3_df = gen3_df.head(LEVEL_ATTACK_CAP)
+
+        # Split into a genuine train portion (so the model actually learns
+        # this pattern) and a held-out test portion (for honest evasion
+        # measurement on rows it never trained on). Tagging every attack row
+        # 'test' -- the previous behavior -- meant train_fraud_model() routed
+        # 100% of them to test_df and 0% to train_df: no generation ever
+        # trained on a single adversarial example. Confirmed via
+        # cross_generation_eval.py + a direct feature_importances_ comparison
+        # showing gen3_model.pkl was bit-for-bit identical to the
+        # pre-curriculum baseline.
+        rng = np.random.default_rng(42)
+        shuffled = rng.permutation(len(gen3_df))
+        n_train = int(len(gen3_df) * TRAIN_FRACTION)
+        gen3_train_rows = gen3_df.iloc[shuffled[:n_train]].copy()
+        gen3_train_rows['split'] = 'train'
+        gen3_test_rows = gen3_df.iloc[shuffled[n_train:]].copy()
+        gen3_test_rows['split'] = 'test'
+        this_gen_levels_seen.append(gen3_train_rows.head(RETAINED_SAMPLE_CAP))
 
         concat_parts = [
             original_training_df[original_training_df['split'].isin(['train', 'validation'])],
             analyst_feedback_df.assign(split='train') if len(analyst_feedback_df) else analyst_feedback_df,
-            gen3_df.head(500),
+            gen3_train_rows,
+            gen3_test_rows,
         ]
         if accumulated_attacks_df is not None and len(accumulated_attacks_df):
             concat_parts.append(accumulated_attacks_df)
@@ -159,7 +179,7 @@ def retrain_on_gen3_attacks(
         print(f"  Training data size: {len(training_df)}")
         print(f"    Original: {len(original_training_df)}")
         print(f"    Analyst feedback: {len(analyst_feedback_df)}")
-        print(f"    {generation_label} (for curriculum): {min(500, len(gen3_df))}")
+        print(f"    {generation_label} (train): {len(gen3_train_rows)}   {generation_label} (held-out test): {len(gen3_test_rows)}")
         print(f"    Retained from prior generations: {n_accumulated}")
 
         try:
@@ -186,8 +206,11 @@ def retrain_on_gen3_attacks(
             )
             print(f"    Prior-gen evasion: {gen2_margin['evasion_percent']} (should be near 0%)")
 
+        # Measured on the held-out test rows only -- the ones this level's
+        # model did NOT train on -- so this is genuine generalisation, not
+        # the model grading its own training data.
         this_gen_evasion = measure_evasion_margin(
-            level_model, gen3_df[ALL_FEATURES], gen3_df['is_fraud'].values,
+            level_model, gen3_test_rows[ALL_FEATURES], gen3_test_rows['is_fraud'].values,
             generation=generation_label, preprocessor=level_preprocessor,
         )
         print(f"    {generation_label} evasion: {this_gen_evasion['evasion_percent']} (target <{target_evasion*100:.0f}%)")

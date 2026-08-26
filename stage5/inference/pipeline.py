@@ -586,7 +586,21 @@ def analyze_transaction(transaction: dict, api_key: str | None = None) -> dict:
         risk_score_raw = max(risk_score_raw, 90.0 + 8.0 * _ramp_up(amount_val, low=25000.0, high=100000.0))
         if "Active device sharing/call on high-value transaction" not in contributing_signals:
             contributing_signals.append("Active device sharing/call on high-value transaction")
-            
+
+    # 3. Unauthenticated transfer (insider_abuse signature). auth_method="none"
+    # means no customer-facing authentication occurred at all -- every
+    # legitimate rail and every other attack family requires some auth_method
+    # (upi_pin, cvv/cvv_only, mandate_no_afa); only InsiderAbuseAttack ever
+    # emits "none", representing a payment pushed via back-office/employee
+    # access without the customer authorizing it. The trained model gives
+    # this pattern almost no weight (stress-tested at 0.04% fraud probability,
+    # a near-total miss) because its other fields look routine (established
+    # beneficiary, moderate amount) -- auth_method is the only real signal.
+    if str(transaction.get("auth_method", "")).lower() == "none":
+        risk_score_raw = max(risk_score_raw, 75.0)
+        if "Transaction completed with no customer authentication" not in contributing_signals:
+            contributing_signals.append("Transaction completed with no customer authentication")
+
     risk_score = min(100.0, max(0.0, risk_score_raw))
     
     # Map to outputs

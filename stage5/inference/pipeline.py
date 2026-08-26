@@ -601,6 +601,27 @@ def analyze_transaction(transaction: dict, api_key: str | None = None) -> dict:
         if "Transaction completed with no customer authentication" not in contributing_signals:
             contributing_signals.append("Transaction completed with no customer authentication")
 
+    # 4. Established-beneficiary claim contradicted by a very recent add
+    # timestamp. Legitimate generation always pairs beneficiary_first_time=
+    # False with LEGIT_EXISTING_BENEFICIARY_MIN_AGE_S (7+ days, see
+    # src/generators/calibration.py) -- no genuine row can claim "not a
+    # first-time beneficiary" while also showing an add timestamp of a few
+    # minutes ago. Several attack generators (synthetic_identity_bustout's
+    # later max-out-phase rows, card_testing_probe, balance_drain_exit) do
+    # exactly this, and single-shot stress testing found the trained model
+    # gives it little weight (synthetic_identity_bustout scored 0.08% fraud
+    # probability in isolation, even though the model's real held-out
+    # generalisation recall on this family is 100% when given full campaign
+    # history -- see model_metadata.json's held_out_family_generalisation).
+    # This is a narrower mitigation for single-transaction calls specifically,
+    # not a substitute for that multi-transaction evaluation.
+    ben_age_val = transaction.get("beneficiary_added_ago_s")
+    ben_first_time = bool(transaction.get("beneficiary_first_time", False))
+    if not ben_first_time and ben_age_val is not None and pd.notna(ben_age_val) and float(ben_age_val) < 300.0:
+        risk_score_raw = max(risk_score_raw, 55.0)
+        if "Established-beneficiary claim contradicted by recent add timestamp" not in contributing_signals:
+            contributing_signals.append("Established-beneficiary claim contradicted by recent add timestamp")
+
     risk_score = min(100.0, max(0.0, risk_score_raw))
     
     # Map to outputs

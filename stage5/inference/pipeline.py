@@ -622,6 +622,24 @@ def analyze_transaction(transaction: dict, api_key: str | None = None) -> dict:
         if "Established-beneficiary claim contradicted by recent add timestamp" not in contributing_signals:
             contributing_signals.append("Established-beneficiary claim contradicted by recent add timestamp")
 
+    # 5. New device from an unrecognised location (credential_takeover
+    # signature: session hijacked, attacker's own device and geography).
+    # Each field alone is unremarkable in legitimate traffic (~1.5% of
+    # genuine transactions use an unknown device, ~6% show a geo mismatch,
+    # drawn independently -- see LEGIT_KNOWN_DEVICE_PROB=0.985 and the 0.94
+    # geo-match rate in src/generators/legitimate.py), so the joint
+    # false-positive rate is ~0.09%, low enough to treat as a real signal
+    # without the zero-FP guarantee the other overrides have. Stress-tested
+    # at 0.7% fraud probability (LOW/ALLOW) in isolation despite this
+    # combination being exactly how account-takeover fraud actually
+    # presents in the real world.
+    device_unknown = not bool(transaction.get("device_is_known_for_payer", True))
+    geo_mismatch = not bool(transaction.get("geo_matches_payer_home", True))
+    if device_unknown and geo_mismatch:
+        risk_score_raw = max(risk_score_raw, 65.0)
+        if "Unrecognised device combined with geography mismatch" not in contributing_signals:
+            contributing_signals.append("Unrecognised device combined with geography mismatch")
+
     risk_score = min(100.0, max(0.0, risk_score_raw))
     
     # Map to outputs

@@ -44,7 +44,7 @@ interface AnalysisResult {
   recommended_action: string;
   fraud_probability: number;
   attack_probabilities: Record<string, number>;
-  top_attack_family: string;
+  top_attack_family: string | null;
   top_attack_probability: number;
   contributing_signals: string[];
   shap_contributions?: { feature: string; shap_value: number; direction: "increases_risk" | "decreases_risk" }[];
@@ -1006,7 +1006,9 @@ export default function AnalystPortal() {
                           Top Predicted Attack Vector
                         </span>
                         <h4 className="text-base font-bold text-white capitalize">
-                          {scoreResult.top_attack_family.replace(/_/g, " ")}
+                          {scoreResult.top_attack_family
+                            ? scoreResult.top_attack_family.replace(/_/g, " ")
+                            : "Unavailable"}
                         </h4>
                       </div>
                       <div className="text-right">

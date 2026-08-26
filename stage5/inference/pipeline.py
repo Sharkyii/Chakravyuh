@@ -106,6 +106,25 @@ def load_artifacts():
             idx_to_attack = {int(k): v for k, v in mapping["idx_to_attack"].items()}
             attack_to_idx = {k: int(v) for k, v in mapping["attack_to_idx"].items()}
 
+        # Calibration thresholds from the model's own held-out test evaluation
+        # (model_metadata.json's fixed_fpr_operating_points) -- fall back to the
+        # metadata's selected_threshold split in two if the operating points are
+        # missing, so a differently-shaped metadata file degrades gracefully
+        # instead of crashing inference.
+        fraud_precision_threshold = 0.35  # selected_threshold: F1-optimal production decision boundary
+        fraud_recall_threshold = 0.008  # 1% FPR operating point, ~100% recall on held-out fraud
+        metadata_path = MODELS_DIR / "model_metadata.json"
+        if metadata_path.exists():
+            try:
+                with open(metadata_path, "r", encoding="utf-8") as f:
+                    model_metadata = json.load(f)
+                fraud_precision_threshold = model_metadata.get("selected_threshold", fraud_precision_threshold)
+                fpr_points = model_metadata.get("test_metrics", {}).get("fixed_fpr_operating_points", [])
+                by_target = {p["target_fpr"]: p["threshold"] for p in fpr_points}
+                fraud_recall_threshold = by_target.get(0.01, fraud_recall_threshold)
+            except Exception:
+                pass
+
         # TreeExplainer needs no background dataset for tree models (unlike
         # KernelExplainer) and is fast enough to build once and cache -- this
         # is what actually delivers the "XGBoost has fast, mature SHAP
@@ -125,6 +144,8 @@ def load_artifacts():
             "idx_to_attack": idx_to_attack,
             "attack_to_idx": attack_to_idx,
             "shap_explainer": shap_explainer,
+            "fraud_precision_threshold": fraud_precision_threshold,
+            "fraud_recall_threshold": fraud_recall_threshold,
         }
         _artifact_mtimes = current_mtimes
 
@@ -314,6 +335,52 @@ def _ramp_up(value: float, low: float, high: float) -> float:
     return (value - low) / (high - low)
 
 
+def _calibrated_base_score(fraud_probability: float, recall_threshold: float, precision_threshold: float) -> float:
+    """Maps a raw XGBoost fraud probability onto the 0-100 risk scale used by
+    the rest of the fusion engine, anchored to the model's own held-out test
+    calibration instead of treating the probability as a naive percentage.
+
+    XGBoost fraud probabilities on this dataset are concentrated far below
+    0.5 even for confident fraud calls (PR-AUC 0.998, but raw probabilities
+    for true fraud commonly sit in the 1-25% range) -- `fraud_probability *
+    100` compared against generic 30/60/80 buckets was silently classifying
+    correctly-scored fraud (e.g. adversarial_evasion at 11%) as LOW risk,
+    because 11 < 30 even though 0.11 is >10x the model's own 1%-FPR
+    threshold.
+
+    Two anchors, both read from model_metadata.json so they stay in sync
+    with whichever model is deployed:
+    - `recall_threshold` (1%-FPR operating point, ~100% recall on held-out
+      fraud): below this, the model itself found no meaningful signal even
+      at an aggressive recall target -> LOW.
+    - `precision_threshold` (`selected_threshold`, the model's F1-optimal
+      production decision boundary, ~97.6% precision): at/above this, the
+      model is confident enough to auto-block -> HIGH/CRITICAL.
+    Between the two: MEDIUM/REVIEW. This mirrors standard fraud-ops design
+    (auto-block on high precision, human review on elevated-but-uncertain
+    signal) and is why a genuine transaction can still land in MEDIUM
+    roughly 1% of the time -- that's what a 1%-FPR threshold means by
+    construction, and REVIEW (not BLOCK) is the correct cost for it.
+    """
+    if fraud_probability < recall_threshold:
+        # Below the 1%-FPR / ~100%-recall point: scale 0-30 across [0, recall_threshold).
+        return 30.0 * (fraud_probability / recall_threshold) if recall_threshold > 0 else 0.0
+    if fraud_probability < precision_threshold:
+        # Between the two operating points: scale 30-60.
+        span = precision_threshold - recall_threshold
+        return 30.0 + 30.0 * ((fraud_probability - recall_threshold) / span) if span > 0 else 60.0
+    # At/above the model's production decision threshold: scale 60-100,
+    # linearly mapping [precision_threshold, 1.0] so fraud_probability=1.0
+    # always saturates at exactly 100 regardless of where the threshold
+    # sits (a fixed multiplier here broke once precision_threshold moved
+    # from 0.033 to 0.35, since 3x0.35 > 1.0 is unreachable by any real
+    # probability).
+    span = 1.0 - precision_threshold
+    if span <= 0:
+        return 100.0
+    return min(100.0, 60.0 + 40.0 * ((fraud_probability - precision_threshold) / span))
+
+
 def _ramp_down(value: float, full_risk_at: float, zero_at: float) -> float:
     """Inverse of _ramp_up, for signals where a *smaller* value is riskier
     (e.g. beneficiary age): 1.0 at/below `full_risk_at`, 0.0 at/above
@@ -330,6 +397,8 @@ def analyze_transaction(transaction: dict, api_key: str | None = None) -> dict:
     fraud_model = artifacts["fraud_model"]
     attack_classifier = artifacts["attack_classifier"]
     idx_to_attack = artifacts["idx_to_attack"]
+    fraud_precision_threshold = artifacts["fraud_precision_threshold"]
+    fraud_recall_threshold = artifacts["fraud_recall_threshold"]
     
     # 2. Build feature DataFrame and preprocess
     df = prepare_transaction_df(transaction)
@@ -355,7 +424,7 @@ def analyze_transaction(transaction: dict, api_key: str | None = None) -> dict:
         top_attack_probability = float(attack_probs[best_idx])
     
     # 4. Risk Fusion Engine
-    base_score = fraud_probability * 100.0
+    base_score = _calibrated_base_score(fraud_probability, fraud_recall_threshold, fraud_precision_threshold)
     
     # Attack expected severity weighting
     attack_severity_map = {

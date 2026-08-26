@@ -5,6 +5,7 @@ import pytest
 
 from stage5.config.settings import ALL_FEATURES, MODELS_DIR
 from stage5.inference.pipeline import (
+    _calibrated_base_score,
     analyze_transaction,
     compute_shap_contributions,
     get_fallback_llm_analysis,
@@ -77,6 +78,43 @@ def test_prepare_transaction_df():
     # Check filled defaults
     assert pd.isna(df.loc[0, "mcc"])
     assert not df.loc[0, "screen_share_active"]
+
+
+def test_calibrated_base_score_anchors():
+    """Pins the piecewise-linear remap that replaced `fraud_probability * 100`.
+
+    Regression guard for the bug this fixed: at recall_threshold=0.008,
+    precision_threshold=0.35 (the model's actual operating points),
+    adversarial_evasion's real score of 0.11 used to land at risk_score=11
+    (LOW, <30) under the naive *100 scaling even though it's >10x the
+    1%-FPR threshold -- silently hiding a case the model did flag.
+    """
+    recall_threshold = 0.008
+    precision_threshold = 0.35
+
+    # Below the low-FPR recall anchor: scales into [0, 30).
+    assert _calibrated_base_score(0.0, recall_threshold, precision_threshold) == 0.0
+    assert 0.0 < _calibrated_base_score(0.004, recall_threshold, precision_threshold) < 30.0
+
+    # Exactly at the anchors lands on the band boundaries.
+    assert _calibrated_base_score(
+        recall_threshold, recall_threshold, precision_threshold
+    ) == pytest.approx(30.0)
+    assert _calibrated_base_score(
+        precision_threshold, recall_threshold, precision_threshold
+    ) == pytest.approx(60.0)
+
+    # Between the anchors: scales into [30, 60) -- the MEDIUM/REVIEW band.
+    mid_score = _calibrated_base_score(0.11, recall_threshold, precision_threshold)
+    assert 30.0 < mid_score < 60.0
+
+    # At/above the production decision threshold: scales into [60, 100], saturating.
+    assert _calibrated_base_score(1.0, recall_threshold, precision_threshold) == 100.0
+
+    # Monotonic: higher fraud_probability never produces a lower score.
+    probs = [0.0, 0.002, 0.008, 0.05, 0.11, 0.25, 0.35, 0.5, 1.0]
+    scores = [_calibrated_base_score(p, recall_threshold, precision_threshold) for p in probs]
+    assert scores == sorted(scores)
 
 
 def test_risk_score_and_mapping():

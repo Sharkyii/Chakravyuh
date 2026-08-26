@@ -640,6 +640,28 @@ def analyze_transaction(transaction: dict, api_key: str | None = None) -> dict:
         if "Unrecognised device combined with geography mismatch" not in contributing_signals:
             contributing_signals.append("Unrecognised device combined with geography mismatch")
 
+    # 6. Micro-amount card-not-present probe with a failed auth (card_testing_probe
+    # signature). Legitimate card_cnp amounts follow lognormal(mean=6.35,
+    # sigma=0.85) -- median ~Rs.572 -- so a sub-Rs.15 amount is >4 standard
+    # deviations out; combined with only a 1.8% baseline decline probability
+    # (LEGIT_DECLINE_PROB in src/generators/calibration.py), the joint
+    # occurrence in genuine traffic is negligible. Stress-tested at 22.9%
+    # fraud probability (MEDIUM, below the model's 0.35 production
+    # threshold) despite being a textbook automated probing signature.
+    rail_val = str(transaction.get("rail", "")).lower()
+    auth_result_val = str(transaction.get("auth_result", "")).lower()
+    amount_probe = transaction.get("amount")
+    if (
+        rail_val == "card_cnp"
+        and auth_result_val == "failure"
+        and amount_probe is not None
+        and pd.notna(amount_probe)
+        and float(amount_probe) < 15.0
+    ):
+        risk_score_raw = max(risk_score_raw, 70.0)
+        if "Micro-amount card-not-present probe with failed authentication" not in contributing_signals:
+            contributing_signals.append("Micro-amount card-not-present probe with failed authentication")
+
     risk_score = min(100.0, max(0.0, risk_score_raw))
     
     # Map to outputs

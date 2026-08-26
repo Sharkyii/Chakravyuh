@@ -69,15 +69,21 @@ def load_artifacts():
     attack_classifier_path = MODELS_DIR / "attack_classifier.pkl"
     mapping_path = MODELS_DIR / "attack_class_mapping.json"
 
-    if not (preprocessor_path.exists() and fraud_model_path.exists() and attack_classifier_path.exists() and mapping_path.exists()):
+    if not (preprocessor_path.exists() and fraud_model_path.exists()):
         raise FileNotFoundError("One or more Stage 5 model artifacts are missing in stage5/models/.")
+
+    # attack_classifier/mapping are a secondary attack-family breakdown, not
+    # the core fraud score -- treat them as optional so a missing/stale
+    # classifier degrades the attack-family fields instead of taking down
+    # fraud scoring entirely.
+    has_attack_classifier = attack_classifier_path.exists() and mapping_path.exists()
 
     # Check if any artifact file has changed on disk (new mtime or missing from disk)
     current_mtimes = {
         "preprocessor": preprocessor_path.stat().st_mtime,
         "fraud_model": fraud_model_path.stat().st_mtime,
-        "attack_classifier": attack_classifier_path.stat().st_mtime,
-        "mapping": mapping_path.stat().st_mtime,
+        "attack_classifier": attack_classifier_path.stat().st_mtime if has_attack_classifier else None,
+        "mapping": mapping_path.stat().st_mtime if has_attack_classifier else None,
     }
 
     # Invalidate cache if any mtime changed — force reload
@@ -86,16 +92,19 @@ def load_artifacts():
         _artifact_mtimes = {}
 
     if not _artifacts:
-            
+
         preprocessor = joblib.load(preprocessor_path)
         fraud_model = joblib.load(fraud_model_path)
-        attack_classifier = joblib.load(attack_classifier_path)
-        
-        with open(mapping_path, "r", encoding="utf-8") as f:
-            mapping = json.load(f)
-            
-        idx_to_attack = {int(k): v for k, v in mapping["idx_to_attack"].items()}
-        attack_to_idx = {k: int(v) for k, v in mapping["attack_to_idx"].items()}
+
+        attack_classifier = None
+        idx_to_attack = {}
+        attack_to_idx = {}
+        if has_attack_classifier:
+            attack_classifier = joblib.load(attack_classifier_path)
+            with open(mapping_path, "r", encoding="utf-8") as f:
+                mapping = json.load(f)
+            idx_to_attack = {int(k): v for k, v in mapping["idx_to_attack"].items()}
+            attack_to_idx = {k: int(v) for k, v in mapping["attack_to_idx"].items()}
 
         # TreeExplainer needs no background dataset for tree models (unlike
         # KernelExplainer) and is fast enough to build once and cache -- this
@@ -200,10 +209,16 @@ def get_fallback_llm_analysis(transaction: dict, risk_assessment: dict, error_ms
     else:
         explanation += " No significant risk was identified."
         
-    interpretation = (
-        f"The attack classifier predicted '{top_attack}' with a confidence of {top_prob*100:.1f}%. "
-        f"This classification represents the closest matches among known fraud campaign patterns."
-    )
+    if top_attack:
+        interpretation = (
+            f"The attack classifier predicted '{top_attack}' with a confidence of {top_prob*100:.1f}%. "
+            f"This classification represents the closest matches among known fraud campaign patterns."
+        )
+    else:
+        interpretation = (
+            "Attack-family classification is unavailable for this prediction; "
+            "the fraud score above is based on the primary detection model only."
+        )
     
     key_evidence = list(signals) if signals else []
     for c in shap_contributions[:3]:
@@ -326,15 +341,18 @@ def analyze_transaction(transaction: dict, api_key: str | None = None) -> dict:
 
     shap_contributions = compute_shap_contributions(X_proc)
 
-    attack_probs = attack_classifier.predict_proba(X_proc)[0]
     attack_probabilities = {}
-    for idx, prob in enumerate(attack_probs):
-        atk_name = idx_to_attack[idx]
-        attack_probabilities[atk_name] = float(prob)
-        
-    best_idx = int(np.argmax(attack_probs))
-    top_attack_family = idx_to_attack[best_idx]
-    top_attack_probability = float(attack_probs[best_idx])
+    top_attack_family = None
+    top_attack_probability = 0.0
+    if attack_classifier is not None:
+        attack_probs = attack_classifier.predict_proba(X_proc)[0]
+        for idx, prob in enumerate(attack_probs):
+            atk_name = idx_to_attack[idx]
+            attack_probabilities[atk_name] = float(prob)
+
+        best_idx = int(np.argmax(attack_probs))
+        top_attack_family = idx_to_attack[best_idx]
+        top_attack_probability = float(attack_probs[best_idx])
     
     # 4. Risk Fusion Engine
     base_score = fraud_probability * 100.0
@@ -566,7 +584,7 @@ def analyze_transaction(transaction: dict, api_key: str | None = None) -> dict:
         
         evidence_lines = [
             f"Fraud Probability: {fraud_probability*100:.2f}%",
-            f"Predicted Attack Family: {top_attack_family} (Classifier Confidence: {top_attack_probability*100:.2f}%)",
+            f"Predicted Attack Family: {top_attack_family or 'unavailable'} (Classifier Confidence: {top_attack_probability*100:.2f}%)",
             f"Calculated Risk Score: {risk_score:.1f}/100",
             f"Recommended Action: {action}",
             f"Risk Level: {risk_level}",

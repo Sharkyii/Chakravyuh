@@ -17,6 +17,7 @@ dependencies = [
     "uvicorn==0.52.3",
     "shap==0.51.0",
     "mlflow==3.15.1",
+    "anthropic>=0.109.1",
 ]
 
 [tool.uv]

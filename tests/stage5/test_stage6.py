@@ -12,17 +12,28 @@ from stage5.inference.pipeline import (
     prepare_transaction_df,
 )
 
-# stage5/models/*.pkl are gitignored (exceed GitHub's file size limit) and
-# aren't trained in CI, so tests that need real model artifacts skip cleanly
-# there rather than fail -- mirrors the tolerant assertion already used in
-# web/next-app/e2e/portal.spec.ts's risk-assessment test.
+# stage5/models/*.pkl aren't generated in CI, so tests that need real model
+# artifacts skip cleanly there rather than fail -- mirrors the tolerant
+# assertion already used in web/next-app/e2e/portal.spec.ts's risk-assessment
+# test.
 requires_trained_models = pytest.mark.skipif(
     not (MODELS_DIR / "fraud_model.pkl").exists(),
     reason="trained model artifacts not present (not generated in CI)",
 )
 
+# attack_classifier.pkl is a separate training run (train_attack_classifier.py)
+# from the fraud model and isn't currently produced by the Gen 3/4/5 curriculum
+# retrain scripts -- load_artifacts() treats it as optional (pipeline.py degrades
+# to fraud-only scoring), but these two tests assert the full attack-family
+# breakdown, which needs the classifier to actually be present on disk.
+requires_attack_classifier = pytest.mark.skipif(
+    not (MODELS_DIR / "attack_classifier.pkl").exists(),
+    reason="attack_classifier.pkl not present -- run stage5/training/train_attack_classifier.py",
+)
+
 
 @requires_trained_models
+@requires_attack_classifier
 def test_saved_artifacts_load_correctly():
     """Verifies that the preprocessor, fraud model, attack classifier, and mappings load correctly."""
     artifacts = load_artifacts()
@@ -107,6 +118,7 @@ def test_risk_score_and_mapping():
 
 
 @requires_trained_models
+@requires_attack_classifier
 def test_pipeline_inference_end_to_end():
     """Runs a complete test with a mock/sample transaction row through the whole pipeline."""
     # Create a realistic transaction dict with all columns

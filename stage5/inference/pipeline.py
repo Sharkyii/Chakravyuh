@@ -606,10 +606,23 @@ def analyze_transaction(transaction: dict, api_key: str | None = None) -> dict:
     # False with LEGIT_EXISTING_BENEFICIARY_MIN_AGE_S (7+ days, see
     # src/generators/calibration.py) -- no genuine row can claim "not a
     # first-time beneficiary" while also showing an add timestamp of a few
-    # minutes ago. Several attack generators (synthetic_identity_bustout's
-    # later max-out-phase rows, card_testing_probe, balance_drain_exit) do
-    # exactly this, and single-shot stress testing found the trained model
-    # gives it little weight (synthetic_identity_bustout scored 0.08% fraud
+    # minutes ago. This is a systematic pattern across most of the repeat-
+    # transaction attack families, not just synthetic_identity_bustout: each
+    # one stamps beneficiary_first_time=False on every row after the first,
+    # with beneficiary_added_ago_s computed as (event_ts - campaign_start) +
+    # a small constant -- since these campaigns run minutes to at most ~12
+    # hours end-to-end (synthetic_merchant, transaction_laundering,
+    # subthreshold_fragmentation, agentic_injection, card_testing_probe,
+    # balance_drain_exit's receive step), every one of those rows carries
+    # this same contradiction. The threshold is 43200s (12h) rather than the
+    # tighter 300s originally used: legitimate generation never pairs
+    # beneficiary_first_time=False with less than
+    # LEGIT_EXISTING_BENEFICIARY_MIN_AGE_S (7 days = 604800s, see
+    # src/generators/legitimate.py), so even 12h keeps a 14x safety margin
+    # against genuine traffic while catching campaigns that span several
+    # hours, not just the first few minutes. Single-shot stress testing
+    # found the trained model gives this pattern little weight on its own
+    # (synthetic_identity_bustout's early-phase rows scored 0.08% fraud
     # probability in isolation, even though the model's real held-out
     # generalisation recall on this family is 100% when given full campaign
     # history -- see model_metadata.json's held_out_family_generalisation).
@@ -617,7 +630,7 @@ def analyze_transaction(transaction: dict, api_key: str | None = None) -> dict:
     # not a substitute for that multi-transaction evaluation.
     ben_age_val = transaction.get("beneficiary_added_ago_s")
     ben_first_time = bool(transaction.get("beneficiary_first_time", False))
-    if not ben_first_time and ben_age_val is not None and pd.notna(ben_age_val) and float(ben_age_val) < 300.0:
+    if not ben_first_time and ben_age_val is not None and pd.notna(ben_age_val) and float(ben_age_val) < 43200.0:
         risk_score_raw = max(risk_score_raw, 55.0)
         if "Established-beneficiary claim contradicted by recent add timestamp" not in contributing_signals:
             contributing_signals.append("Established-beneficiary claim contradicted by recent add timestamp")

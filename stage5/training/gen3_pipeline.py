@@ -8,6 +8,7 @@ from pathlib import Path
 # Add project root
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
+from stage5.adversarial.gen3_config import CURRICULUM_LEVELS
 from stage5.adversarial.gen3_generator import Gen3AttackGenerator
 from stage5.training.curriculum_retrain import retrain_on_gen3_attacks
 from stage5.validation.gen3_evaluation_report import generate_gen3_evaluation_report, print_gen3_report
@@ -75,6 +76,22 @@ def run_gen3_pipeline(
 
         print(f"\n  ✓ Generated attacks for {len(families)} families")
 
+        # Merge every family's per-level attacks into one combined curriculum.
+        # retrain_on_gen3_attacks() used to be handed only
+        # gen3_attacks_all['adversarial_evasion'] -- every other family's
+        # attacks were generated above, printed, and then silently discarded
+        # before ever reaching train_fraud_model(). Confirmed via a
+        # multi-checkpoint battery eval: adding stealth_mandate/insider_abuse/
+        # first_party_dispute to GEN3_SPECS and generating their attacks had
+        # zero effect on recall, because none of it was ever actually trained
+        # on. Concatenating each level's list across all families is what
+        # makes "generate curriculum attacks for all attack families" (this
+        # function's stated purpose) actually true.
+        gen3_attacks_merged = {level: [] for level in CURRICULUM_LEVELS}
+        for family in families:
+            for level, attacks in gen3_attacks_all[family].items():
+                gen3_attacks_merged[level].extend(attacks)
+
     except Exception as e:
         print(f"  ✗ ERROR generating attacks: {e}")
         return {'status': 'FAILED', 'error': str(e)}
@@ -86,10 +103,9 @@ def run_gen3_pipeline(
     print("-" * 80)
 
     try:
-        # Retrain using adversarial_evasion as primary target
         retrain_result = retrain_on_gen3_attacks(
             analyst_feedback_df=analyst_feedback_df,
-            gen3_attacks_by_level=gen3_attacks_all['adversarial_evasion'],
+            gen3_attacks_by_level=gen3_attacks_merged,
             original_training_df=original_training_df,
             gen2_model=gen2_model,
             gen2_preprocessor=gen2_preprocessor,

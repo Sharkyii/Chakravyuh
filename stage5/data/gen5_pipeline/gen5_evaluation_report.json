@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-08-25T14:13:53.294954",
+  "timestamp": "2026-08-27T08:24:57.692366",
   "title": "Gen 5 Multi-Family Adversarial Evaluation Report",
   "executive_summary": {
     "gen5_evasion_rate": "0.0%",
@@ -42,13 +42,13 @@
       "held_out_recall": null
     },
     "gen5_after_retrain": {
-      "pr_auc": 0.9857548550578565,
+      "pr_auc": 0.9898626509201619,
       "held_out_recall": null
     }
   },
   "evasion_metrics": {
     "gen5_attacks_on_gen4_model": {
-      "evasion_rate": "0.5%",
+      "evasion_rate": "0.9%",
       "status": "PASS",
       "note": "Why we retrain on Gen 5"
     },
@@ -63,67 +63,67 @@
       "evasion": "0.0%",
       "evasion_margin": 0.0,
       "status": "PASS",
-      "training_size": 408763
+      "training_size": 228053
     },
     "level_2_moderate_cross_family": {
       "evasion": "0.0%",
       "evasion_margin": 0.0,
       "status": "PASS",
-      "training_size": 409083
+      "training_size": 228373
     },
     "level_3_complex_cross_family": {
       "evasion": "0.0%",
       "evasion_margin": 0.0,
       "status": "PASS",
-      "training_size": 409483
+      "training_size": 228773
     },
     "level_4_extreme_cross_family": {
       "evasion": "0.0%",
       "evasion_margin": 0.0,
       "status": "PASS",
-      "training_size": 409803
+      "training_size": 229093
     }
   },
   "feature_importance": [
     {
       "name": "txn_count_last_24h",
-      "importance": 0.2737
-    },
-    {
-      "name": "txn_count_last_1h",
-      "importance": 0.1097
-    },
-    {
-      "name": "auth_method_cvv_only",
-      "importance": 0.083
-    },
-    {
-      "name": "session_duration_s",
-      "importance": 0.0786
-    },
-    {
-      "name": "auth_method_upi_pin",
-      "importance": 0.0536
-    },
-    {
-      "name": "auth_result_success",
-      "importance": 0.0504
+      "importance": 0.2509
     },
     {
       "name": "beneficiary_added_ago_s",
-      "importance": 0.0354
+      "importance": 0.0688
     },
     {
-      "name": "beneficiary_first_time",
-      "importance": 0.0245
+      "name": "edge_count",
+      "importance": 0.0665
     },
     {
-      "name": "eci_None",
-      "importance": 0.0196
+      "name": "auth_method_upi_pin",
+      "importance": 0.0513
+    },
+    {
+      "name": "session_duration_s",
+      "importance": 0.0506
+    },
+    {
+      "name": "txn_count_last_1h",
+      "importance": 0.0409
+    },
+    {
+      "name": "auth_result_success",
+      "importance": 0.0368
+    },
+    {
+      "name": "auth_method_cvv_only",
+      "importance": 0.0297
+    },
+    {
+      "name": "distinct_linked_account_count_last_24h",
+      "importance": 0.0242
     },
     {
       "name": "time_since_prev_txn",
-      "importance": 0.0188
+      "importance": 0.0226
     }
   ],
   "curriculum_effectiveness": {

@@ -1,20 +1,20 @@
 {
-  "timestamp": "2026-08-25T14:13:53.180350",
+  "timestamp": "2026-08-27T08:24:57.619297",
   "generation": "gen5",
   "curriculum_log": {
     "level_1_simple_cross_family": {
       "prior_gen_evasion": {
         "generation": "prior",
-        "evasion_margin": 0.0,
-        "evasion_percent": "0.0%",
-        "caught": 100,
-        "slipped": 0,
+        "evasion_margin": 0.01,
+        "evasion_percent": "1.0%",
+        "caught": 99,
+        "slipped": 1,
         "total": 100,
         "threshold_used": 0.45,
         "target": 0.05,
         "target_percent": "5.0%",
         "status": "PASS",
-        "margin_to_target": -0.05
+        "margin_to_target": -0.04
       },
       "gen5_evasion": {
         "generation": "gen5",
@@ -29,22 +29,22 @@
         "status": "PASS",
         "margin_to_target": -0.3
       },
-      "training_size": 408763,
+      "training_size": 228053,
       "status": "PASS"
     },
     "level_2_moderate_cross_family": {
       "prior_gen_evasion": {
         "generation": "prior",
-        "evasion_margin": 0.0,
-        "evasion_percent": "0.0%",
-        "caught": 100,
-        "slipped": 0,
+        "evasion_margin": 0.01,
+        "evasion_percent": "1.0%",
+        "caught": 99,
+        "slipped": 1,
         "total": 100,
         "threshold_used": 0.45,
         "target": 0.05,
         "target_percent": "5.0%",
         "status": "PASS",
-        "margin_to_target": -0.05
+        "margin_to_target": -0.04
       },
       "gen5_evasion": {
         "generation": "gen5",
@@ -59,22 +59,22 @@
         "status": "PASS",
         "margin_to_target": -0.3
       },
-      "training_size": 409083,
+      "training_size": 228373,
       "status": "PASS"
     },
     "level_3_complex_cross_family": {
       "prior_gen_evasion": {
         "generation": "prior",
-        "evasion_margin": 0.0,
-        "evasion_percent": "0.0%",
-        "caught": 100,
-        "slipped": 0,
+        "evasion_margin": 0.01,
+        "evasion_percent": "1.0%",
+        "caught": 99,
+        "slipped": 1,
         "total": 100,
         "threshold_used": 0.45,
         "target": 0.05,
         "target_percent": "5.0%",
         "status": "PASS",
-        "margin_to_target": -0.05
+        "margin_to_target": -0.04
       },
       "gen5_evasion": {
         "generation": "gen5",
@@ -89,22 +89,22 @@
         "status": "PASS",
         "margin_to_target": -0.3
       },
-      "training_size": 409483,
+      "training_size": 228773,
       "status": "PASS"
     },
     "level_4_extreme_cross_family": {
       "prior_gen_evasion": {
         "generation": "prior",
-        "evasion_margin": 0.0,
-        "evasion_percent": "0.0%",
-        "caught": 100,
-        "slipped": 0,
+        "evasion_margin": 0.01,
+        "evasion_percent": "1.0%",
+        "caught": 99,
+        "slipped": 1,
         "total": 100,
         "threshold_used": 0.45,
         "target": 0.05,
         "target_percent": "5.0%",
         "status": "PASS",
-        "margin_to_target": -0.05
+        "margin_to_target": -0.04
       },
       "gen5_evasion": {
         "generation": "gen5",
@@ -119,12 +119,12 @@
         "status": "PASS",
         "margin_to_target": -0.3
       },
-      "training_size": 409803,
+      "training_size": 229093,
       "status": "PASS"
     }
   },
   "best_evasion": 0.0,
-  "prior_gen_evasion": 0.005,
+  "prior_gen_evasion": 0.009375,
   "all_models_trained": [
     "level_1_simple_cross_family",
     "level_2_moderate_cross_family",

@@ -21,19 +21,34 @@ os.makedirs(REPORTS_DIR, exist_ok=True)
 # campaigns each pushed fraud-adjacent rows into the same order of magnitude
 # as the legitimate baseline, which alone can make a classifier look
 # artificially good regardless of split methodology.
-STAGE5_N_CONSUMERS = 100_000
-STAGE5_N_MERCHANTS = 4_000
+#
+# Target scale is 100_000/4_000 (below), but this machine has 14GB RAM and a
+# full generate+build_features pass at 100k consumers OOM-killed a prior run
+# (exit 137) with the rest of the desktop also competing for memory. A
+# measured attempt at 40_000/1_600 peaked at 7.1GB RSS for baseline
+# generation ALONE (measured via /usr/bin/time -v) and fully exhausted the
+# 2GB swap -- roughly 3.4x a naive linear-from-15k estimate, so scaling
+# empirically observed peak-RSS from a smaller run is not safe to trust
+# linearly on this generator. Reduced further to 20_000/800 (same 25:1
+# ratio, half of the measured-too-large 40k attempt) before also attempting
+# the heavier attack-layering + build_features step. Restore to
+# 100_000/4_000 when running on a machine with more headroom.
+STAGE5_N_CONSUMERS = 20_000
+STAGE5_N_MERCHANTS = 800
 
 # Campaigns generated per attack family. Two competing constraints: total
 # fraud+lookalike volume should stay a small minority of the dataset (not
 # swamp it the way EXPANSION_FACTOR=100 against a 3k-consumer baseline did),
-# but each of the 13 families -- especially the one held out entirely for
+# but each of the 16 families -- especially the one held out entirely for
 # generalisation testing -- needs enough absolute fraud rows that a per-split
 # precision/recall estimate isn't noise. 40 campaigns/family against the 20k
-# consumer baseline lands fraud+lookalike prevalence under ~1%, still well
-# short of payment benchmark's ~3.5% enriched benchmark rate. Verify against the
-# printed prevalence in generate_training_data.py's output after any change.
-ATTACK_EXPANSION_FACTOR = 40
+# consumer baseline measured at 0.53% fraud+lookalike prevalence -- below the
+# ~1-5% target range printed by generate_training_data.py itself. Bumped to
+# 80 (measured cost: attack layering alone peaked at 3.9GB RSS / ~3 minutes
+# at 40, well under this machine's headroom, so doubling campaign count is
+# cheap). Verify against the printed prevalence in generate_training_data.py's
+# output after any change.
+ATTACK_EXPANSION_FACTOR = 80
 
 # Canonical Stage 5 training families.  Keep the campaign seed separate for
 # each family: generate_training_data.py expands it into a non-overlapping

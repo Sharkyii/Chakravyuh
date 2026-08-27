@@ -52,7 +52,7 @@ def test_saved_artifacts_load_correctly():
     assert hasattr(artifacts["fraud_model"], "predict_proba")
     assert hasattr(artifacts["attack_classifier"], "predict_proba")
     assert isinstance(artifacts["idx_to_attack"], dict)
-    assert len(artifacts["idx_to_attack"]) == 13
+    assert len(artifacts["idx_to_attack"]) == 16
 
 
 def test_prepare_transaction_df():
@@ -262,7 +262,7 @@ def test_pipeline_inference_end_to_end():
     assert res["risk_level"] in ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
     assert res["action"] in ["ALLOW", "REVIEW", "BLOCK"]
     assert 0.0 <= res["fraud_probability"] <= 1.0
-    assert len(res["attack_probabilities"]) == 13
+    assert len(res["attack_probabilities"]) == 16
     assert res["top_attack_family"] in res["attack_probabilities"]
     assert 0.0 <= res["top_attack_probability"] <= 1.0
     assert isinstance(res["contributing_signals"], list)

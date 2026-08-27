@@ -29,12 +29,25 @@ os.makedirs(REPORTS_DIR, exist_ok=True)
 # generation ALONE (measured via /usr/bin/time -v) and fully exhausted the
 # 2GB swap -- roughly 3.4x a naive linear-from-15k estimate, so scaling
 # empirically observed peak-RSS from a smaller run is not safe to trust
-# linearly on this generator. Reduced further to 20_000/800 (same 25:1
-# ratio, half of the measured-too-large 40k attempt) before also attempting
-# the heavier attack-layering + build_features step. Restore to
-# 100_000/4_000 when running on a machine with more headroom.
-STAGE5_N_CONSUMERS = 20_000
-STAGE5_N_MERCHANTS = 800
+# linearly on this generator.
+#
+# 20_000/800 succeeded for baseline gen + attack layering (both completed
+# cleanly, peaks 6.1GB and 3.9GB respectively), but stage5/training/
+# train_fraud_model.py's build_features() call -- BehavioralFeatureTracker's
+# sequential per-payer state accumulation over the resulting 692,851-row
+# combined dataset -- exceeded 7.1GB RSS and was STILL CLIMBING when killed,
+# never reaching a plateau. This is the heaviest step measured so far,
+# heavier than either generation step alone. Note ATTACK_EXPANSION_FACTOR
+# does not meaningfully affect this: attack+lookalike rows are only ~1% of
+# total volume (7,296 of 692,851) by design, so total row count is
+# essentially the baseline's row count -- the real lever is
+# STAGE5_N_CONSUMERS, not the expansion factor.
+#
+# Reduced to 8_000/320 (40% of 20k, same 25:1 ratio) for build_features() to
+# have a chance of completing. Restore to 100_000/4_000 when running on a
+# machine with more headroom.
+STAGE5_N_CONSUMERS = 8_000
+STAGE5_N_MERCHANTS = 320
 
 # Campaigns generated per attack family. Two competing constraints: total
 # fraud+lookalike volume should stay a small minority of the dataset (not

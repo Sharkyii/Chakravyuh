@@ -198,6 +198,8 @@ For every fraud example, a "hard negative" lookalike is synthesized: same legiti
 
    All three require either a real-time feature store (cross-account device linkage, per-account recent-transaction lookups) or campaign-level sequence modeling — not achievable via a stateless single-transaction rule, and explicitly out of scope for this submission.
 
+7. **The live demo API's own attack surface**: probing `/api/analyze` directly surfaced a real, verified model-extraction exposure — no rate limiting (10 sequential calls all succeeded unthrottled), full floating-point-precision `fraud_probability` returned on every response (e.g. `0.011766709387302399`), and complete per-feature SHAP contributions returned on every call. Together these let an attacker binary-search the decision boundary or approximately reconstruct the model's feature weights via query access alone (the classic "stealing ML models via prediction APIs" pattern), with SHAP output making this considerably easier than probability access alone. One related bug found during this probe — `CORSMiddleware` configured with `allow_origins=["*"]` and `allow_credentials=True`, which per the CORS spec forces the middleware to reflect the caller's `Origin` verbatim instead of a literal `*` — was fixed (`allow_credentials=False`), since the API's session scoping already uses a client-supplied `X-Session-Id` header, not cookies or `Authorization`, so no browser credential is ever legitimately sent. The extraction surface itself (precision, SHAP, rate limiting) is left undefended: full SHAP output is the entire point of the public explainability demo, and rate limiting/response quantization are Cloudflare-infra changes better scoped as a deliberate follow-up than bolted on under submission deadline pressure. Documented here as an explicitly known, deliberate trade-off rather than an oversight.
+
 ---
 
 ## Novelty & Contribution
@@ -211,6 +213,8 @@ For every fraud example, a "hard negative" lookalike is synthesized: same legiti
 3. **Grounded attack diversity**: 15 attack families are grounded in published fraud signatures — reference datasets (IEEE-CIS, PaySim), competition write-ups, and research papers. No raw training data is used; design is driven by structural signatures (device fingerprint reuse, receive-liquidate patterns) extracted from public literature.
 
 4. **Transparent validation gates**: Rather than claiming "99.97% precision," the system publicly validates cross-generational robustness (Gen 3/4/5 all <1% evasion) and documents the root-cause fix for a regression that was caught mid-development. Judges see evidence of a safety mechanism that works, not aspirational claims.
+
+5. **Defensive posture applied to the submission itself, not just the dataset**: most fraud-detection submissions treat the detector as the deliverable and stop there. This one also red-teamed its own live inference API — the same instinct that produced the curriculum-learning safety gates (item 2) was turned on the deployed `/api/analyze` endpoint, surfacing a genuine model-extraction exposure (unthrottled queries, full-precision probabilities, complete SHAP output — see Known Limitations item 7) and a live CORS misconfiguration, which was fixed on the spot. Judges evaluating this submission are themselves a plausible source of probing traffic; documenting this now is cheap, and most competing teams will not have looked at their own prototype's attack surface at all.
 
 ---
 

@@ -27,11 +27,16 @@ load_env_file()
 
 app = FastAPI(title="Chakravyuh API")
 
-# Enable CORS for Next.js frontend
+# Enable CORS for Next.js frontend. allow_credentials is deliberately False:
+# sessions are scoped by the client-supplied X-Session-Id header, not cookies
+# or Authorization, so there's nothing for the browser to send credentialed.
+# With allow_origins=["*"], allow_credentials=True would make CORSMiddleware
+# reflect the request's Origin verbatim instead of sending a literal "*" --
+# any site could then make credentialed cross-origin calls to this API.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

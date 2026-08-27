@@ -352,6 +352,8 @@ def _transaction_row(
     ip_country: str = "IN",
     ip_asn: str | None = None,
     ip_is_proxy: bool = False,
+    tpap_app: str | None = None,
+    linked_account_id: str | None = None,
 ) -> dict[str, Any]:
     if session_id is None:
         session_id = new_uuid(rng)
@@ -406,6 +408,8 @@ def _transaction_row(
         "ip_is_proxy": ip_is_proxy,
         "geo_matches_billing": None,
         "geo_matches_payer_home": geo_matches_home,
+        "tpap_app": tpap_app,
+        "linked_account_id": linked_account_id,
     }
 
 

@@ -54,6 +54,7 @@ ATTACK_FAMILIES = (
     {"attack_id": "insider_abuse", "seed": 113, "intensity": "MEDIUM"},
     {"attack_id": "device_fan_out", "seed": 114, "intensity": "MEDIUM"},
     {"attack_id": "balance_drain_exit", "seed": 115, "intensity": "MEDIUM"},
+    {"attack_id": "tpap_account_switch", "seed": 116, "intensity": "MEDIUM"},
 )
 
 # Splits -- temporal, matching docs/master-project-brief.md section 6 rule 2
@@ -144,6 +145,10 @@ BEHAVIORAL_FEATURES = [
     "new_merchant_indicator",
     "new_device_indicator",
     "new_ip_indicator",
+    "distinct_tpap_count_last_1h",
+    "distinct_tpap_count_last_24h",
+    "distinct_linked_account_count_last_1h",
+    "distinct_linked_account_count_last_24h",
     "inter_txn_time_mean",
     "inter_txn_time_std",
     "inter_txn_time_min",

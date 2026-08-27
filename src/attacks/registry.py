@@ -34,6 +34,7 @@ from src.attacks.generators import (
     SubthresholdFragmentationAttack,
     SyntheticIdentityBustoutAttack,
     SyntheticMerchantAttack,
+    TPAPAccountSwitchAttack,
     TransactionLaunderingAttack,
     make_legit_lookalike_rows,
 )
@@ -60,6 +61,7 @@ def build_attack_generator(attack_id: str) -> AttackGenerator:
         "insider_abuse": InsiderAbuseAttack,
         "device_fan_out": DeviceFanOutAttack,
         "balance_drain_exit": BalanceDrainExitAttack,
+        "tpap_account_switch": TPAPAccountSwitchAttack,
     }
     try:
         return factory[attack_id]()

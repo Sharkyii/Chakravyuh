@@ -61,6 +61,8 @@ EXPECTED_FIELDS = {
         "ip_is_proxy",
         "geo_matches_billing",
         "geo_matches_payer_home",
+        "tpap_app",
+        "linked_account_id",
     },
     "parties": {
         "party_id",

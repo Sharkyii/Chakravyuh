@@ -78,6 +78,8 @@ def sample_transaction() -> Transaction:
         ip_is_proxy=False,
         geo_matches_billing=None,
         geo_matches_payer_home=True,
+        tpap_app="gpay",
+        linked_account_id="party-payer-1_acct0",
     )
 
 

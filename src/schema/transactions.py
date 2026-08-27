@@ -78,6 +78,14 @@ class Transaction:
     geo_matches_billing: Optional[bool]  # card only
     geo_matches_payer_home: bool
 
+    # UPI TPAP routing (UPI rails only; null for card/IMPS/NEFT/wallet/BNPL).
+    # NPCI's UPI architecture lets one VPA/bank account be reachable through
+    # several third-party apps (PhonePe, GPay, Paytm, ...), and PSPs manage
+    # re-linking a VPA across bank accounts -- both fields track which app and
+    # which underlying bank account actually handled this specific payment.
+    tpap_app: Optional[str]
+    linked_account_id: Optional[str]
+
 
 def arrow_schema() -> pa.Schema:
     decimal_t = pa.decimal128(AMOUNT_PRECISION, AMOUNT_SCALE)
@@ -125,5 +133,7 @@ def arrow_schema() -> pa.Schema:
             pa.field("ip_is_proxy", pa.bool_(), nullable=False),
             pa.field("geo_matches_billing", pa.bool_(), nullable=True),
             pa.field("geo_matches_payer_home", pa.bool_(), nullable=False),
+            pa.field("tpap_app", pa.string(), nullable=True),
+            pa.field("linked_account_id", pa.string(), nullable=True),
         ]
     )

@@ -292,10 +292,38 @@ def generate_legitimate_transactions(seed: int, population: PopulationBundle) ->
         counterparties = _counterparties_for_party(choice_rng, gp, consumer_parties)
         seen_payees: set[str] = set()
 
+        # Sticky per-party primary TPAP app and linked bank account -- set up
+        # once per party, matching `counterparties` above, so a genuine
+        # person's UPI transactions overwhelmingly route through the same
+        # app/account rather than resampling on every transaction.
+        primary_tpap_app = str(choice_rng.choice(cal.TPAP_APP_POOL))
+        secondary_tpap_apps = [a for a in cal.TPAP_APP_POOL if a != primary_tpap_app]
+        linked_account_ids = [
+            f"{gp.party.party_id}_acct{i}" for i in range(cal.LEGIT_N_LINKED_ACCOUNTS_PER_PARTY)
+        ]
+        primary_linked_account_id = linked_account_ids[0]
+        secondary_linked_account_ids = linked_account_ids[1:]
+
         for _ in range(n_txns):
             ts = _timestamp(txn_rng, total_days, day_weights)
             is_p2m = bool(txn_rng.random() < gp.party.organic_spend_ratio)
             rail, channel = _rail_and_channel(txn_rng, is_p2m)
+
+            if rail.value.startswith("upi_"):
+                tpap_app = (
+                    str(txn_rng.choice(secondary_tpap_apps))
+                    if txn_rng.random() < cal.LEGIT_TPAP_APP_SWITCH_PROB and secondary_tpap_apps
+                    else primary_tpap_app
+                )
+                linked_account_id = (
+                    str(txn_rng.choice(secondary_linked_account_ids))
+                    if txn_rng.random() < cal.LEGIT_LINKED_ACCOUNT_SWITCH_PROB
+                    and secondary_linked_account_ids
+                    else primary_linked_account_id
+                )
+            else:
+                tpap_app = None
+                linked_account_id = None
 
             if is_p2m:
                 gm = _merchant_choice(txn_rng, population.merchants)
@@ -404,6 +432,8 @@ def generate_legitimate_transactions(seed: int, population: PopulationBundle) ->
                 ip_is_proxy=bool(txn_rng.random() < 0.006),
                 geo_matches_billing=None if rail not in {Rail.CARD_CNP, Rail.CARD_CP} else True,
                 geo_matches_payer_home=bool(txn_rng.random() < 0.94),
+                tpap_app=tpap_app,
+                linked_account_id=linked_account_id,
             )
             rows.append(txn)
             labels.append(

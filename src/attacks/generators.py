@@ -2148,3 +2148,129 @@ class BalanceDrainExitAttack(AttackGenerator):
             label["campaign_id"] = campaign.campaign_id
 
         return campaign, rows, labels
+
+
+class TPAPAccountSwitchAttack(AttackGenerator):
+    """
+    A single compromised UPI handle is drained through 3-4 of its linked bank
+    accounts in a tight window (20-40 minutes), alternating TPAP app and/or
+    linked account on almost every transaction. Signature: high per-party
+    distinct-TPAP/distinct-linked-account velocity, not any single
+    transaction's rail or amount -- a real bank account is only ever visible
+    to its own statement, so an attacker rotating accounts keeps any single
+    bank's fraud signal below what that bank alone would flag.
+
+    Grounding: NPCI's UPI architecture is explicitly interoperable -- one VPA
+    can be linked to multiple bank accounts, and any of several TPAP apps
+    (PhonePe, GPay, Paytm, ...) can route a payment for the same underlying
+    account, with PSPs handling VPA-to-account re-linking. This family
+    targets that specific structural surface: rapid app/account switching for
+    one party, which is invisible to any per-bank or per-app fraud system
+    that doesn't correlate across TPAPs.
+    """
+
+    attack_id = "tpap_account_switch"
+
+    def generate(
+        self,
+        baseline: PaymentDataset,
+        *,
+        seed: int,
+        intensity: AttackIntensity | str,
+        config: dict[str, Any] | None = None,
+    ):
+        rng = np.random.default_rng(seed)
+        intensity_value = (
+            intensity
+            if isinstance(intensity, AttackIntensity)
+            else AttackIntensity(str(intensity).upper())
+        )
+
+        consumer_ids = [
+            row["party_id"] for row in baseline.tables["parties"] if row["party_type"] == "consumer"
+        ]
+        payer_id = consumer_ids[int(rng.integers(0, len(consumer_ids)))]
+        payee_id = consumer_ids[(consumer_ids.index(payer_id) + 1) % len(consumer_ids)]
+
+        device_id = (
+            _choose_device_for_party(baseline, payer_id)
+            or baseline.tables["devices"][0]["device_id"]
+        )
+
+        n_hops = _intensity_count(intensity_value, low=3, medium=4, high=5)
+        n_accounts = max(2, n_hops - 1)
+        linked_account_ids = [f"{payer_id}_acct{i}" for i in range(n_accounts)]
+        tpap_apps = list(cal.TPAP_APP_POOL)
+
+        start_ts = _random_start_ts(baseline, rng)
+        window_minutes = float(rng.uniform(20.0, 40.0))
+
+        rows: list[dict[str, Any]] = []
+        labels: list[dict[str, Any]] = []
+
+        for hop_idx in range(n_hops):
+            # Force a different (app, account) pair from the previous hop on
+            # almost every transaction -- the switching itself is the
+            # signature, not any single app/account value.
+            linked_account_id = linked_account_ids[hop_idx % len(linked_account_ids)]
+            tpap_app = tpap_apps[hop_idx % len(tpap_apps)]
+
+            event_ts = start_ts + timedelta(
+                minutes=(window_minutes / max(1, n_hops - 1)) * hop_idx
+            )
+            amount = _money(float(rng.lognormal(mean=6.5, sigma=0.5)))
+
+            txn = _transaction_row(
+                rng=rng,
+                payer_id=payer_id,
+                payee_id=payee_id,
+                amount=amount,
+                ts=event_ts,
+                device_id=device_id,
+                known_device=True,
+                rail="upi_p2p",
+                channel="app",
+                merchant_id=None,
+                mcc=None,
+                auth_method="upi_pin",
+                auth_result="success",
+                decision="approved",
+                session_duration_s=int(20 + rng.integers(0, 20)),
+                time_on_confirm_screen_s=float(rng.uniform(1.0, 2.5)),
+                beneficiary_first_time=(hop_idx == 0),
+                beneficiary_added_ago_s=int(rng.integers(60, 600)),
+                pin_attempts=1,
+                screen_share_active=False,
+                call_active_during_txn=False,
+                geo_matches_home=True,
+                purpose_code="00",
+                issuer_risk_score=0.12,
+                tpap_app=tpap_app,
+                linked_account_id=linked_account_id,
+            )
+            rows.append(txn)
+            labels.append(
+                _label_row(
+                    txn["txn_id"],
+                    attack_id=self.attack_id,
+                    campaign_id="",
+                    pretext="cross_tpap_account_drain",
+                    detectable_at=DetectableAt.POST_AUTH,
+                )
+            )
+
+        campaign = _build_campaign(
+            self.attack_id,
+            seed=seed,
+            intensity=intensity_value,
+            start_time=rows[0]["timestamp"],
+            end_time=rows[-1]["timestamp"],
+            affected_entities=[payer_id, payee_id, device_id] + linked_account_ids,
+            event_count=len(rows),
+            pretext="cross_tpap_account_drain",
+            config={"n_accounts": n_accounts, "tpap_apps_used": tpap_apps[:n_hops]},
+        )
+        for label in labels:
+            label["campaign_id"] = campaign.campaign_id
+
+        return campaign, rows, labels

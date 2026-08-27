@@ -348,3 +348,26 @@ LEGIT_EXISTING_BENEFICIARY_MAX_AGE_S = 2 * 365 * 24 * 60 * 60
 # near-perfect proxy at 81% feature importance, because every attack row
 # defaulted to the same one ASN while legitimate rows chose among five).
 IP_ASN_POOL: list[str] = ["AS55836", "AS45609", "AS9829", "AS9498", "AS4755"]
+
+# UPI TPAP (third-party app) and linked-account pools. Shared between
+# src/generators/legitimate.py and src/attacks/framework.py for the same
+# reason as IP_ASN_POOL above (I17): if only fraud rows ever populated
+# tpap_app/linked_account_id with real values, non-null would itself become
+# a near-perfect fraud proxy regardless of the behavioral signal we actually
+# want the model to learn (rate of switching, not mere presence of a value).
+# One real person legitimately using two or three TPAP apps against the same
+# bank account is normal UPI behaviour (NPCI's architecture is explicitly
+# app-agnostic); each party is assigned a primary app/account here and rarely
+# strays from it, so genuine multi-app usage stays low-velocity by
+# construction, leaving room for TPAPAccountSwitchAttack's tight-window
+# multi-account/app switching to be a real behavioural outlier rather than an
+# artifact of the field merely being populated.
+TPAP_APP_POOL: list[str] = ["phonepe", "gpay", "paytm", "bhim", "amazonpay"]
+
+# A genuine party overwhelmingly sticks to one app and one linked account per
+# transaction; these are the (small) probabilities of a legitimate one-off
+# deviation -- e.g. trying a second app, or paying from a second linked bank
+# account -- not a fraud signal on their own.
+LEGIT_TPAP_APP_SWITCH_PROB = 0.03
+LEGIT_LINKED_ACCOUNT_SWITCH_PROB = 0.01
+LEGIT_N_LINKED_ACCOUNTS_PER_PARTY = 2

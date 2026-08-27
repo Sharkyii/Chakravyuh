@@ -26,6 +26,10 @@ class BehavioralFeatureTracker:
         self.payer_devices = {}
         # Maps payer_id -> set of ip_asns
         self.payer_ips = {}
+        # Maps payer_id -> list of (timestamp, tpap_app) for windowed distinct-app counts
+        self.payer_tpap_history = {}
+        # Maps payer_id -> list of (timestamp, linked_account_id) for windowed distinct-account counts
+        self.payer_linked_account_history = {}
         # Maps payer_id -> list of transaction dicts for sequence features
         self.payer_full_history = {}
         # Maps payer_id -> last agent timestamp
@@ -43,12 +47,16 @@ class BehavioralFeatureTracker:
         channel: str = "",
         is_agent_initiated: bool = False,
         beneficiary_first_time: bool = True,
-        beneficiary_added_ago_s: float = 0.0
+        beneficiary_added_ago_s: float = 0.0,
+        tpap_app: str | None = None,
+        linked_account_id: str | None = None,
     ) -> dict:
         payer_id = str(payer_id)
         merchant_id = str(merchant_id) if merchant_id else ""
         device_id = str(device_id) if device_id else ""
         ip_asn = str(ip_asn) if ip_asn else ""
+        tpap_app = str(tpap_app) if tpap_app else ""
+        linked_account_id = str(linked_account_id) if linked_account_id else ""
         
         # 1. Initialize states if new payer
         if payer_id not in self.payer_history:
@@ -59,6 +67,8 @@ class BehavioralFeatureTracker:
             self.payer_devices[payer_id] = set()
             self.payer_ips[payer_id] = set()
             self.payer_full_history[payer_id] = []
+            self.payer_tpap_history[payer_id] = []
+            self.payer_linked_account_history[payer_id] = []
 
         # 2. Get history list
         hist = self.payer_history[payer_id]
@@ -77,7 +87,24 @@ class BehavioralFeatureTracker:
         
         amount_spent_last_1h = sum(x[1] for x in txns_1h)
         amount_spent_last_24h = sum(x[1] for x in hist)
-        
+
+        # 4b. Windowed distinct TPAP-app / linked-account counts (TPAP
+        # cross-app fraud signature: legitimate parties rarely switch, so
+        # these stay near 1 outside an attack window -- see calibration.py's
+        # TPAP_APP_POOL comment for why the raw fields alone aren't the
+        # signal, only the rate of switching is).
+        tpap_hist = [x for x in self.payer_tpap_history[payer_id] if x[0] >= cutoff_24h]
+        self.payer_tpap_history[payer_id] = tpap_hist
+        tpap_hist_1h = [x for x in tpap_hist if x[0] >= cutoff_1h]
+        distinct_tpap_count_last_1h = float(len({x[1] for x in tpap_hist_1h if x[1]}))
+        distinct_tpap_count_last_24h = float(len({x[1] for x in tpap_hist if x[1]}))
+
+        acct_hist = [x for x in self.payer_linked_account_history[payer_id] if x[0] >= cutoff_24h]
+        self.payer_linked_account_history[payer_id] = acct_hist
+        acct_hist_1h = [x for x in acct_hist if x[0] >= cutoff_1h]
+        distinct_linked_account_count_last_1h = float(len({x[1] for x in acct_hist_1h if x[1]}))
+        distinct_linked_account_count_last_24h = float(len({x[1] for x in acct_hist if x[1]}))
+
         # 5. Compute historical averages (based on transactions BEFORE this one)
         run_sum, count = self.payer_stats[payer_id]
         if count > 0:
@@ -103,6 +130,8 @@ class BehavioralFeatureTracker:
         self.payer_history[payer_id].append((ts, amount))
         self.payer_stats[payer_id] = (run_sum + amount, count + 1)
         self.payer_last_time[payer_id] = ts
+        self.payer_tpap_history[payer_id].append((ts, tpap_app))
+        self.payer_linked_account_history[payer_id].append((ts, linked_account_id))
         if merchant_id:
             self.payer_merchants[payer_id].add(merchant_id)
         if device_id:
@@ -216,6 +245,10 @@ class BehavioralFeatureTracker:
             "new_merchant_indicator": float(new_merchant_indicator),
             "new_device_indicator": float(new_device_indicator),
             "new_ip_indicator": float(new_ip_indicator),
+            "distinct_tpap_count_last_1h": distinct_tpap_count_last_1h,
+            "distinct_tpap_count_last_24h": distinct_tpap_count_last_24h,
+            "distinct_linked_account_count_last_1h": distinct_linked_account_count_last_1h,
+            "distinct_linked_account_count_last_24h": distinct_linked_account_count_last_24h,
             "inter_txn_time_mean": inter_txn_time_mean,
             "inter_txn_time_std": inter_txn_time_std,
             "inter_txn_time_min": inter_txn_time_min,
@@ -280,6 +313,8 @@ def build_features(dataset: PaymentDataset) -> pd.DataFrame:
             is_agent_initiated=row.get("is_agent_initiated", False),
             beneficiary_first_time=row.get("beneficiary_first_time", True),
             beneficiary_added_ago_s=row.get("beneficiary_added_ago_s", 0.0),
+            tpap_app=row.get("tpap_app"),
+            linked_account_id=row.get("linked_account_id"),
         )
         beh_list.append(beh)
         

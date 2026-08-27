@@ -81,6 +81,13 @@ Where scam-induced payments actually reveal themselves. Do not skimp here.
 | `geo_matches_billing` | bool | Card. |
 | `geo_matches_payer_home` | bool | |
 
+### UPI TPAP routing
+
+| Field | Type | Notes |
+|---|---|---|
+| `tpap_app` | string, nullable | Third-party app that handled the payment (e.g. `phonepe`, `gpay`, `paytm`). Null for non-UPI rails. |
+| `linked_account_id` | string, nullable | Underlying bank account the TPAP routed to. One VPA may be linked to several; null for non-UPI rails. |
+
 ---
 
 ## Table 2 — `parties`

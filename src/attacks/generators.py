@@ -2215,9 +2215,7 @@ class TPAPAccountSwitchAttack(AttackGenerator):
             linked_account_id = linked_account_ids[hop_idx % len(linked_account_ids)]
             tpap_app = tpap_apps[hop_idx % len(tpap_apps)]
 
-            event_ts = start_ts + timedelta(
-                minutes=(window_minutes / max(1, n_hops - 1)) * hop_idx
-            )
+            event_ts = start_ts + timedelta(minutes=(window_minutes / max(1, n_hops - 1)) * hop_idx)
             amount = _money(float(rng.lognormal(mean=6.5, sigma=0.5)))
 
             txn = _transaction_row(

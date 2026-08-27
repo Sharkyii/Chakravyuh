@@ -4,8 +4,7 @@ Implements curriculum learning: Easy (hide 1 feature) → Hard (hide 5 features)
 """
 import numpy as np
 import pandas as pd
-from pathlib import Path
-from stage5.adversarial.gen3_config import GEN3_SPECS, CURRICULUM_LEVELS, GEN3_TARGETS
+from stage5.adversarial.gen3_config import GEN3_SPECS, CURRICULUM_LEVELS
 from stage5.adversarial.feature_targeting import get_top_features
 
 
@@ -49,7 +48,6 @@ class Gen3AttackGenerator:
         if attack_family not in GEN3_SPECS:
             raise ValueError(f"Unknown family: {attack_family}")
 
-        spec = GEN3_SPECS[attack_family]
         attacks_by_level = {}
 
         for level_name, level_config in CURRICULUM_LEVELS.items():
@@ -97,13 +95,34 @@ class Gen3AttackGenerator:
         # behaviour) made every "attack" statistically identical to real
         # legitimate traffic except for 1-2 cosmetic flags, which is not a
         # solvable separation problem for any classifier.
-        fraud_samples = self.training_df[self.training_df['is_fraud'] == True]
-        legit_samples = self.training_df[self.training_df['is_fraud'] == False]
-        if fraud_samples.empty:
-            fraud_samples = legit_samples  # degrade gracefully rather than crash
+        #
+        # The template must also actually BE `attack_family`, not just any
+        # fraud row. Sampling from the whole fraud population meant an
+        # "adversarial_evasion" curriculum attack was, most of the time,
+        # some other family's row (e.g. mule_network) with only the current
+        # model's top-N global SHAP features nudged toward legit values --
+        # every other feature still carried that OTHER family's real tell.
+        # The model then learned "fraud with these 3 features hidden usually
+        # has some other strong signal elsewhere," which the real
+        # adversarial_evasion family (deliberately unremarkable everywhere,
+        # not just on 3 features) doesn't satisfy -- confirmed via a
+        # multi-checkpoint battery eval showing adversarial_evasion recall
+        # collapsing from 59-73% (baseline, pre-curriculum) to 8-23%
+        # (gen3/4/5) on fresh out-of-sample attacks, while cross_generation_eval.py
+        # kept reporting this same mislabeled construction as a clean PASS.
+        family_fraud_samples = self.training_df[
+            self.training_df['is_fraud']
+            & (self.training_df['attack_id'] == attack_family)
+        ]
+        legit_samples = self.training_df[~self.training_df['is_fraud']]
+        if family_fraud_samples.empty:
+            raise ValueError(
+                f"No fraud templates available for attack family {attack_family!r}; "
+                "cannot generate a family-specific Gen 3 curriculum."
+            )
 
         for i in range(n_samples):
-            template = fraud_samples.sample(1).iloc[0]
+            template = family_fraud_samples.sample(1).iloc[0]
 
             # Select features to hide (top N_features_to_hide)
             features_to_hide = [f[0] for f in self.top_features[:n_features_to_hide]]

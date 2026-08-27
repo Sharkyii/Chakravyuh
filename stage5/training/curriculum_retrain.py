@@ -10,7 +10,10 @@ from pathlib import Path
 from datetime import datetime
 import json
 
-from stage5.training.train_fraud_model import train_fraud_model
+from stage5.training.train_fraud_model import (
+    precision_recall_at_fixed_fpr,
+    train_fraud_model,
+)
 from stage5.adversarial.evasion_margin_calculator import measure_evasion_margin
 from stage5.config.settings import ALL_FEATURES
 
@@ -29,6 +32,28 @@ def _as_feature_frame(attacks: list) -> pd.DataFrame:
 RETAINED_SAMPLE_CAP = 1500
 LEVEL_ATTACK_CAP = 600
 TRAIN_FRACTION = 0.8
+# Curriculum pass/fail checks use the detector's 1%-FPR decision point, the
+# same operational definition of "caught" used by the production inference
+# path.  This must be derived separately for every checkpoint, since their
+# probability calibrations change during retraining.
+CURRICULUM_FIXED_FPR_TARGET = 0.01
+
+
+def _fixed_fpr_threshold(model, preprocessor, reference_df: pd.DataFrame) -> float:
+    """Derive a checkpoint's 1%-FPR threshold on its held-out temporal test set."""
+    calibration_df = reference_df[reference_df['split'] == 'test']
+    if calibration_df.empty or calibration_df['is_fraud'].nunique() < 2:
+        raise ValueError(
+            "Cannot calibrate curriculum evasion threshold: the reference test "
+            "split must contain both legitimate and fraud rows."
+        )
+
+    X = calibration_df.reindex(columns=ALL_FEATURES)
+    probabilities = model.predict_proba(preprocessor.transform(X))[:, 1]
+    return precision_recall_at_fixed_fpr(
+        calibration_df['is_fraud'].to_numpy(), probabilities,
+        CURRICULUM_FIXED_FPR_TARGET,
+    )['threshold']
 
 
 def retrain_on_gen3_attacks(
@@ -128,9 +153,13 @@ def retrain_on_gen3_attacks(
         if all_attacks_flat:
             baseline_X = _as_feature_frame(all_attacks_flat)
             baseline_y = np.ones(len(baseline_X))
+            baseline_threshold = _fixed_fpr_threshold(
+                gen2_model, gen2_preprocessor, original_training_df,
+            )
             baseline_margin = measure_evasion_margin(
                 gen2_model, baseline_X, baseline_y,
                 generation=generation_label, preprocessor=gen2_preprocessor,
+                threshold=baseline_threshold,
             )
             prior_gen_evasion = baseline_margin['evasion_margin']
             print(f"\n  Baseline: {generation_label} attacks vs prior-generation model: "
@@ -142,7 +171,7 @@ def retrain_on_gen3_attacks(
 
         gen3_attacks = gen3_attacks_by_level[level_name]
         if not gen3_attacks:
-            print(f"  Skipping (no attacks generated)")
+            print("  Skipping (no attacks generated)")
             continue
 
         gen3_df = _as_feature_frame(gen3_attacks)
@@ -200,7 +229,14 @@ def retrain_on_gen3_attacks(
             print(f"  ERROR training: {e}")
             continue
 
-        print(f"\n  Evaluation:")
+        print("\n  Evaluation:")
+        level_threshold = _fixed_fpr_threshold(
+            level_model, level_preprocessor, original_training_df,
+        )
+        print(
+            f"    Threshold: {level_threshold:.4f} "
+            f"(own {CURRICULUM_FIXED_FPR_TARGET:.0%}-FPR operating point)"
+        )
 
         # "No regression" check: this freshly retrained model should still
         # catch fraud the original data already had labelled.
@@ -212,6 +248,7 @@ def retrain_on_gen3_attacks(
                 level_model, gen2_attacks_test.reindex(columns=ALL_FEATURES),
                 gen2_attacks_test['is_fraud'].values, generation='prior',
                 preprocessor=level_preprocessor,
+                threshold=level_threshold,
             )
             print(f"    Prior-gen evasion: {gen2_margin['evasion_percent']} (should be near 0%)")
 
@@ -227,6 +264,7 @@ def retrain_on_gen3_attacks(
         this_gen_evasion = measure_evasion_margin(
             level_model, cumulative_test_this_gen[ALL_FEATURES], cumulative_test_this_gen['is_fraud'].values,
             generation=generation_label, preprocessor=level_preprocessor,
+            threshold=level_threshold,
         )
         print(f"    {generation_label} evasion: {this_gen_evasion['evasion_percent']} (target <{target_evasion*100:.0f}%)")
 
@@ -261,7 +299,7 @@ def retrain_on_gen3_attacks(
             status_note = "target already met on cumulative set" if this_gen_evasion['evasion_margin'] <= target_evasion else "above target"
             print(f"\n  Action: {status_note}; continuing to {levels[level_idx+1]} for full curriculum coverage")
         else:
-            print(f"\n  Action: Final level reached")
+            print("\n  Action: Final level reached")
 
     log_path = output_dir / "curriculum_log.json"
     with open(log_path, 'w') as f:

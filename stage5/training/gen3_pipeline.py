@@ -60,7 +60,7 @@ def run_gen3_pipeline(
         generator = Gen3AttackGenerator(gen2_model, original_training_df, gen2_preprocessor)
 
         # Generate curriculum attacks for all attack families
-        families = ['mule_network', 'adversarial_evasion', 'account_takeover']
+        families = ['mule_network', 'adversarial_evasion', 'credential_takeover']
         gen3_attacks_all = {}
 
         for family in families:
@@ -101,7 +101,7 @@ def run_gen3_pipeline(
         curriculum_log = retrain_result['curriculum_log']
         best_evasion = retrain_result['best_evasion']
 
-        print(f"\n  ✓ Retraining complete")
+        print("\n  ✓ Retraining complete")
         print(f"    Best evasion achieved: {best_evasion*100:.1f}%")
 
     except Exception as e:
@@ -128,7 +128,7 @@ def run_gen3_pipeline(
             output_path=output_dir / "gen3_evaluation_report.json"
         )
 
-        print(f"  ✓ Evaluation report generated")
+        print("  ✓ Evaluation report generated")
         print_gen3_report(evaluation_report)
 
     except Exception as e:
@@ -145,7 +145,7 @@ def run_gen3_pipeline(
     final_status = 'PASS' if best_evasion < 0.05 else 'FAIL'
     print(f"\nFinal Status: {final_status}")
     print(f"  Evasion Rate: {best_evasion*100:.1f}%")
-    print(f"  Target: <5.0%")
+    print("  Target: <5.0%")
     print(f"  Improvement: {'✓ Yes' if best_evasion < 0.10 else '✗ No'}")
     print(f"\nOutputs saved to: {output_dir}")
 

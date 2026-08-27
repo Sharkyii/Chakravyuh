@@ -42,7 +42,7 @@ GEN3_SPECS = {
             'edge_count': 'reduced',  # Distributed routing
         }
     },
-    'account_takeover': {
+    'credential_takeover': {
         'description': 'Hide remote access signals by avoiding detection channels',
         'target_features_to_hide': ['screen_share_active', 'call_active_during_txn', 'new_device_indicator'],
         'strategy': 'avoid_detection_channels',

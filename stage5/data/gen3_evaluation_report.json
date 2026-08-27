@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-08-27T08:18:25.708499",
+  "timestamp": "2026-08-27T12:09:24.036056",
   "title": "Gen 3 Adversarial Evaluation Report",
   "executive_summary": {
     "analyst_feedback_collected": 0,
-    "gen3_evasion_rate": "2.7%",
+    "gen3_evasion_rate": "2.0%",
     "gen3_target": "<5.0%",
     "status": "PASS",
     "recommendation": "Deploy Gen 3-trained model"
@@ -15,45 +15,45 @@
       "description": "Prior generation, before this retraining cycle"
     },
     "gen3_after_curriculum": {
-      "pr_auc": 0.9896877097436667,
+      "pr_auc": 0.9910495055849253,
       "held_out_recall": null,
       "description": "After curriculum retraining on Gen 3 attacks"
     }
   },
   "evasion_metrics": {
     "gen3_attacks_on_prior_model": {
-      "evasion_rate": "87.1%",
+      "evasion_rate": "86.5%",
       "status": "FAIL",
       "note": "Why we retrained"
     },
     "gen3_attacks_on_gen3_model": {
-      "evasion_rate": "2.7%",
+      "evasion_rate": "2.0%",
       "status": "PASS",
       "note": "After curriculum retraining"
     }
   },
   "curriculum_effectiveness": {
     "level_1_easy": {
-      "evasion": "7.0%",
-      "evasion_margin": 0.07,
+      "evasion": "6.0%",
+      "evasion_margin": 0.06,
       "status": "FAIL",
       "training_size": 225213
     },
     "level_2_medium": {
-      "evasion": "4.1%",
-      "evasion_margin": 0.04090909090909091,
+      "evasion": "4.5%",
+      "evasion_margin": 0.045454545454545456,
       "status": "PASS",
       "training_size": 225693
     },
     "level_3_hard": {
-      "evasion": "3.2%",
-      "evasion_margin": 0.03235294117647059,
+      "evasion": "2.4%",
+      "evasion_margin": 0.023529411764705882,
       "status": "PASS",
       "training_size": 226173
     },
     "level_4_extreme": {
-      "evasion": "2.7%",
-      "evasion_margin": 0.02727272727272727,
+      "evasion": "2.0%",
+      "evasion_margin": 0.020454545454545454,
       "status": "PASS",
       "training_size": 226573
     }
@@ -65,50 +65,50 @@
   "feature_importance": [
     {
       "name": "txn_count_last_24h",
-      "importance": 0.1954
+      "importance": 0.199
     },
     {
       "name": "beneficiary_added_ago_s",
-      "importance": 0.0679
+      "importance": 0.074
     },
     {
       "name": "session_duration_s",
-      "importance": 0.0676
-    },
-    {
-      "name": "auth_result_success",
-      "importance": 0.0531
-    },
-    {
-      "name": "auth_method_cvv_only",
-      "importance": 0.0512
+      "importance": 0.0666
     },
     {
       "name": "time_since_prev_txn",
-      "importance": 0.0408
+      "importance": 0.0627
+    },
+    {
+      "name": "auth_method_cvv_only",
+      "importance": 0.0516
     },
     {
       "name": "auth_method_upi_pin",
-      "importance": 0.0382
+      "importance": 0.0355
     },
     {
-      "name": "distinct_linked_account_count_last_24h",
-      "importance": 0.0358
-    },
-    {
-      "name": "channel_app",
-      "importance": 0.0304
+      "name": "auth_result_success",
+      "importance": 0.0335
     },
     {
       "name": "edge_count",
-      "importance": 0.0285
+      "importance": 0.0309
+    },
+    {
+      "name": "txn_count_last_1h",
+      "importance": 0.0276
+    },
+    {
+      "name": "distinct_tpap_count_last_24h",
+      "importance": 0.0215
     }
   ],
   "closed_loop_cycle_proof": {
     "step_1_collect_feedback": "0 analyst verdicts collected",
     "step_2_generate_attacks": "Gen 3 attacks generated (feature-hiding curriculum)",
     "step_3_retrain": "Model retrained per curriculum level, best-evasion checkpoint kept",
-    "step_4_measure_evasion": "Evasion margin: 2.7% (target <5%)",
+    "step_4_measure_evasion": "Evasion margin: 2.0% (target <5%)",
     "result": "PASS"
   },
   "next_steps": {

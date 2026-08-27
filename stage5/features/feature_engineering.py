@@ -34,6 +34,14 @@ class BehavioralFeatureTracker:
         self.payer_full_history = {}
         # Maps payer_id -> last agent timestamp
         self.payer_last_agent_time = {}
+        # Maps payee_id -> list of (timestamp, payer_id) for windowed fan-in
+        # burst detection. The static graph_edges dst_in_degree is a whole-
+        # dataset-window aggregate, so a mule account that receives from many
+        # distinct payers all concentrated inside a short burst looks
+        # identical, feature-wise, to one that received the same distinct
+        # count spread across the whole simulation -- this tracks recency so
+        # the burst itself becomes visible.
+        self.payee_history = {}
 
     def get_and_update(
         self,
@@ -105,6 +113,26 @@ class BehavioralFeatureTracker:
         distinct_linked_account_count_last_1h = float(len({x[1] for x in acct_hist_1h if x[1]}))
         distinct_linked_account_count_last_24h = float(len({x[1] for x in acct_hist if x[1]}))
 
+        # 4c. Payee-side fan-in burst velocity (pre-transaction, no
+        # lookahead): computed BEFORE this transaction is recorded below.
+        # Skipped for blank payee ids so untagged transactions don't collide
+        # into one shared "" bucket and inflate fan-in counts falsely.
+        if merchant_id:
+            if merchant_id not in self.payee_history:
+                self.payee_history[merchant_id] = []
+            payee_hist = [x for x in self.payee_history[merchant_id] if x[0] >= cutoff_24h]
+            self.payee_history[merchant_id] = payee_hist
+            payee_hist_1h = [x for x in payee_hist if x[0] >= cutoff_1h]
+            payee_distinct_payer_count_last_1h = float(len({x[1] for x in payee_hist_1h}))
+            payee_distinct_payer_count_last_24h = float(len({x[1] for x in payee_hist}))
+            payee_txn_count_last_1h = float(len(payee_hist_1h))
+            payee_txn_count_last_24h = float(len(payee_hist))
+        else:
+            payee_distinct_payer_count_last_1h = 0.0
+            payee_distinct_payer_count_last_24h = 0.0
+            payee_txn_count_last_1h = 0.0
+            payee_txn_count_last_24h = 0.0
+
         # 5. Compute historical averages (based on transactions BEFORE this one)
         run_sum, count = self.payer_stats[payer_id]
         if count > 0:
@@ -133,6 +161,7 @@ class BehavioralFeatureTracker:
         self.payer_tpap_history[payer_id].append((ts, tpap_app))
         self.payer_linked_account_history[payer_id].append((ts, linked_account_id))
         if merchant_id:
+            self.payee_history[merchant_id].append((ts, payer_id))
             self.payer_merchants[payer_id].add(merchant_id)
         if device_id:
             self.payer_devices[payer_id].add(device_id)
@@ -249,6 +278,10 @@ class BehavioralFeatureTracker:
             "distinct_tpap_count_last_24h": distinct_tpap_count_last_24h,
             "distinct_linked_account_count_last_1h": distinct_linked_account_count_last_1h,
             "distinct_linked_account_count_last_24h": distinct_linked_account_count_last_24h,
+            "payee_distinct_payer_count_last_1h": payee_distinct_payer_count_last_1h,
+            "payee_distinct_payer_count_last_24h": payee_distinct_payer_count_last_24h,
+            "payee_txn_count_last_1h": payee_txn_count_last_1h,
+            "payee_txn_count_last_24h": payee_txn_count_last_24h,
             "inter_txn_time_mean": inter_txn_time_mean,
             "inter_txn_time_std": inter_txn_time_std,
             "inter_txn_time_min": inter_txn_time_min,

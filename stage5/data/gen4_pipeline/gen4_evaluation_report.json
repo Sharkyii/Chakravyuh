@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-08-27T08:21:46.500150",
+  "timestamp": "2026-08-27T12:12:57.643244",
   "title": "Gen 4 Ensemble Adversarial Evaluation Report",
   "executive_summary": {
-    "gen4_evasion_rate": "0.2%",
+    "gen4_evasion_rate": "0.0%",
     "gen4_target": "<15.0%",
     "status": "PASS",
     "recommendation": "Deploy Gen 4 model"
@@ -57,32 +57,32 @@
       "held_out_recall": null
     },
     "gen4_after_retrain": {
-      "pr_auc": 0.9900703079945474,
+      "pr_auc": 0.9917539425291932,
       "held_out_recall": null
     }
   },
   "evasion_metrics": {
     "gen4_attacks_on_gen3_model": {
-      "evasion_rate": "1.8%",
+      "evasion_rate": "2.1%",
       "status": "PASS",
       "note": "Why we retrain"
     },
     "gen4_attacks_on_gen4_model": {
-      "evasion_rate": "0.2%",
+      "evasion_rate": "0.0%",
       "status": "PASS",
       "note": "After ensemble curriculum retraining"
     }
   },
   "difficulty_levels": {
     "level_1_simple_ensemble": {
-      "evasion": "1.2%",
-      "evasion_margin": 0.0125,
+      "evasion": "0.0%",
+      "evasion_margin": 0.0,
       "status": "PASS",
       "training_size": 226633
     },
     "level_2_complex_ensemble": {
-      "evasion": "0.5%",
-      "evasion_margin": 0.005,
+      "evasion": "0.0%",
+      "evasion_margin": 0.0,
       "status": "PASS",
       "training_size": 227113
     },
@@ -93,8 +93,8 @@
       "training_size": 227593
     },
     "level_4_extreme_ensemble": {
-      "evasion": "0.2%",
-      "evasion_margin": 0.002380952380952381,
+      "evasion": "0.0%",
+      "evasion_margin": 0.0,
       "status": "PASS",
       "training_size": 227993
     }
@@ -102,43 +102,43 @@
   "feature_importance": [
     {
       "name": "txn_count_last_24h",
-      "importance": 0.1814
+      "importance": 0.2201
     },
     {
       "name": "beneficiary_added_ago_s",
-      "importance": 0.0875
+      "importance": 0.0809
     },
     {
       "name": "session_duration_s",
-      "importance": 0.0652
-    },
-    {
-      "name": "auth_result_success",
-      "importance": 0.0604
+      "importance": 0.0613
     },
     {
       "name": "auth_method_upi_pin",
-      "importance": 0.053
-    },
-    {
-      "name": "auth_method_cvv_only",
-      "importance": 0.0408
+      "importance": 0.0482
     },
     {
       "name": "edge_count",
-      "importance": 0.0326
+      "importance": 0.0477
     },
     {
-      "name": "distinct_linked_account_count_last_24h",
-      "importance": 0.0298
+      "name": "auth_result_success",
+      "importance": 0.0462
+    },
+    {
+      "name": "auth_method_cvv_only",
+      "importance": 0.0373
     },
     {
       "name": "time_since_prev_txn",
-      "importance": 0.0276
+      "importance": 0.036
+    },
+    {
+      "name": "distinct_tpap_count_last_24h",
+      "importance": 0.0236
     },
     {
       "name": "txn_count_last_1h",
-      "importance": 0.0266
+      "importance": 0.0231
     }
   ],
   "curriculum_effectiveness": {

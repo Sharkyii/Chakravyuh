@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-08-27T08:24:57.692366",
+  "timestamp": "2026-08-27T12:16:06.074522",
   "title": "Gen 5 Multi-Family Adversarial Evaluation Report",
   "executive_summary": {
     "gen5_evasion_rate": "0.0%",
@@ -42,13 +42,13 @@
       "held_out_recall": null
     },
     "gen5_after_retrain": {
-      "pr_auc": 0.9898626509201619,
+      "pr_auc": 0.9921139435157785,
       "held_out_recall": null
     }
   },
   "evasion_metrics": {
     "gen5_attacks_on_gen4_model": {
-      "evasion_rate": "0.9%",
+      "evasion_rate": "0.8%",
       "status": "PASS",
       "note": "Why we retrain on Gen 5"
     },
@@ -87,43 +87,43 @@
   "feature_importance": [
     {
       "name": "txn_count_last_24h",
-      "importance": 0.2509
+      "importance": 0.252
     },
     {
       "name": "beneficiary_added_ago_s",
-      "importance": 0.0688
+      "importance": 0.0692
     },
     {
       "name": "edge_count",
-      "importance": 0.0665
-    },
-    {
-      "name": "auth_method_upi_pin",
-      "importance": 0.0513
+      "importance": 0.0622
     },
     {
       "name": "session_duration_s",
-      "importance": 0.0506
+      "importance": 0.0558
+    },
+    {
+      "name": "auth_method_upi_pin",
+      "importance": 0.0378
     },
     {
       "name": "txn_count_last_1h",
-      "importance": 0.0409
-    },
-    {
-      "name": "auth_result_success",
-      "importance": 0.0368
+      "importance": 0.0373
     },
     {
       "name": "auth_method_cvv_only",
-      "importance": 0.0297
+      "importance": 0.0352
     },
     {
-      "name": "distinct_linked_account_count_last_24h",
-      "importance": 0.0242
+      "name": "auth_result_success",
+      "importance": 0.0295
     },
     {
       "name": "time_since_prev_txn",
-      "importance": 0.0226
+      "importance": 0.0225
+    },
+    {
+      "name": "distinct_tpap_count_last_24h",
+      "importance": 0.0215
     }
   ],
   "curriculum_effectiveness": {

@@ -5,7 +5,7 @@
   "random_seed": 42,
   "split_methodology": "temporal (train/validation/test by transaction timestamp), never random",
   "held_out_attack_family": "synthetic_identity_bustout",
-  "selected_threshold": 0.3500000000000001,
+  "selected_threshold": 0.9000000000000002,
   "validation_metrics": {
     "best_f1": 0.9731830547998446,
     "lr_pr_auc": 0.8946279069747473,
@@ -151,29 +151,29 @@
     ]
   },
   "test_metrics": {
-    "pr_auc": 0.9977755814429603,
-    "roc_auc_secondary": 0.9999248473336619,
-    "brier_score": 0.0006243251565877929,
+    "pr_auc": 0.9959270192121101,
+    "roc_auc_secondary": 0.9997656677645688,
+    "brier_score": 0.03043168099039937,
     "fixed_fpr_operating_points": [
       {
         "target_fpr": 0.001,
         "achieved_fpr": 0.000918336111016632,
-        "threshold": 0.2496660053730011,
-        "precision": 0.9660590823381521,
-        "recall": 0.9865211810012837
+        "threshold": 0.9533764719963074,
+        "precision": 0.9659949622166247,
+        "recall": 0.9845956354300385
       },
       {
         "target_fpr": 0.01,
-        "achieved_fpr": 0.009132342437332063,
-        "threshold": 0.016592765226960182,
-        "precision": 0.7434304825609174,
-        "recall": 0.9987163029525032
+        "achieved_fpr": 0.008758205503214177,
+        "threshold": 0.8396286964416504,
+        "precision": 0.750484496124031,
+        "recall": 0.9942233632862645
       }
     ],
     "held_out_family_generalisation": [
       {
         "target_fpr": 0.001,
-        "threshold": 0.2496660053730011,
+        "threshold": 0.9533764719963074,
         "held_out_fraud_total": 609,
         "held_out_fraud_caught": 609,
         "held_out_recall": 1.0,
@@ -185,7 +185,7 @@
       },
       {
         "target_fpr": 0.01,
-        "threshold": 0.016592765226960182,
+        "threshold": 0.8396286964416504,
         "held_out_fraud_total": 609,
         "held_out_fraud_caught": 609,
         "held_out_recall": 1.0,
@@ -197,11 +197,13 @@
       }
     ],
     "f1_optimal_threshold_metrics": {
-      "precision": 0.9807938540332907,
-      "recall": 0.9833119383825417,
-      "f1": 0.982051282051282,
-      "fpr": 0.0005101867283425734,
-      "alerts_per_1000": 25.87806494367131
+      "precision": 0.8662921348314607,
+      "recall": 0.9897304236200257,
+      "f1": 0.9239065308568005,
+      "fpr": 0.0040474813781844155,
+      "alerts_per_1000": 29.489728296885353
     }
-  }
+  },
+  "evaluated_timestamp": "2026-08-27T13:13:22.019321",
+  "evaluation_note": "test_metrics recomputed directly against the model/preprocessor actually deployed in MODELS_DIR (post-curriculum), not the pre-curriculum baseline that train_fraud_model.main() originally wrote here."
 }

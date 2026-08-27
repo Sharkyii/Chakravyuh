@@ -211,6 +211,14 @@ def run_gen5():
     joblib.dump(result["gen5_model"], MODELS_DIR / "fraud_model.pkl")
     joblib.dump(result["gen5_preprocessor"], MODELS_DIR / "preprocessor.pkl")
     print(f"  Promoted Gen 5 model to {MODELS_DIR} for live inference")
+
+    # model_metadata.json still holds the pre-curriculum baseline's test_metrics
+    # at this point (train_fraud_model.main() wrote it before gen3/4/5 ran) --
+    # recompute it against the model actually just promoted above, so
+    # model_metadata.json and the live API's /api/metrics panel describe what's
+    # really deployed, not the baseline checkpoint.
+    from stage5.validation.evaluate_deployed_model import main as evaluate_deployed_model_main
+    evaluate_deployed_model_main()
     print("GEN5 COMPLETE")
 
 

@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-08-27T12:16:06.074522",
+  "timestamp": "2026-08-27T19:13:18.965068",
   "title": "Gen 5 Multi-Family Adversarial Evaluation Report",
   "executive_summary": {
-    "gen5_evasion_rate": "0.0%",
+    "gen5_evasion_rate": "0.4%",
     "gen5_target": "<25.0%",
     "status": "PRODUCTION_READY",
     "recommendation": "Deploy to production"
@@ -42,88 +42,88 @@
       "held_out_recall": null
     },
     "gen5_after_retrain": {
-      "pr_auc": 0.9921139435157785,
+      "pr_auc": 0.9964052342848229,
       "held_out_recall": null
     }
   },
   "evasion_metrics": {
     "gen5_attacks_on_gen4_model": {
-      "evasion_rate": "0.8%",
+      "evasion_rate": "2.9%",
       "status": "PASS",
       "note": "Why we retrain on Gen 5"
     },
     "gen5_attacks_on_gen5_model": {
-      "evasion_rate": "0.0%",
+      "evasion_rate": "0.4%",
       "status": "PASS",
       "note": "After multi-family retraining"
     }
   },
   "difficulty_levels": {
     "level_1_simple_cross_family": {
-      "evasion": "0.0%",
-      "evasion_margin": 0.0,
+      "evasion": "3.3%",
+      "evasion_margin": 0.03333333333333333,
       "status": "PASS",
       "training_size": 228053
     },
     "level_2_moderate_cross_family": {
-      "evasion": "0.0%",
-      "evasion_margin": 0.0,
+      "evasion": "1.4%",
+      "evasion_margin": 0.014285714285714285,
       "status": "PASS",
       "training_size": 228373
     },
     "level_3_complex_cross_family": {
-      "evasion": "0.0%",
-      "evasion_margin": 0.0,
+      "evasion": "0.4%",
+      "evasion_margin": 0.004166666666666667,
       "status": "PASS",
       "training_size": 228773
     },
     "level_4_extreme_cross_family": {
-      "evasion": "0.0%",
-      "evasion_margin": 0.0,
+      "evasion": "0.6%",
+      "evasion_margin": 0.00625,
       "status": "PASS",
       "training_size": 229093
     }
   },
   "feature_importance": [
     {
-      "name": "txn_count_last_24h",
-      "importance": 0.252
-    },
-    {
       "name": "beneficiary_added_ago_s",
-      "importance": 0.0692
-    },
-    {
-      "name": "edge_count",
-      "importance": 0.0622
+      "importance": 0.1152
     },
     {
       "name": "session_duration_s",
-      "importance": 0.0558
+      "importance": 0.1086
+    },
+    {
+      "name": "txn_count_last_24h",
+      "importance": 0.0946
     },
     {
       "name": "auth_method_upi_pin",
-      "importance": 0.0378
-    },
-    {
-      "name": "txn_count_last_1h",
-      "importance": 0.0373
-    },
-    {
-      "name": "auth_method_cvv_only",
-      "importance": 0.0352
+      "importance": 0.0927
     },
     {
       "name": "auth_result_success",
-      "importance": 0.0295
+      "importance": 0.068
     },
     {
-      "name": "time_since_prev_txn",
-      "importance": 0.0225
+      "name": "auth_method_cvv_only",
+      "importance": 0.0377
     },
     {
-      "name": "distinct_tpap_count_last_24h",
-      "importance": 0.0215
+      "name": "distinct_linked_account_count_last_24h",
+      "importance": 0.0318
+    },
+    {
+      "name": "new_merchant_indicator",
+      "importance": 0.0293
+    },
+    {
+      "name": "eci_None",
+      "importance": 0.0277
+    },
+    {
+      "name": "rail_upi_p2m",
+      "importance": 0.0232
     }
   ],
   "curriculum_effectiveness": {

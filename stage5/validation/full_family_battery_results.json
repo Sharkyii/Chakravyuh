@@ -1,138 +1,238 @@
-[
-  {
-    "family": "__legit__",
-    "n": 5000,
-    "mean_prob": 0.003412744030356407,
-    "fpr_01pct": 0.0,
-    "fpr_1pct": 0.0,
-    "fpr_selected": 0.0
-  },
-  {
-    "family": "scam_induced_push",
-    "n": 192,
-    "mean_prob": 0.9617199897766113,
-    "recall_01pct": 0.8802083333333334,
-    "recall_1pct": 0.9166666666666666,
-    "recall_selected": 0.8958333333333334
-  },
-  {
-    "family": "mule_network",
-    "n": 218,
-    "mean_prob": 0.8059219121932983,
-    "recall_01pct": 0.5871559633027523,
-    "recall_1pct": 0.6743119266055045,
-    "recall_selected": 0.6697247706422018
-  },
-  {
-    "family": "card_testing_probe",
-    "n": 290,
-    "mean_prob": 0.9996281266212463,
-    "recall_01pct": 1.0,
-    "recall_1pct": 1.0,
-    "recall_selected": 1.0
-  },
-  {
-    "family": "adversarial_evasion",
-    "n": 135,
-    "mean_prob": 0.6031889319419861,
-    "recall_01pct": 0.14814814814814814,
-    "recall_1pct": 0.37777777777777777,
-    "recall_selected": 0.2962962962962963
-  },
-  {
-    "family": "first_party_dispute",
-    "n": 160,
-    "mean_prob": 0.8399150967597961,
-    "recall_01pct": 0.425,
-    "recall_1pct": 0.65,
-    "recall_selected": 0.5625
-  },
-  {
-    "family": "stealth_mandate",
-    "n": 234,
-    "mean_prob": 0.8824089765548706,
-    "recall_01pct": 0.44871794871794873,
-    "recall_1pct": 0.6923076923076923,
-    "recall_selected": 0.5555555555555556
-  },
-  {
-    "family": "synthetic_merchant",
-    "n": 269,
-    "mean_prob": 0.9784247279167175,
-    "recall_01pct": 0.9144981412639405,
-    "recall_1pct": 0.9814126394052045,
-    "recall_selected": 0.9628252788104089
-  },
-  {
-    "family": "transaction_laundering",
-    "n": 197,
-    "mean_prob": 0.9948086142539978,
-    "recall_01pct": 0.9746192893401016,
-    "recall_1pct": 1.0,
-    "recall_selected": 1.0
-  },
-  {
-    "family": "credential_takeover",
-    "n": 169,
-    "mean_prob": 0.9924144148826599,
-    "recall_01pct": 0.9289940828402367,
-    "recall_1pct": 1.0,
-    "recall_selected": 0.9940828402366864
-  },
-  {
-    "family": "synthetic_identity_bustout",
-    "n": 244,
-    "mean_prob": 0.9928959608078003,
-    "recall_01pct": 1.0,
-    "recall_1pct": 1.0,
-    "recall_selected": 1.0
-  },
-  {
-    "family": "subthreshold_fragmentation",
-    "n": 244,
-    "mean_prob": 0.9993502497673035,
-    "recall_01pct": 1.0,
-    "recall_1pct": 1.0,
-    "recall_selected": 1.0
-  },
-  {
-    "family": "agentic_injection",
-    "n": 147,
-    "mean_prob": 0.9999409317970276,
-    "recall_01pct": 1.0,
-    "recall_1pct": 1.0,
-    "recall_selected": 1.0
-  },
-  {
-    "family": "insider_abuse",
-    "n": 162,
-    "mean_prob": 0.7321454286575317,
-    "recall_01pct": 0.24691358024691357,
-    "recall_1pct": 0.4567901234567901,
-    "recall_selected": 0.4012345679012346
-  },
-  {
-    "family": "device_fan_out",
-    "n": 150,
-    "mean_prob": 0.9757521748542786,
-    "recall_01pct": 0.8533333333333334,
-    "recall_1pct": 1.0,
-    "recall_selected": 0.96
-  },
-  {
-    "family": "balance_drain_exit",
-    "n": 60,
-    "mean_prob": 0.9958258867263794,
-    "recall_01pct": 1.0,
-    "recall_1pct": 1.0,
-    "recall_selected": 1.0
-  },
-  {
-    "family": "tpap_account_switch",
-    "n": 120,
-    "mean_prob": 0.9978706240653992,
-    "recall_01pct": 1.0,
-    "recall_1pct": 1.0,
-    "recall_selected": 1.0
-  }
-]
+{
+  "by_family": [
+    {
+      "family": "__legit__",
+      "n": 5000,
+      "mean_prob": 0.0034322617575526237,
+      "fpr_01pct": 0.0,
+      "fpr_1pct": 0.0,
+      "fpr_selected": 0.0
+    },
+    {
+      "family": "scam_induced_push",
+      "n": 191,
+      "mean_prob": 0.9733358025550842,
+      "recall_01pct": 0.8638743455497382,
+      "recall_1pct": 0.9528795811518325,
+      "recall_selected": 0.9267015706806283
+    },
+    {
+      "family": "mule_network",
+      "n": 210,
+      "mean_prob": 0.8384488224983215,
+      "recall_01pct": 0.638095238095238,
+      "recall_1pct": 0.7333333333333333,
+      "recall_selected": 0.7142857142857143
+    },
+    {
+      "family": "card_testing_probe",
+      "n": 281,
+      "mean_prob": 0.9996864795684814,
+      "recall_01pct": 1.0,
+      "recall_1pct": 1.0,
+      "recall_selected": 1.0
+    },
+    {
+      "family": "adversarial_evasion",
+      "n": 138,
+      "mean_prob": 0.5925294160842896,
+      "recall_01pct": 0.15217391304347827,
+      "recall_1pct": 0.3695652173913043,
+      "recall_selected": 0.3333333333333333
+    },
+    {
+      "family": "first_party_dispute",
+      "n": 165,
+      "mean_prob": 0.8331922888755798,
+      "recall_01pct": 0.3696969696969697,
+      "recall_1pct": 0.5818181818181818,
+      "recall_selected": 0.4727272727272727
+    },
+    {
+      "family": "stealth_mandate",
+      "n": 225,
+      "mean_prob": 0.8435345888137817,
+      "recall_01pct": 0.37333333333333335,
+      "recall_1pct": 0.5688888888888889,
+      "recall_selected": 0.4666666666666667
+    },
+    {
+      "family": "synthetic_merchant",
+      "n": 267,
+      "mean_prob": 0.9813364744186401,
+      "recall_01pct": 0.9138576779026217,
+      "recall_1pct": 0.9812734082397003,
+      "recall_selected": 0.9775280898876404
+    },
+    {
+      "family": "transaction_laundering",
+      "n": 195,
+      "mean_prob": 0.9949271082878113,
+      "recall_01pct": 0.9743589743589743,
+      "recall_1pct": 1.0,
+      "recall_selected": 1.0
+    },
+    {
+      "family": "credential_takeover",
+      "n": 176,
+      "mean_prob": 0.9941624999046326,
+      "recall_01pct": 0.9715909090909091,
+      "recall_1pct": 1.0,
+      "recall_selected": 1.0
+    },
+    {
+      "family": "synthetic_identity_bustout",
+      "n": 237,
+      "mean_prob": 0.993063747882843,
+      "recall_01pct": 1.0,
+      "recall_1pct": 1.0,
+      "recall_selected": 1.0
+    },
+    {
+      "family": "subthreshold_fragmentation",
+      "n": 248,
+      "mean_prob": 0.9991490840911865,
+      "recall_01pct": 1.0,
+      "recall_1pct": 1.0,
+      "recall_selected": 1.0
+    },
+    {
+      "family": "agentic_injection",
+      "n": 144,
+      "mean_prob": 0.9999412894248962,
+      "recall_01pct": 1.0,
+      "recall_1pct": 1.0,
+      "recall_selected": 1.0
+    },
+    {
+      "family": "insider_abuse",
+      "n": 166,
+      "mean_prob": 0.8570008873939514,
+      "recall_01pct": 0.4457831325301205,
+      "recall_1pct": 0.6686746987951807,
+      "recall_selected": 0.608433734939759
+    },
+    {
+      "family": "device_fan_out",
+      "n": 150,
+      "mean_prob": 0.9820542335510254,
+      "recall_01pct": 0.92,
+      "recall_1pct": 1.0,
+      "recall_selected": 1.0
+    },
+    {
+      "family": "balance_drain_exit",
+      "n": 60,
+      "mean_prob": 0.9955838918685913,
+      "recall_01pct": 1.0,
+      "recall_1pct": 1.0,
+      "recall_selected": 1.0
+    },
+    {
+      "family": "tpap_account_switch",
+      "n": 120,
+      "mean_prob": 0.9976881146430969,
+      "recall_01pct": 1.0,
+      "recall_1pct": 1.0,
+      "recall_selected": 1.0
+    }
+  ],
+  "by_intensity": [
+    {
+      "family": "scam_induced_push",
+      "LOW": 0.71875,
+      "MEDIUM": 0.864406779661017,
+      "HIGH": 0.91
+    },
+    {
+      "family": "mule_network",
+      "LOW": 0.6785714285714286,
+      "MEDIUM": 0.7321428571428571,
+      "HIGH": 0.5612244897959183
+    },
+    {
+      "family": "card_testing_probe",
+      "LOW": 1.0,
+      "MEDIUM": 1.0,
+      "HIGH": 1.0
+    },
+    {
+      "family": "adversarial_evasion",
+      "LOW": 0.125,
+      "MEDIUM": 0.15789473684210525,
+      "HIGH": 0.15789473684210525
+    },
+    {
+      "family": "first_party_dispute",
+      "LOW": 0.09090909090909091,
+      "MEDIUM": 0.41818181818181815,
+      "HIGH": 0.4090909090909091
+    },
+    {
+      "family": "stealth_mandate",
+      "LOW": 0.4,
+      "MEDIUM": 0.2153846153846154,
+      "HIGH": 0.448
+    },
+    {
+      "family": "synthetic_merchant",
+      "LOW": 0.9722222222222222,
+      "MEDIUM": 0.9285714285714286,
+      "HIGH": 0.891156462585034
+    },
+    {
+      "family": "transaction_laundering",
+      "LOW": 1.0,
+      "MEDIUM": 1.0,
+      "HIGH": 0.9489795918367347
+    },
+    {
+      "family": "credential_takeover",
+      "LOW": 1.0,
+      "MEDIUM": 1.0,
+      "HIGH": 0.9514563106796117
+    },
+    {
+      "family": "synthetic_identity_bustout",
+      "LOW": 1.0,
+      "MEDIUM": 1.0,
+      "HIGH": 1.0
+    },
+    {
+      "family": "subthreshold_fragmentation",
+      "LOW": 1.0,
+      "MEDIUM": 1.0,
+      "HIGH": 1.0
+    },
+    {
+      "family": "agentic_injection",
+      "LOW": 1.0,
+      "MEDIUM": 1.0,
+      "HIGH": 1.0
+    },
+    {
+      "family": "insider_abuse",
+      "LOW": 0.625,
+      "MEDIUM": 0.45098039215686275,
+      "HIGH": 0.3956043956043956
+    },
+    {
+      "family": "device_fan_out",
+      "LOW": 0.925,
+      "MEDIUM": 0.92,
+      "HIGH": 0.9166666666666666
+    },
+    {
+      "family": "balance_drain_exit",
+      "LOW": 1.0,
+      "MEDIUM": 1.0,
+      "HIGH": 1.0
+    },
+    {
+      "family": "tpap_account_switch",
+      "LOW": 1.0,
+      "MEDIUM": 1.0,
+      "HIGH": 1.0
+    }
+  ]
+}

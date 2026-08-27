@@ -14,11 +14,13 @@ def test_gen3_templates_are_drawn_from_requested_family(monkeypatch):
     monkeypatch.setattr(
         "stage5.adversarial.gen3_generator.get_top_features", lambda *_args, **_kwargs: []
     )
-    training_df = pd.DataFrame([
-        {"is_fraud": True, "attack_id": "adversarial_evasion", "template": "requested"},
-        {"is_fraud": True, "attack_id": "mule_network", "template": "other"},
-        {"is_fraud": False, "attack_id": None, "template": "legitimate"},
-    ])
+    training_df = pd.DataFrame(
+        [
+            {"is_fraud": True, "attack_id": "adversarial_evasion", "template": "requested"},
+            {"is_fraud": True, "attack_id": "mule_network", "template": "other"},
+            {"is_fraud": False, "attack_id": None, "template": "legitimate"},
+        ]
+    )
     generator = Gen3AttackGenerator(object(), training_df)
 
     attacks = generator._generate_level_attacks(
@@ -51,6 +53,7 @@ def test_gen3_uses_current_credential_takeover_family_name():
 
 def test_curriculum_threshold_is_derived_at_one_percent_fpr(monkeypatch):
     """Evasion checks use the checkpoint's calibrated operating point."""
+
     class IdentityPreprocessor:
         def transform(self, X):
             return X
@@ -68,9 +71,12 @@ def test_curriculum_threshold_is_derived_at_one_percent_fpr(monkeypatch):
         return {"threshold": 0.83}
 
     monkeypatch.setattr(curriculum_retrain, "precision_recall_at_fixed_fpr", fake_fixed_fpr)
-    reference_df = pd.DataFrame({
-        "split": ["test", "test"], "is_fraud": [0, 1],
-    })
+    reference_df = pd.DataFrame(
+        {
+            "split": ["test", "test"],
+            "is_fraud": [0, 1],
+        }
+    )
 
     threshold = curriculum_retrain._fixed_fpr_threshold(
         Model(), IdentityPreprocessor(), reference_df

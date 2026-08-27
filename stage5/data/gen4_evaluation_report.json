@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-08-27T12:12:57.643244",
+  "timestamp": "2026-08-27T18:47:41.132564",
   "title": "Gen 4 Ensemble Adversarial Evaluation Report",
   "executive_summary": {
     "gen4_evasion_rate": "0.0%",
@@ -57,13 +57,13 @@
       "held_out_recall": null
     },
     "gen4_after_retrain": {
-      "pr_auc": 0.9917539425291932,
+      "pr_auc": 0.9969291778756886,
       "held_out_recall": null
     }
   },
   "evasion_metrics": {
     "gen4_attacks_on_gen3_model": {
-      "evasion_rate": "2.1%",
+      "evasion_rate": "8.2%",
       "status": "PASS",
       "note": "Why we retrain"
     },
@@ -75,20 +75,20 @@
   },
   "difficulty_levels": {
     "level_1_simple_ensemble": {
-      "evasion": "0.0%",
-      "evasion_margin": 0.0,
+      "evasion": "1.2%",
+      "evasion_margin": 0.0125,
       "status": "PASS",
       "training_size": 226633
     },
     "level_2_complex_ensemble": {
-      "evasion": "0.0%",
-      "evasion_margin": 0.0,
+      "evasion": "1.5%",
+      "evasion_margin": 0.015,
       "status": "PASS",
       "training_size": 227113
     },
     "level_3_multi_ensemble": {
-      "evasion": "0.3%",
-      "evasion_margin": 0.003125,
+      "evasion": "0.9%",
+      "evasion_margin": 0.009375,
       "status": "PASS",
       "training_size": 227593
     },
@@ -101,44 +101,44 @@
   },
   "feature_importance": [
     {
+      "name": "session_duration_s",
+      "importance": 0.1196
+    },
+    {
       "name": "txn_count_last_24h",
-      "importance": 0.2201
+      "importance": 0.108
     },
     {
       "name": "beneficiary_added_ago_s",
-      "importance": 0.0809
-    },
-    {
-      "name": "session_duration_s",
-      "importance": 0.0613
+      "importance": 0.1073
     },
     {
       "name": "auth_method_upi_pin",
-      "importance": 0.0482
-    },
-    {
-      "name": "edge_count",
-      "importance": 0.0477
+      "importance": 0.083
     },
     {
       "name": "auth_result_success",
-      "importance": 0.0462
+      "importance": 0.0673
     },
     {
       "name": "auth_method_cvv_only",
-      "importance": 0.0373
+      "importance": 0.0424
     },
     {
-      "name": "time_since_prev_txn",
-      "importance": 0.036
+      "name": "eci_None",
+      "importance": 0.0284
     },
     {
-      "name": "distinct_tpap_count_last_24h",
-      "importance": 0.0236
+      "name": "distinct_linked_account_count_last_24h",
+      "importance": 0.0283
     },
     {
-      "name": "txn_count_last_1h",
-      "importance": 0.0231
+      "name": "new_merchant_indicator",
+      "importance": 0.0279
+    },
+    {
+      "name": "rail_upi_p2p",
+      "importance": 0.0279
     }
   ],
   "curriculum_effectiveness": {

@@ -219,6 +219,25 @@ def run_gen5():
     # really deployed, not the baseline checkpoint.
     from stage5.validation.evaluate_deployed_model import main as evaluate_deployed_model_main
     evaluate_deployed_model_main()
+
+    # Held-out-test-split accuracy (just computed above) is necessary but not
+    # sufficient: it's drawn from the same generation run as training, so it
+    # can't catch a family that generalizes badly to fresh out-of-sample
+    # seeds -- confirmed this session for stealth_mandate/insider_abuse/
+    # first_party_dispute, which looked fine on the held-out split while
+    # actually sitting at 0% recall on fresh campaigns, because a pipeline
+    # bug meant they were never in the training data to begin with. Run the
+    # full battery as a standing check so that kind of gap can't go silent
+    # again. Skipped gracefully (not fatal) if the baseline stage2 dataset
+    # isn't on disk -- it's a large uncommitted dev-only artifact, so this
+    # step only runs where it was already run manually before.
+    try:
+        from stage5.validation.multi_checkpoint_battery_eval import main as battery_eval_main
+        print("\nRunning full multi-checkpoint battery eval (out-of-sample generalisation check)...")
+        battery_eval_main()
+    except FileNotFoundError as e:
+        print(f"\n  Skipping battery eval: {e}")
+
     print("GEN5 COMPLETE")
 
 

@@ -39,6 +39,21 @@ N_LEGIT_SAMPLE = 5000
 BASELINE_STAGE2_DIR = STAGE5_DATA_DIR / "baseline" / "stage2"
 REPORT_PATH = Path(__file__).resolve().parent / "full_family_battery_results.json"
 
+# Deterministic, provably-disjoint eval seed scheme. Training seeds
+# (stage5/training/generate_training_data.py) are base_seed*1000+i for
+# base_seed in [101,116], i in [0,79] -- i.e. fully contained in [101000,
+# 116999]. EVAL_SEED_BASE=900_000_000 puts every eval seed >800M above that,
+# with plenty of headroom for a second disjoint eval run (see
+# multi_checkpoint_battery_eval.py's EVAL_SEED_BASE) without ever colliding.
+# Deliberately NOT using Python's built-in hash() here: str/tuple hashing is
+# randomized per-process by default (PYTHONHASHSEED is unset in this repo),
+# so hash((family, intensity, i)) returns a DIFFERENT value on every run --
+# confirmed by calling it twice in separate processes. That made every
+# earlier "10-seed battery" run in this project's history silently
+# non-reproducible and gave no actual disjointness guarantee from training
+# seeds at all (its range, [100_000, 999_999], fully contains them).
+EVAL_SEED_BASE = 900_000_000
+
 
 def _row_to_dict(r):
     if isinstance(r, dict):
@@ -51,13 +66,13 @@ def _row_to_dict(r):
     return out
 
 
-def generate_all_campaigns(baseline):
+def generate_all_campaigns(baseline, n_seeds_per_cell: int = N_SEEDS_PER_CELL, seed_base: int = EVAL_SEED_BASE):
     all_rows, all_meta = [], []
-    for family in FAMILIES:
+    for family_idx, family in enumerate(FAMILIES):
         gen = build_attack_generator(family)
-        for intensity in INTENSITIES:
-            for i in range(N_SEEDS_PER_CELL):
-                seed = hash((family, intensity.value, i)) % 900000 + 100000
+        for intensity_idx, intensity in enumerate(INTENSITIES):
+            for i in range(n_seeds_per_cell):
+                seed = seed_base + family_idx * 1_000_000 + intensity_idx * 100_000 + i
                 try:
                     _campaign, rows, _labels = gen.generate(baseline, seed=seed, intensity=intensity)
                 except Exception as e:
@@ -156,7 +171,11 @@ def score(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
         "thresh_1pct": points[0.01],
         "selected_threshold": metadata["selected_threshold"],
     }
-    results = pd.DataFrame({"family": df["__family__"].values, "prob": probs})
+    results = pd.DataFrame({
+        "family": df["__family__"].values,
+        "intensity": df["__intensity__"].values,
+        "prob": probs,
+    })
     return results, thresholds
 
 
@@ -191,6 +210,37 @@ def summarize(results: pd.DataFrame, thresholds: dict) -> list[dict]:
     return summary
 
 
+def summarize_by_intensity(results: pd.DataFrame, thresholds: dict) -> list[dict]:
+    """Break recall@0.1%-FPR down per family x intensity, to distinguish a
+    real detection gap from an intensity-generalisation gap: ATTACK_FAMILIES
+    trains every family at a single fixed MEDIUM intensity, so a family whose
+    generator scales signal strength (not just cosmetic scale) with intensity
+    can look fine in aggregate while actually failing hard at LOW.
+    """
+    thresh_01pct = thresholds["thresh_01pct"]
+    print()
+    print("=" * 70)
+    print(f"{'Family':<30} {'LOW':>10} {'MEDIUM':>10} {'HIGH':>10}")
+    print("=" * 70)
+    breakdown = []
+    for family in FAMILIES:
+        row = {"family": family}
+        cells = []
+        for level in ("LOW", "MEDIUM", "HIGH"):
+            sub = results[(results["family"] == family) & (results["intensity"] == level)]
+            if len(sub) == 0:
+                cells.append("  n/a")
+                row[level] = None
+                continue
+            recall = (sub["prob"] >= thresh_01pct).mean()
+            cells.append(f"{recall*100:6.1f}%")
+            row[level] = float(recall)
+        print(f"{family:<30} {cells[0]:>10} {cells[1]:>10} {cells[2]:>10}")
+        breakdown.append(row)
+    print("=" * 70)
+    return breakdown
+
+
 def main():
     print(f"Families: {len(FAMILIES)}, intensities: {len(INTENSITIES)}, seeds/cell: {N_SEEDS_PER_CELL}")
     print(f"Total campaigns to generate: {len(FAMILIES) * len(INTENSITIES) * N_SEEDS_PER_CELL}")
@@ -204,8 +254,9 @@ def main():
     df = build_scored_dataframe(baseline, all_rows, all_meta)
     results, thresholds = score(df)
     summary = summarize(results, thresholds)
+    by_intensity = summarize_by_intensity(results, thresholds)
 
-    REPORT_PATH.write_text(json.dumps(summary, indent=2))
+    REPORT_PATH.write_text(json.dumps({"by_family": summary, "by_intensity": by_intensity}, indent=2))
     print(f"\nSaved: {REPORT_PATH}")
 
 

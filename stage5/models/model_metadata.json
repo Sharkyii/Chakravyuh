@@ -151,29 +151,29 @@
     ]
   },
   "test_metrics": {
-    "pr_auc": 0.9959270192121101,
-    "roc_auc_secondary": 0.9997656677645688,
-    "brier_score": 0.03043168099039937,
+    "pr_auc": 0.9986744326393152,
+    "roc_auc_secondary": 0.9999494070285436,
+    "brier_score": 0.012333658676963507,
     "fixed_fpr_operating_points": [
       {
         "target_fpr": 0.001,
-        "achieved_fpr": 0.000918336111016632,
-        "threshold": 0.9533764719963074,
-        "precision": 0.9659949622166247,
-        "recall": 0.9845956354300385
+        "achieved_fpr": 0.0009863610081289752,
+        "threshold": 0.943878710269928,
+        "precision": 0.9638178415470992,
+        "recall": 0.9916559691912709
       },
       {
         "target_fpr": 0.01,
-        "achieved_fpr": 0.008758205503214177,
-        "threshold": 0.8396286964416504,
-        "precision": 0.750484496124031,
-        "recall": 0.9942233632862645
+        "achieved_fpr": 0.005935172273051937,
+        "threshold": 0.7691906690597534,
+        "precision": 0.816894018887723,
+        "recall": 0.9993581514762516
       }
     ],
     "held_out_family_generalisation": [
       {
         "target_fpr": 0.001,
-        "threshold": 0.9533764719963074,
+        "threshold": 0.943878710269928,
         "held_out_fraud_total": 609,
         "held_out_fraud_caught": 609,
         "held_out_recall": 1.0,
@@ -185,7 +185,7 @@
       },
       {
         "target_fpr": 0.01,
-        "threshold": 0.8396286964416504,
+        "threshold": 0.7691906690597534,
         "held_out_fraud_total": 609,
         "held_out_fraud_caught": 609,
         "held_out_recall": 1.0,
@@ -197,13 +197,13 @@
       }
     ],
     "f1_optimal_threshold_metrics": {
-      "precision": 0.8662921348314607,
-      "recall": 0.9897304236200257,
-      "f1": 0.9239065308568005,
-      "fpr": 0.0040474813781844155,
-      "alerts_per_1000": 29.489728296885353
+      "precision": 0.9275449101796407,
+      "recall": 0.9942233632862645,
+      "f1": 0.959727385377943,
+      "fpr": 0.0020577531376483795,
+      "alerts_per_1000": 27.66732935719019
     }
   },
-  "evaluated_timestamp": "2026-08-27T13:13:22.019321",
+  "evaluated_timestamp": "2026-08-27T19:14:32.924748",
   "evaluation_note": "test_metrics recomputed directly against the model/preprocessor actually deployed in MODELS_DIR (post-curriculum), not the pre-curriculum baseline that train_fraud_model.main() originally wrote here."
 }

@@ -176,6 +176,14 @@ def retrain_on_gen3_attacks(
 
         gen3_df = _as_feature_frame(gen3_attacks)
         gen3_df['is_fraud'] = 1
+        # Shuffle before capping, not .head(): gen3_attacks is now several
+        # families concatenated in list order (see gen3_pipeline.py), each
+        # contributing hundreds of rows per level -- .head(LEVEL_ATTACK_CAP)
+        # on the raw concatenation would keep every row from the first
+        # family or two and silently drop every family listed after them
+        # once their combined size exceeds the cap, exactly reproducing the
+        # "family never actually trained on" bug the merge was meant to fix.
+        gen3_df = gen3_df.sample(frac=1.0, random_state=42).reset_index(drop=True)
         gen3_df = gen3_df.head(LEVEL_ATTACK_CAP)
 
         # Split into a genuine train portion (so the model actually learns

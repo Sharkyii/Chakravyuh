@@ -4,10 +4,10 @@
 
 Chakravyuh is a production-ready fraud detection system that learns from adversarial red-teaming via **closed-loop curriculum learning**. Rather than training once and deploying, the system progressively hardens against increasingly sophisticated attack families through three generations of retraining, each calibrated to real-world fraud typologies.
 
-**Final performance (Gen 5 model on held-out cross-generational attacks):**
-- Gen 3 attacks (feature hiding): 0.9% evasion (2,724 caught / 2,750 total)
+**Final performance (Gen 5 model on held-out cross-generational attacks, retrained on the full 16-family dataset):**
+- Gen 3 attacks (feature hiding): 3.0% evasion (2,667 caught / 2,750 total)
 - Gen 4 attacks (ensemble trading): 0.0% evasion (2,299 caught / 2,300 total)
-- Gen 5 attacks (multi-family cross-attacks): 0.1% evasion (1,599 caught / 1,600 total)
+- Gen 5 attacks (multi-family cross-attacks): 0.0% evasion (1,600 caught / 1,600 total)
 
 ---
 
@@ -42,9 +42,9 @@ Each generation:
 
 ## System Architecture
 
-### Data Generation: 15 Attack Families
+### Data Generation: 16 Attack Families
 
-The system synthesizes adversarial examples across 15 distinct fraud typologies, each grounded in published fraud signatures from reference datasets and competition analysis:
+The system synthesizes adversarial examples across 16 distinct fraud typologies, each grounded in published fraud signatures from reference datasets, competition analysis, or (for `tpap_account_switch`) NPCI's own published UPI architecture documentation:
 
 | Family | Mechanism | Rail | Detection Signal |
 |--------|-----------|------|-----------------|
@@ -63,12 +63,14 @@ The system synthesizes adversarial examples across 15 distinct fraud typologies,
 | Insider Abuse | Employee processes fraudulent transactions | Card | Unusual time-of-day + merchant override flags |
 | Device Fan-Out | One device/fingerprint, 4-6 distinct cards in 2h | Card | Device-centric clustering (IEEE-CIS signal) |
 | Balance Drain Exit | Receive large transfer, liquidate 85-95% in 5min | UPI | Rapid receiver balance collapse (PaySim pattern) |
+| TPAP Account Switch | Compromised UPI handle drained via 3-5 linked accounts/apps in a tight window | UPI | Distinct-TPAP/linked-account velocity (structural, not per-transaction) |
 
-Each family has 4 curriculum difficulty levels (easy → extreme), expanding to 40+ campaigns per family for ~400 fraud rows per family, landing overall fraud prevalence at ~0.62% (near real-world 0.5-1% benchmarks).
+Each family has 4 curriculum difficulty levels (easy → extreme), expanding to 80 campaigns per family, landing overall fraud+lookalike prevalence at ~2.56% (near real-world 0.5-3.5% benchmarks) at the current 8,000-consumer training scale (see Known Limitations for why this is below the documented 100,000-consumer target).
 
 **Grounding notes:**
 - Device fan-out: Documented as top-5 predictive signal in IEEE-CIS Kaggle competition solutions
 - Balance drain exit: PaySim paper's fraud generation mechanism (account takeover → TRANSFER → CASH_OUT)
+- TPAP account switch: NPCI's UPI architecture explicitly allows one VPA/bank account to be reachable through several third-party apps (PhonePe, GPay, Paytm, ...), which structurally enables cross-app account draining that no single bank or app's own fraud system can see in isolation
 
 ### Feature Engineering
 
@@ -84,7 +86,7 @@ Features are engineered on the raw transaction/party/device/graph tables, then t
 
 A single XGBoost (150 trees, depth=6) serves all three generations. Threshold is set to target **0.1% false positive rate** (standard for card fraud):
 
-- At this threshold, the Gen 5 model achieves: **Recall 97.8%** (catches 97.8% of fraud) while alerting on only 0.1% of legitimate transactions
+- At this threshold, the Gen 5 model achieves: **Recall 98.7%** (catches 98.7% of fraud) while alerting on only 0.1% of legitimate transactions
 - Practical implication: in a 1M-transaction-per-day payment rail, ~1,000 legitimate txns queued for review, ~10,000 fraud attempts blocked
 
 ---
@@ -135,14 +137,14 @@ Scoring the deployed Gen 5 model against unseen attacks from all three generatio
 
 | Attack Family | Evasion Rate | Caught | Slipped | Verdict |
 |---|---|---|---|---|
-| **Gen 3** (feature hiding) | 0.9% | 2,724 | 26 | PASS (target <5%) |
+| **Gen 3** (feature hiding) | 3.0% | 2,667 | 83 | PASS (target <5%) |
 | **Gen 4** (ensemble trading) | 0.0% | 2,299 | 1 | PASS (target <5%) |
-| **Gen 5** (multi-family) | 0.1% | 1,599 | 1 | PASS (target <5%) |
+| **Gen 5** (multi-family) | 0.0% | 1,600 | 0 | PASS (target <5%) |
 
 **Interpretation**:
-- All three generations pass the <5% evasion target.
+- All three generations pass the <5% evasion target on the retrained 16-family model.
 - **Cross-generational regression test passed**: No catastrophic forgetting detected. Hardening on Gen 5 did not break earlier defenses.
-- **Safety mechanism validated**: During development, cross-generation eval caught a 34.4% → 43% regression on Gen 3 (caused by premature curriculum early-exit + per-level training without cumulative carryover). The fix—cumulative-within-generation training + removing early-stop—was validated by re-scoring, and the regression closed to 0.9%. This demonstrates the safety gate actually working.
+- **Safety mechanism validated**: During development, cross-generation eval caught a 34.4% → 43% regression on Gen 3 (caused by premature curriculum early-exit + per-level training without cumulative carryover). The fix—cumulative-within-generation training + removing early-stop—was validated by re-scoring. This demonstrates the safety gate actually working, and continues to gate every subsequent retrain, including the 16-family retrain reflected in the numbers above.
 
 ---
 
@@ -159,9 +161,9 @@ This prevents lookahead bias: the model never sees a beneficiary relationship be
 
 ### Held-Out Synthetic Identity Bustout Family
 
-One of the 13 families is held out **entirely from train/val**, used only for generalization testing. This answers: "Does the model generalize to unseen attack families, or does it memorize the 12 it saw in training?"
+One of the 16 families is held out **entirely from train/val**, used only for generalization testing. This answers: "Does the model generalize to unseen attack families, or does it memorize the 15 it saw in training?"
 
-**Result**: Held-out family achieves 8.2% evasion (vs. <1% on seen families), demonstrating non-trivial generalization gap—the model learns patterns, not memorization.
+**Result**: on the 16-family retrain, the held-out family achieved **100% recall** (609/609 caught) at both the 0.1% and 1% FPR operating points. This is stronger than the 8.2% evasion figure from the earlier 13-family model; both results support the same conclusion (the model generalizes to structurally distinct unseen attacks rather than memorizing training families), but the exact number should be re-verified after any future retrain rather than assumed stable.
 
 ### Lookalike Fidelity Check
 
@@ -188,8 +190,8 @@ For every fraud example, a "hard negative" lookalike is synthesized: same legiti
 
 1. **Lookalike fidelity** (2.12x vs. 1.0x target): Lookalikes currently receive only one shape-matched transaction but lack synthetic behavioral pre-history (e.g., a pattern of prior transfers before the fraud attempt). Fixes require generating a short sequence of synthetic pre-history transactions for each lookalike. Medium effort, achievable as a post-submission refinement.
 2. **Analyst feedback loop**: Infrastructure exists (FeedbackStore, LLM-backed analyst engine) but not wired into retraining. Easy to integrate: pass real feedback dict instead of empty dict to curriculum retraining.
-3. **16-family model retraining**: The three newest attack families (`device_fan_out`, `balance_drain_exit`, `tpap_account_switch`) are included in the training-data pipeline. The current promoted model predates the expanded baseline; rerun the three curriculum generations before using their performance in model claims. `tpap_account_switch` also needs its two new behavioral features (`distinct_tpap_count_last_1h/24h`, `distinct_linked_account_count_last_1h/24h`) present in `stage5/config/settings.py`'s `BEHAVIORAL_FEATURES`, which is already done, but the fitted `preprocessor.pkl` predates them and must be refit, not just the classifier.
-4. **Single-transaction inference is velocity-feature-starved**: `txn_count_last_1h` and `txn_count_last_24h` — the two highest-importance features in the trained model (27.4% and 11.0%, ~38% combined) — require a real per-account rolling transaction history. The live `/api/analyze` endpoint and demo scenarios score one transaction at a time with no such history available, so these two features silently fall back to their training-set median (effectively 0) on every call. Graph/topology features that intuitively separate structurally distinct attacks (`payer_out_degree`, `edge_count`, `is_two_hop_passthrough`) are populated correctly but carry <1% importance each individually, so they can't fully compensate. Net effect: two genuinely different inputs (e.g. a normal payment vs. an active mule-network hop) can score within ~0.5 percentage points of each other in single-shot inference, even though the underlying model is highly discriminative (PR-AUC 0.998) when given full behavioral context at training/eval time. A production deployment needs a real-time feature store computing these rolling counts per account; without one, any single-shot scoring API — this one included — runs on a fraction of the model's trained decision capacity. Distinguishing this from a training/model defect required inspecting `fraud_model.feature_importances_` directly, not just poking demo scenarios.
+3. **16-family model retraining — done**: the fraud model, attack classifier, and Gen 3/4/5 curriculum were retrained end-to-end on the full 16-family dataset (including `device_fan_out`, `balance_drain_exit`, `tpap_account_switch`), all promoted and cross-generation-validated (see Cross-Generation Evaluation above). Baseline scale was reduced from the documented target of 100,000/4,000 consumers/merchants to 8,000/320 for this retrain, purely due to this development machine's 14GB RAM -- `build_features()`'s sequential per-payer state accumulation exceeded 7GB RSS and exhausted swap at 20,000 consumers before completing. Metrics above are measured on the smaller scale; re-running at the documented 100k/4k target scale on stronger hardware is expected to be directionally consistent but not verified.
+4. **Single-transaction inference is velocity-feature-starved**: `txn_count_last_1h` and `txn_count_last_24h` — the two highest-importance features in the trained model (27.4% and 11.0%, ~38% combined) — require a real per-account rolling transaction history. The live `/api/analyze` endpoint and demo scenarios score one transaction at a time with no such history available, so these two features silently fall back to their training-set median (effectively 0) on every call. Graph/topology features that intuitively separate structurally distinct attacks (`payer_out_degree`, `edge_count`, `is_two_hop_passthrough`) are populated correctly but carry <1% importance each individually, so they can't fully compensate. Net effect: two genuinely different inputs (e.g. a normal payment vs. an active mule-network hop) can score within ~0.5 percentage points of each other in single-shot inference, even though the underlying model is highly discriminative (PR-AUC 0.9978) when given full behavioral context at training/eval time. A production deployment needs a real-time feature store computing these rolling counts per account; without one, any single-shot scoring API — this one included — runs on a fraction of the model's trained decision capacity. Distinguishing this from a training/model defect required inspecting `fraud_model.feature_importances_` directly, not just poking demo scenarios.
 5. **Sophisticated mule-network variants are a near-total blind spot**: a stress-test transaction built with the two textbook mule signatures (`is_two_hop_passthrough=1.0` and `payee_in_degree=85`, i.e. heavy fan-in) while keeping `payer_out_degree` at a normal-looking value (28, close to the training median of ~26) scored **0.02% fraud probability** — essentially undetected. Root cause: `MuleNetworkAttack`'s generated training rows do carry real fan-in/two-hop graph structure, but the trained model still assigns `payee_in_degree` only 0.14% importance (rank 58/105) and `is_two_hop_passthrough` only 0.39% (rank 32/105) — over 100x less than the top two velocity features. Any mule campaign that keeps the payer's own out-degree unremarkable (trivial for an attacker to arrange — the mule "hop" account is what's structurally unusual, not the source payer) evades detection almost completely. A rule-based mitigation was investigated and rejected: `payee_in_degree` alone is unusable as a threshold because the real training distribution is dominated by legitimate merchant fan-in (median 266, max 10,801 in `graph_edges.parquet`'s `dst_in_degree`), and `is_two_hop_passthrough` alone occurs in 16.9% of all edges (legitimate P2P activity routinely looks two-hop), so gating on either without expensive rail-conditioned analysis this session couldn't safely verify would risk large-scale false positives. Fix requires retraining with either class-weighted sampling on `mule_network` rows or explicit masking of the velocity features on a fraction of training rows to force the model to rely on graph structure — deferred to the next retraining pass, not shipped in this submission.
 6. **Single-transaction rule overrides added this session, and the families found to be structurally unfixable without one**: eight families (`insider_abuse`, `credential_takeover`, `card_testing_probe`, and — via one shared widened rule — `synthetic_identity_bustout`'s max-out phase, `synthetic_merchant`, `transaction_laundering`, `subthreshold_fragmentation`, `agentic_injection`) received targeted policy overrides in `pipeline.py` after verifying each signature's false-positive rate against legitimate generation calibration constants (each documented inline at its override). Three families were investigated and found to have **no safe single-transaction fix**, independent of the mule-network case above:
    - `first_party_dispute`: the attack's own label sets `detectable_at=POST_SETTLEMENT` — it is a legitimate-looking, fully-authorized purchase that only becomes fraud when the cardholder later files a false chargeback. No signal distinguishing it from a genuine purchase exists in the original transaction at all.
@@ -240,8 +242,8 @@ For every fraud example, a "hard negative" lookalike is synthesized: same legiti
 
 - **Cross-generational**: Deployed model tested against unseen attacks from three generations: Gen 3 0.9% evasion, Gen 4 0.0% evasion, Gen 5 0.1% evasion. All pass <5% target.
 - **Held-out family generalization**: 8.2% evasion on family never seen in training (identity bustout, unseen during curriculum), confirming non-trivial generalization.
-- **Operating point**: Locked at 0.1% FPR (recall 97.8%), matches payment-rail alert budgets
-- **Metric**: PR-AUC 0.9982 (test set)
+- **Operating point**: Locked at 0.1% FPR (recall 98.7%), matches payment-rail alert budgets
+- **Metric**: PR-AUC 0.9978 (test set)
 
 ### Novelty of Overall Solution ✓
 
@@ -278,7 +280,7 @@ For every fraud example, a "hard negative" lookalike is synthesized: same legiti
 
 **Competitive positioning:**
 - Deep-learning fraud stacks can offer higher peak recall, but commonly require GPU capacity and slower retraining cycles.
-- Chakravyuh prioritises transparent XGBoost decisions, CPU economics, and rapid curriculum retraining; the measured trade-off is 97.8% recall at the evaluated 0.1% FPR operating point.
+- Chakravyuh prioritises transparent XGBoost decisions, CPU economics, and rapid curriculum retraining; the measured trade-off is 98.7% recall at the evaluated 0.1% FPR operating point.
 - For adversarial fraud, retraining velocity and verifiable cross-generation robustness can matter more operationally than incremental offline accuracy alone.
 
 ---

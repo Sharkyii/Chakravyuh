@@ -95,6 +95,61 @@ GEN3_SPECS = {
             'subthreshold_txn_ratio': 'lower',  # Mix of amounts
         }
     },
+    # These three families were never in GEN3_SPECS -- a multi-checkpoint
+    # battery eval showed their curriculum "improvement" pre-fix was actually
+    # an accident: gen3_generator.py used to sample its hiding-strategy
+    # templates from the WHOLE fraud population regardless of attack_family,
+    # so a stealth_mandate/insider_abuse/first_party_dispute row occasionally
+    # got picked as e.g. an "adversarial_evasion" template and got incidental
+    # exposure. Fixing that sampling bug (filtering templates to the
+    # requested family) removed the accident and these three collapsed back
+    # to their un-hardened baseline recall (0-5%) with nothing to replace it.
+    # Real per-family curriculum entries so they get intentional hardening.
+    'stealth_mandate': {
+        'description': 'Hide recurring-mandate cadence by mimicking an established biller relationship',
+        'target_features_to_hide': ['beneficiary_added_ago_s', 'txn_count_last_1h', 'edge_count'],
+        'strategy': 'mimic_established_biller',
+        'parameters': {
+            'beneficiary_age_floor_s': 90 * 86400,  # 90 days -- long-established mandate
+            'use_existing_payees_only': True,  # Real family always hits a payer's known merchant
+            'max_txn_per_hour': 1,  # Mandates are spread over weeks, never clustered
+        },
+        'expected_impact': {
+            'beneficiary_added_ago_s': 'hidden',  # Looks like a long-standing biller
+            'txn_count_last_1h': 'reduced',  # No velocity spike between mandate charges
+            'edge_count': 'reduced',  # Single recurring counterparty, not fan-out
+        }
+    },
+    'insider_abuse': {
+        'description': 'Hide policy-violating pattern by looking like routine internal activity',
+        'target_features_to_hide': ['beneficiary_added_ago_s', 'device_is_known_for_payer', 'txn_count_last_1h'],
+        'strategy': 'mimic_routine_internal_activity',
+        'parameters': {
+            'beneficiary_age_floor_s': 90 * 86400,  # Established counterparty, "on paper" compliant
+            'use_known_device': True,  # Insider uses their own familiar device
+            'max_txn_per_hour': 1,  # Slow, hours/days between transfers
+        },
+        'expected_impact': {
+            'beneficiary_added_ago_s': 'hidden',  # Established relationship
+            'device_is_known_for_payer': 'true',  # Familiar device, nothing to flag
+            'txn_count_last_1h': 'reduced',  # No velocity spike
+        }
+    },
+    'first_party_dispute': {
+        'description': 'Hide friendly-fraud repetition by mimicking a loyal customer at an established merchant',
+        'target_features_to_hide': ['beneficiary_added_ago_s', 'txn_count_last_1h', 'edge_count'],
+        'strategy': 'mimic_loyal_customer',
+        'parameters': {
+            'beneficiary_age_floor_s': 90 * 86400,  # Genuinely established merchant relationship
+            'use_existing_payees_only': True,  # Same merchant every event, not a fan-out pattern
+            'max_txn_per_hour': 1,  # Spread over days, never clustered
+        },
+        'expected_impact': {
+            'beneficiary_added_ago_s': 'hidden',  # Looks like a loyal customer
+            'txn_count_last_1h': 'reduced',  # No velocity spike
+            'edge_count': 'reduced',  # Single repeat merchant
+        }
+    },
 }
 
 # Curriculum levels: Start easy, gradually increase difficulty

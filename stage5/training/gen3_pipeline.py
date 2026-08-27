@@ -60,7 +60,10 @@ def run_gen3_pipeline(
         generator = Gen3AttackGenerator(gen2_model, original_training_df, gen2_preprocessor)
 
         # Generate curriculum attacks for all attack families
-        families = ['mule_network', 'adversarial_evasion', 'credential_takeover']
+        families = [
+            'mule_network', 'adversarial_evasion', 'credential_takeover',
+            'stealth_mandate', 'insider_abuse', 'first_party_dispute',
+        ]
         gen3_attacks_all = {}
 
         for family in families:

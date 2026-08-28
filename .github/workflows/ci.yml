@@ -116,7 +116,28 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
-          
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.11.26"
+      - run: uv python install 3.11
+      - run: uv sync
+
+      - name: Generate baseline dataset for playground container
+        run: |
+          uv run python -c "
+          from pathlib import Path
+          from src.generators.dataset import generate_stage1_dataset
+          from src.dataset.stage2 import build_stage2_dataset
+          from stage5.config.settings import STAGE5_DATA_DIR
+
+          baseline_s1 = STAGE5_DATA_DIR / 'baseline' / 'stage1'
+          baseline_s2 = STAGE5_DATA_DIR / 'baseline' / 'stage2'
+          generate_stage1_dataset(seed=42, output_dir=baseline_s1, n_consumers=2000, n_merchants=100)
+          build_stage2_dataset(input_dir=baseline_s1, output_dir=baseline_s2, clean=True)
+          "
+
       - name: Deploy Backend Container (FastAPI)
         run: |
           npm ci

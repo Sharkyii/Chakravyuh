@@ -268,7 +268,7 @@ def get_fallback_llm_analysis(transaction: dict, risk_assessment: dict, error_ms
 
 def call_gemini_api(prompt: str, api_key: str) -> dict:
     """Makes a structured JSON request to the Gemini API."""
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={api_key}"
     
     response_schema = {
         "type": "OBJECT",
@@ -309,12 +309,13 @@ def call_gemini_api(prompt: str, api_key: str) -> dict:
         data=data_bytes,
         headers={
             "Content-Type": "application/json",
-            "x-goog-api-key": api_key
+            "x-goog-api-key": api_key,
+            "Accept-Encoding": "identity"
         },
         method="POST"
     )
     
-    with urllib.request.urlopen(req, timeout=12) as response:
+    with urllib.request.urlopen(req, timeout=60) as response:
         resp_json = json.loads(response.read().decode("utf-8"))
         text_content = resp_json["candidates"][0]["content"]["parts"][0]["text"]
         return json.loads(text_content)

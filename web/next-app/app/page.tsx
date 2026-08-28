@@ -815,27 +815,34 @@ export default function AnalystPortal() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-100 font-sans">
+    <div className="flex min-h-screen flex-col bg-[#0c0d0e] text-zinc-100 font-sans">
       {/* Top Header */}
-      <header className="border-b border-zinc-900 bg-zinc-950 sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#ff5f00] shadow-sm">
-            <Shield className="h-5 w-5 text-white" />
+      <header className="border-b border-zinc-800/80 bg-[#111214] sticky top-0 z-50 px-6 py-2.5 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-sm bg-zinc-800 border border-zinc-700 text-zinc-200">
+              <Shield className="h-3.5 w-3.5 text-zinc-300" />
+            </div>
+            <div>
+              <span className="text-xs font-bold tracking-wider text-white block">CHAKRAVYUH</span>
+              <span className="text-[9px] text-zinc-400 uppercase tracking-wider font-mono">Fraud Risk Operations</span>
+            </div>
           </div>
-          <div>
-            <h1 className="text-base font-black tracking-wider text-white">CHAKRAVYUH</h1>
-            <p className="text-[9px] text-zinc-500 uppercase tracking-widest font-bold">Mastercard GenAI Fraud Defence Lab</p>
+          <div className="hidden md:flex items-center gap-2 border-l border-zinc-800 pl-4 font-mono text-[11px] text-zinc-500">
+            <span>Console</span>
+            <span>/</span>
+            <span className="text-zinc-300">Live Investigation</span>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <nav className="flex bg-zinc-950/80 border border-zinc-800 rounded-xl p-1 gap-1">
+        <nav className="flex bg-[#0c0d0e] border border-zinc-800/90 rounded-sm p-0.5 gap-0.5">
           <button
             onClick={() => setActiveTab("scoring")}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
+            className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-sm transition-all ${
               activeTab === "scoring"
-                ? "bg-zinc-800 text-orange-500 shadow-sm"
-                : "text-zinc-400 hover:text-zinc-200"
+                ? "bg-zinc-800 text-white font-semibold border border-zinc-700/60 shadow-sm"
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50"
             }`}
           >
             <Activity className="h-4 w-4" />
@@ -843,10 +850,10 @@ export default function AnalystPortal() {
           </button>
           <button
             onClick={() => setActiveTab("closed-loop")}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
+            className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-sm transition-all ${
               activeTab === "closed-loop"
-                ? "bg-zinc-800 text-orange-500 shadow-sm"
-                : "text-zinc-400 hover:text-zinc-200"
+                ? "bg-zinc-800 text-white font-semibold border border-zinc-700/60 shadow-sm"
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50"
             }`}
           >
             <Layers className="h-4 w-4" />
@@ -854,10 +861,10 @@ export default function AnalystPortal() {
           </button>
           <button
             onClick={() => setActiveTab("graph")}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
+            className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-sm transition-all ${
               activeTab === "graph"
-                ? "bg-zinc-800 text-orange-500 shadow-sm"
-                : "text-zinc-400 hover:text-zinc-200"
+                ? "bg-zinc-800 text-white font-semibold border border-zinc-700/60 shadow-sm"
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50"
             }`}
           >
             <Network className="h-4 w-4" />
@@ -865,10 +872,10 @@ export default function AnalystPortal() {
           </button>
           <button
             onClick={() => setActiveTab("playground")}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
+            className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-sm transition-all ${
               activeTab === "playground"
-                ? "bg-zinc-800 text-orange-500 shadow-sm"
-                : "text-zinc-400 hover:text-zinc-200"
+                ? "bg-zinc-800 text-white font-semibold border border-zinc-700/60 shadow-sm"
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50"
             }`}
           >
             <Zap className="h-4 w-4" />
@@ -904,68 +911,66 @@ export default function AnalystPortal() {
       <main className="flex-1 p-6 max-w-7xl mx-auto w-full">
         {/* TAB 1: RISK SCORING STUDIO */}
         {activeTab === "scoring" && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-fade-in">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 animate-fade-in">
             {/* Control Panel (Scenarios & Inputs) - 5 Cols */}
-            <section className="lg:col-span-5 flex flex-col gap-6">
-              {/* Scenario selector */}
-              <div className={`rounded-2xl border bg-zinc-900/40 p-5 backdrop-blur-md transition-all ${
-                guideActive && guideStep === "choose_scenario"
-                  ? "border-orange-500 ring-2 ring-orange-500/30 shadow-lg shadow-orange-500/10"
-                  : "border-zinc-800"
+            <section className="lg:col-span-5 flex flex-col">
+              <div className={`rounded-sm border bg-[#141518] p-5 flex flex-col gap-5 transition-all ${
+                guideActive && (guideStep === "choose_scenario" || guideStep === "inspect_parameters")
+                  ? "border-blue-500/60 ring-1 ring-blue-500/20 shadow-md"
+                  : "border-zinc-800/80"
               }`}>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                    Select Simulation Scenario
-                  </label>
-                  {guideActive && guideStep === "choose_scenario" && (
-                    <span className="text-[10px] bg-orange-500/20 text-orange-400 border border-orange-500/40 px-2 py-0.5 rounded-full font-bold animate-pulse">
-                      💡 Choose any simulation scenario from dropdown
-                    </span>
+                {/* Scenario Selector Group */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+                      Simulation Scenario
+                    </label>
+                    {guideActive && guideStep === "choose_scenario" && (
+                      <span className="text-[10px] bg-blue-600/15 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-sm font-medium">
+                        💡 Select any scenario to begin
+                      </span>
+                    )}
+                  </div>
+                  {Object.keys(scenarios).length === 0 ? (
+                    <div className="h-9 bg-[#0c0d0e] rounded-sm animate-pulse" />
+                  ) : (
+                    <select
+                      value={selectedScenarioName}
+                      onChange={(e) => {
+                        setSelectedScenarioName(e.target.value);
+                        if (guideActive && guideStep === "choose_scenario") {
+                          setGuideStep("inspect_parameters");
+                        }
+                      }}
+                      className="w-full rounded-sm border border-zinc-800 bg-[#0c0d0e] px-3 py-2 text-xs font-mono text-zinc-200 outline-none transition focus:border-blue-500"
+                    >
+                      {Object.keys(scenarios).map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
                   )}
                 </div>
-                {Object.keys(scenarios).length === 0 ? (
-                  <div className="h-11 bg-zinc-950 rounded-xl animate-pulse" />
-                ) : (
-                  <select
-                    value={selectedScenarioName}
-                    onChange={(e) => {
-                      setSelectedScenarioName(e.target.value);
-                      if (guideActive && guideStep === "choose_scenario") {
-                        setGuideStep("inspect_parameters");
-                      }
-                    }}
-                    className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-4 py-3 text-sm text-zinc-200 outline-none transition focus:border-orange-500"
-                  >
-                    {Object.keys(scenarios).map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
 
-              {/* Transaction Param overrides */}
-              <div className={`rounded-2xl border bg-zinc-950/40 p-5 backdrop-blur-md flex-1 flex flex-col gap-6 transition-all ${
-                guideActive && guideStep === "inspect_parameters"
-                  ? "border-orange-500 ring-2 ring-orange-500/30 shadow-lg shadow-orange-500/10"
-                  : "border-zinc-900"
-              }`}>
-                <div className="flex items-center justify-between border-b border-zinc-900 pb-2">
-                  <h3 className="text-xs font-bold text-white uppercase tracking-widest">
-                    Override Parameter Signals
+                <div className="border-t border-zinc-800/80" />
+
+                {/* Parameter Signals Header */}
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
+                    Investigation Signals
                   </h3>
                   {guideActive && guideStep === "inspect_parameters" && (
-                    <span className="text-[10px] bg-orange-500/20 text-orange-400 border border-orange-500/40 px-2 py-0.5 rounded-full font-bold animate-pulse">
-                      💡 Review parameter signals & click &quot;Run Risk Assessment&quot;
+                    <span className="text-[10px] bg-blue-600/15 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-sm font-medium">
+                      💡 Review parameters & execute assessment
                     </span>
                   )}
                 </div>
 
                 {/* Category 1: Financial Profile */}
                 <div className="space-y-4">
-                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">
-                    Financial Profile
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
+                    1. Transaction Profile
                   </span>
                   
                   <div>
@@ -980,7 +985,7 @@ export default function AnalystPortal() {
                       step="100"
                       value={txnOverrides.amount || 0}
                       onChange={(e) => updateOverrideField("amount", parseFloat(e.target.value))}
-                      className="w-full accent-[#ff5f00]"
+                      className="w-full h-1 bg-zinc-800 rounded-sm appearance-none cursor-pointer accent-blue-600 focus:outline-none"
                     />
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {[500, 15000, 50000, 120000].map(amt => (
@@ -988,7 +993,7 @@ export default function AnalystPortal() {
                           key={amt}
                           type="button"
                           onClick={() => updateOverrideField("amount", amt)}
-                          className="px-2 py-0.5 text-[9px] font-semibold rounded bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition"
+                          className="px-2 py-0.5 text-[9px] font-mono font-medium rounded-sm bg-[#0c0d0e] border border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700 transition"
                         >
                           ₹{amt >= 100000 ? `${amt/100000}L` : amt >= 1000 ? `${amt/1000}k` : amt}
                         </button>
@@ -999,8 +1004,8 @@ export default function AnalystPortal() {
 
                 {/* Category 2: Behavioral Signals */}
                 <div className="space-y-4 border-t border-zinc-900/60 pt-4">
-                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">
-                    Behavioral Signals
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
+                    2. Behavioral Signals
                   </span>
                   
                   {/* PIN Attempts */}
@@ -1016,7 +1021,7 @@ export default function AnalystPortal() {
                       step="1"
                       value={txnOverrides.pin_attempts || 0}
                       onChange={(e) => updateOverrideField("pin_attempts", parseInt(e.target.value))}
-                      className="w-full accent-[#ff5f00]"
+                      className="w-full h-1 bg-zinc-800 rounded-sm appearance-none cursor-pointer accent-blue-600 focus:outline-none"
                     />
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {[0, 1, 3, 5].map(pins => (
@@ -1047,7 +1052,7 @@ export default function AnalystPortal() {
                       step="1"
                       value={Math.floor((txnOverrides.beneficiary_added_ago_s || 0) / 86400)}
                       onChange={(e) => updateOverrideField("beneficiary_added_ago_s", parseInt(e.target.value) * 86400)}
-                      className="w-full accent-[#ff5f00]"
+                      className="w-full h-1 bg-zinc-800 rounded-sm appearance-none cursor-pointer accent-blue-600 focus:outline-none"
                     />
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {[0, 1, 7, 30].map(days => (
@@ -1066,8 +1071,8 @@ export default function AnalystPortal() {
 
                 {/* Category 3: Network Topology */}
                 <div className="space-y-4 border-t border-zinc-900/60 pt-4">
-                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">
-                    Network Linkages
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
+                    3. Network Linkages
                   </span>
                   
                   {/* Graph Edge Count */}
@@ -1083,7 +1088,7 @@ export default function AnalystPortal() {
                       step="1"
                       value={txnOverrides.edge_count || 0}
                       onChange={(e) => updateOverrideField("edge_count", parseFloat(e.target.value))}
-                      className="w-full accent-[#ff5f00]"
+                      className="w-full h-1 bg-zinc-800 rounded-sm appearance-none cursor-pointer accent-blue-600 focus:outline-none"
                     />
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {[1, 5, 15, 30].map(edges => (
@@ -1102,8 +1107,8 @@ export default function AnalystPortal() {
 
                 {/* Category 4: Threat Channels */}
                 <div className="space-y-3 border-t border-zinc-900/60 pt-4">
-                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">
-                    Threat Channels
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
+                    4. Threat Channels & Telemetry
                   </span>
                   <div className="grid grid-cols-2 gap-4">
                     <label className="flex items-center gap-3 p-3 rounded-xl bg-zinc-950/60 border border-zinc-900 cursor-pointer hover:border-zinc-800 transition">
@@ -1181,28 +1186,94 @@ export default function AnalystPortal() {
             {/* Results Panel - 7 Cols */}
             <section className="lg:col-span-7 flex flex-col gap-6">
               {isScoring ? (
-                <div className="rounded-2xl border border-zinc-800 bg-zinc-900/20 p-8 backdrop-blur-md flex flex-col items-center justify-center text-center flex-1 min-h-[400px] animate-shimmer relative overflow-hidden">
+                <div className="rounded-sm border border-zinc-800/80 bg-[#141518] p-8 flex flex-col items-center justify-center text-center flex-1 min-h-[440px] relative overflow-hidden">
                   <div className="z-10 flex flex-col items-center">
-                    <Shield className="h-16 w-16 text-[#ff5f00] mb-4 animate-pulse" />
-                    <h3 className="text-lg font-bold text-white tracking-wide">Scoring Transaction...</h3>
-                    <p className="text-sm text-zinc-400 mt-2 font-mono">
-                      Running ML Risk Evaluator & LLM Analyst Agent
+                    <RefreshCw className="h-8 w-8 text-blue-500 mb-3 animate-spin" />
+                    <h3 className="text-sm font-bold text-white tracking-wide">Evaluating Transaction Risk...</h3>
+                    <p className="text-xs text-zinc-400 mt-1 font-mono">
+                      Executing Stage 5 XGBoost Fusion & SHAP Decomposition
                     </p>
                   </div>
                 </div>
               ) : !scoreResult ? (
-                <div className="rounded-2xl border border-zinc-800 bg-zinc-900/20 p-8 backdrop-blur-md flex flex-col items-center justify-center text-center flex-1 min-h-[400px]">
-                  <Shield className="h-16 w-16 text-zinc-700 mb-4 animate-pulse" />
-                  <h3 className="text-lg font-semibold text-zinc-400">Studio Ingestion Ready</h3>
-                  <p className="text-sm text-zinc-500 max-w-sm mt-2">
-                    Review and adjust the transaction override parameters on the left and execute the assessment to run live ML decision and GenAI analyst logic.
-                  </p>
+                <div className="bg-[#141518] p-5 rounded-sm flex-1 flex flex-col gap-4 border border-zinc-800/80 min-h-[480px]">
+                  <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
+                    <div>
+                      <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                        <Activity className="h-3.5 w-3.5 text-blue-500" />
+                        Risk Evaluation & Threat Defense Engine
+                      </h3>
+                      <p className="text-[11px] text-zinc-400 mt-0.5">
+                        Multi-model payment fraud detection with explainable AI & human-in-the-loop retraining.
+                      </p>
+                    </div>
+                    <span className="text-[9px] bg-[#0c0d0e] text-zinc-400 border border-zinc-800 px-2 py-0.5 rounded-sm font-mono uppercase">
+                      Ready for Evaluation
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="bg-[#0c0d0e] p-3 rounded-sm border border-zinc-800/60">
+                      <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider block mb-1">Primary Detector</span>
+                      <span className="text-xs font-bold font-mono text-white block">XGBoost v1.0</span>
+                      <span className="text-[10px] font-mono text-emerald-400 mt-0.5 block">99.8% PR-AUC</span>
+                    </div>
+
+                    <div className="bg-[#0c0d0e] p-3 rounded-sm border border-zinc-800/60">
+                      <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider block mb-1">Attack Classification</span>
+                      <span className="text-xs font-bold font-mono text-white block">13 Families</span>
+                      <span className="text-[10px] font-mono text-zinc-400 mt-0.5 block">58 Attack Vectors</span>
+                    </div>
+
+                    <div className="bg-[#0c0d0e] p-3 rounded-sm border border-zinc-800/60">
+                      <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider block mb-1">Explainability</span>
+                      <span className="text-xs font-bold font-mono text-white block">SHAP + GenAI</span>
+                      <span className="text-[10px] font-mono text-zinc-400 mt-0.5 block">Attribution Vectors</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 flex-1">
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
+                      Pipeline Execution Steps
+                    </span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                      <div className="p-2.5 bg-[#0c0d0e] rounded-sm border border-zinc-800/40">
+                        <span className="font-semibold text-zinc-300 block text-[11px]">1. Signal Ingestion</span>
+                        <p className="text-[10px] text-zinc-500 mt-0.5">Extracts 75 payment, behavioral, and counterparty graph features.</p>
+                      </div>
+                      <div className="p-2.5 bg-[#0c0d0e] rounded-sm border border-zinc-800/40">
+                        <span className="font-semibold text-zinc-300 block text-[11px]">2. Risk & Attack Fusion</span>
+                        <p className="text-[10px] text-zinc-500 mt-0.5">Evaluates probability against calibrated operating points.</p>
+                      </div>
+                      <div className="p-2.5 bg-[#0c0d0e] rounded-sm border border-zinc-800/40">
+                        <span className="font-semibold text-zinc-300 block text-[11px]">3. SHAP Decomposition</span>
+                        <p className="text-[10px] text-zinc-500 mt-0.5">Calculates exact feature attributions explaining the score.</p>
+                      </div>
+                      <div className="p-2.5 bg-[#0c0d0e] rounded-sm border border-zinc-800/40">
+                        <span className="font-semibold text-zinc-300 block text-[11px]">4. Closed-Loop Retraining</span>
+                        <p className="text-[10px] text-zinc-500 mt-0.5">Analyst feedback accumulates in SQLite to trigger retraining.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-[#0c0d0e] border border-zinc-800/80 rounded-sm flex items-center justify-between">
+                    <span className="text-xs text-zinc-400">
+                      Configure parameters on the left and run risk assessment.
+                    </span>
+                    <button
+                      onClick={runScoringAssessment}
+                      disabled={isScoring}
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded-sm transition"
+                    >
+                      Run Assessment ➔
+                    </button>
+                  </div>
                 </div>
               ) : (
-                <div className={`rounded-2xl border bg-zinc-900/40 p-6 backdrop-blur-md flex-1 flex flex-col gap-6 animate-fade-in transition-all ${
+                <div className={`rounded-sm border bg-[#141518] p-5 flex-1 flex flex-col gap-5 animate-fade-in transition-all ${
                   guideActive && guideStep === "submit_feedback"
-                    ? "border-orange-500 ring-2 ring-orange-500/30 shadow-lg shadow-orange-500/10"
-                    : "border-zinc-800"
+                    ? "border-blue-500/60 ring-1 ring-blue-500/20 shadow-md"
+                    : "border-zinc-800/80"
                 }`}>
                   {guideActive && guideStep === "submit_feedback" && (
                     <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-xl flex items-center justify-between">
@@ -1219,40 +1290,40 @@ export default function AnalystPortal() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center border-b border-zinc-800/80 pb-6">
                     {/* Radial SVG Gauge */}
                     <div className="flex flex-col items-center justify-center">
-                      <div className="relative h-28 w-28 flex items-center justify-center">
+                      <div className="relative h-20 w-20 flex items-center justify-center">
                         <svg className="absolute inset-0 h-full w-full -rotate-90">
                           <circle
-                            cx="56"
-                            cy="56"
-                            r="48"
-                            stroke="#18181b"
-                            strokeWidth="10"
+                            cx="40"
+                            cy="40"
+                            r="34"
+                            stroke="#1f2024"
+                            strokeWidth="3"
                             fill="transparent"
                           />
                           <circle
-                            cx="56"
-                            cy="56"
-                            r="48"
+                            cx="40"
+                            cy="40"
+                            r="34"
                             stroke={
                               scoreResult.risk_level === "CRITICAL" || scoreResult.risk_level === "HIGH"
                                 ? "#EF4444"
                                 : scoreResult.risk_level === "MEDIUM"
-                                ? "#F97316"
+                                ? "#F59E0B"
                                 : "#10B981"
                             }
-                            strokeWidth="10"
+                            strokeWidth="3"
                             fill="transparent"
-                            strokeDasharray={2 * Math.PI * 48}
-                            strokeDashoffset={2 * Math.PI * 48 * (1 - scoreResult.risk_score / 100)}
+                            strokeDasharray={2 * Math.PI * 34}
+                            strokeDashoffset={2 * Math.PI * 34 * (1 - scoreResult.risk_score / 100)}
                             strokeLinecap="round"
                             className="transition-all duration-1000 ease-out"
                           />
                         </svg>
-                        <div className="text-center">
-                          <span className="text-2xl font-bold text-white font-mono">
+                        <div className="text-center z-10">
+                          <span className="text-xl font-bold text-white font-mono leading-none">
                             <CountUp end={scoreResult.risk_score} decimals={0} duration={1} />
                           </span>
-                          <span className="text-[10px] text-zinc-500 block font-semibold uppercase tracking-wider">
+                          <span className="text-[8px] text-zinc-500 block font-mono font-medium mt-0.5">
                             / 100
                           </span>
                         </div>
@@ -1264,7 +1335,7 @@ export default function AnalystPortal() {
                     <div className="flex flex-col gap-2.5 md:border-l md:border-zinc-850 md:pl-6">
                       <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Risk Level</span>
                       <div>
-                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider border ${
+                        <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[10px] font-mono font-bold uppercase tracking-wider border ${
                           scoreResult.risk_level === "CRITICAL" || scoreResult.risk_level === "HIGH"
                             ? "bg-red-950/40 border-red-500/30 text-red-400"
                             : scoreResult.risk_level === "MEDIUM"
@@ -1290,7 +1361,7 @@ export default function AnalystPortal() {
                     <div className="flex flex-col gap-2.5 md:border-l md:border-zinc-850 md:pl-6">
                       <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Action Recommendation</span>
                       <div>
-                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider border ${
+                        <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[10px] font-mono font-bold uppercase tracking-wider border ${
                           scoreResult.recommended_action === "BLOCK"
                             ? "bg-red-950/20 border-red-900/50 text-red-400"
                             : scoreResult.recommended_action === "REVIEW"
@@ -1485,7 +1556,7 @@ export default function AnalystPortal() {
                   </div>
 
                   {/* Closed-Loop Analyst Feedback Loop */}
-                  <div className="rounded-xl border border-zinc-900 bg-zinc-950/40 p-4 border-t-2 border-t-orange-600/50">
+                  <div className="rounded-sm border border-zinc-800/80 bg-[#0c0d0e] p-4">
                     <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">
                       Closed-Loop Analyst Feedback Loop
                     </span>
@@ -1543,92 +1614,73 @@ export default function AnalystPortal() {
                     )}
                   </div>
 
-                  {/* Step 4: 3-Way Guided Exploration Paths */}
+                  {/* Next Destination Selector */}
                   {(feedbackSuccess || guideStep === "choose_destination") && (
-                    <div className="rounded-xl border border-orange-500/40 bg-zinc-950/80 p-4 ring-2 ring-orange-500/20 shadow-lg shadow-orange-500/10 animate-fade-in space-y-3">
-                      <div className="flex items-center justify-between border-b border-zinc-850 pb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">🎯</span>
-                          <h4 className="text-xs font-bold text-white uppercase tracking-wider">
-                            Explore Chakravyuh Defense Modules
-                          </h4>
-                        </div>
-                        <span className="text-[10px] bg-orange-500/20 text-orange-400 border border-orange-500/40 px-2 py-0.5 rounded-full font-bold">
-                          Next Destination
+                    <div className="rounded-sm border border-zinc-800/80 bg-[#0c0d0e] p-4 animate-fade-in space-y-3">
+                      <div className="flex items-center justify-between border-b border-zinc-800/60 pb-2">
+                        <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                          Next Investigation Modules
+                        </h4>
+                        <span className="text-[10px] bg-blue-600/15 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-sm font-medium">
+                          Next Action
                         </span>
                       </div>
 
-                      <p className="text-xs text-zinc-400">
-                        Select any of the 3 modules below to continue the guided exploration of the platform:
-                      </p>
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-                        {/* Destination 1: Closed-Loop */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1">
                         <button
                           onClick={() => {
                             setActiveTab("closed-loop");
                             if (guideActive) setGuideStep("closed_loop");
                           }}
-                          className="flex flex-col text-left p-3 rounded-lg border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 hover:border-orange-500/50 transition group"
+                          className="flex flex-col text-left p-3 rounded-sm border border-zinc-800/80 bg-[#141518] hover:border-zinc-700 transition"
                         >
-                          <div className="flex items-center justify-between text-zinc-400 group-hover:text-orange-400 mb-1.5">
-                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider">Module 1</span>
-                            <Layers className="h-4 w-4" />
+                          <div className="flex items-center justify-between text-zinc-400 mb-1">
+                            <span className="text-[10px] font-mono uppercase">Module 1</span>
+                            <Layers className="h-3.5 w-3.5 text-blue-400" />
                           </div>
-                          <span className="text-xs font-bold text-zinc-200 group-hover:text-white block mb-1">
+                          <span className="text-xs font-semibold text-zinc-200 block mb-1">
                             Closed-Loop Intelligence
                           </span>
                           <span className="text-[10px] text-zinc-400 leading-relaxed">
-                            Compare Gen A vs Gen B drift metrics, audit SQLite feedback logs, and trigger curriculum model retraining.
-                          </span>
-                          <span className="text-[10px] text-orange-400 font-bold mt-2 inline-flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                            Open Closed-Loop ➔
+                            Compare drift metrics and audit retraining history.
                           </span>
                         </button>
 
-                        {/* Destination 2: Threat Graph */}
                         <button
                           onClick={() => {
                             setActiveTab("graph");
                             if (guideActive) setGuideStep("graph");
                           }}
-                          className="flex flex-col text-left p-3 rounded-lg border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 hover:border-orange-500/50 transition group"
+                          className="flex flex-col text-left p-3 rounded-sm border border-zinc-800/80 bg-[#141518] hover:border-zinc-700 transition"
                         >
-                          <div className="flex items-center justify-between text-zinc-400 group-hover:text-orange-400 mb-1.5">
-                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider">Module 2</span>
-                            <Network className="h-4 w-4" />
+                          <div className="flex items-center justify-between text-zinc-400 mb-1">
+                            <span className="text-[10px] font-mono uppercase">Module 2</span>
+                            <Network className="h-3.5 w-3.5 text-blue-400" />
                           </div>
-                          <span className="text-xs font-bold text-zinc-200 group-hover:text-white block mb-1">
+                          <span className="text-xs font-semibold text-zinc-200 block mb-1">
                             Attack Connection Graph
                           </span>
                           <span className="text-[10px] text-zinc-400 leading-relaxed">
-                            Visualize interactive subgraphs, detect active remote screen hijackers, and unmask multi-hop mule routes.
-                          </span>
-                          <span className="text-[10px] text-orange-400 font-bold mt-2 inline-flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                            Open Threat Graph ➔
+                            Trace multi-hop mule networks and active hijackers.
                           </span>
                         </button>
 
-                        {/* Destination 3: Attack Playground */}
                         <button
                           onClick={() => {
                             setActiveTab("playground");
                             if (guideActive) setGuideStep("playground");
                           }}
-                          className="flex flex-col text-left p-3 rounded-lg border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 hover:border-orange-500/50 transition group"
+                          className="flex flex-col text-left p-3 rounded-sm border border-zinc-800/80 bg-[#141518] hover:border-zinc-700 transition"
                         >
-                          <div className="flex items-center justify-between text-zinc-400 group-hover:text-orange-400 mb-1.5">
-                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider">Module 3</span>
-                            <Zap className="h-4 w-4" />
+                          <div className="flex items-center justify-between text-zinc-400 mb-1">
+                            <span className="text-[10px] font-mono uppercase">Module 3</span>
+                            <Zap className="h-3.5 w-3.5 text-blue-400" />
                           </div>
-                          <span className="text-xs font-bold text-zinc-200 group-hover:text-white block mb-1">
+                          <span className="text-xs font-semibold text-zinc-200 block mb-1">
                             Simulator Playground
                           </span>
                           <span className="text-[10px] text-zinc-400 leading-relaxed">
-                            Inject synthetic fraud campaigns across 58 frozen vectors to stress-test real-time hop-by-hop detection.
-                          </span>
-                          <span className="text-[10px] text-orange-400 font-bold mt-2 inline-flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                            Open Simulator ➔
+                            Inject synthetic fraud campaigns across 58 vectors.
                           </span>
                         </button>
                       </div>
@@ -1645,18 +1697,18 @@ export default function AnalystPortal() {
         {activeTab === "closed-loop" && (
           <div className="space-y-6 animate-fade-in">
             {guideActive && (
-              <div className="rounded-2xl border border-orange-500/40 bg-zinc-950/80 p-5 ring-2 ring-orange-500/20 shadow-lg shadow-orange-500/10 animate-fade-in flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="rounded-sm border border-zinc-800/80 bg-[#141518] p-4 animate-fade-in flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="flex items-start gap-3">
-                  <div className="h-9 w-9 rounded-xl bg-orange-600/10 border border-orange-500/30 flex items-center justify-center text-orange-400 shrink-0 mt-0.5">
-                    <Layers className="h-5 w-5" />
+                  <div className="h-8 w-8 rounded-sm bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-300 shrink-0 mt-0.5">
+                    <Layers className="h-4 w-4 text-blue-400" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="text-sm font-bold text-white uppercase tracking-wider">
                         Closed-Loop Intelligence Walkthrough
                       </h3>
-                      <span className="text-[9px] bg-orange-500/20 text-orange-400 border border-orange-500/40 px-2 py-0.5 rounded-full font-bold">
-                        Active Guide
+                      <span className="text-[9px] bg-blue-600/15 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-sm font-medium">
+                        Guide Active
                       </span>
                     </div>
                     <p className="text-xs text-zinc-400 mt-1 leading-relaxed max-w-3xl">
@@ -1672,7 +1724,7 @@ export default function AnalystPortal() {
                       setActiveTab("graph");
                       if (guideActive) setGuideStep("graph");
                     }}
-                    className="px-3.5 py-1.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-lg transition flex items-center gap-1"
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded-sm transition flex items-center gap-1"
                   >
                     Next: Threat Graph ➔
                   </button>
@@ -1681,7 +1733,7 @@ export default function AnalystPortal() {
             )}
 
             {/* Concept explainer */}
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 backdrop-blur-md">
+            <div className="rounded-sm border border-zinc-800/80 bg-[#141518] p-5">
               <h2 className="text-lg font-bold text-white mb-2">What is the Closed-Loop Cycle?</h2>
               <p className="text-sm text-zinc-400 leading-relaxed">
                 The Chakravyuh Closed Loop describes our adaptive, adversarial security cycle. 
@@ -1689,7 +1741,7 @@ export default function AnalystPortal() {
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6 border-t border-zinc-800 pt-6">
                 <div className="flex gap-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-600/10 border border-orange-500/20 text-orange-500">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-mono font-bold">
                     <span className="font-bold text-sm">1</span>
                   </div>
                   <div>
@@ -1701,7 +1753,7 @@ export default function AnalystPortal() {
                 </div>
 
                 <div className="flex gap-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-600/10 border border-orange-500/20 text-orange-500">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-mono font-bold">
                     <span className="font-bold text-sm">2</span>
                   </div>
                   <div>
@@ -1713,7 +1765,7 @@ export default function AnalystPortal() {
                 </div>
 
                 <div className="flex gap-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-600/10 border border-orange-500/20 text-orange-500">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-mono font-bold">
                     <span className="font-bold text-sm">3</span>
                   </div>
                   <div>
@@ -1729,7 +1781,7 @@ export default function AnalystPortal() {
             {/* Model Provenance Strip -- the frozen as-trained ground truth,
                 distinct from the feedback-adjusted cards below */}
             {metricsData?.model_provenance && (
-              <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 px-5 py-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px] font-mono">
+              <div className="rounded-sm border border-zinc-800/80 bg-[#0c0d0e] px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px] font-mono">
                 <div className="flex items-center gap-1.5">
                   <Cpu className="h-3.5 w-3.5 text-orange-500 shrink-0" />
                   <span className="text-zinc-300 font-bold">
@@ -1767,7 +1819,7 @@ export default function AnalystPortal() {
             )}
 
             {/* Gen A vs Gen B Comparison — Attack Generation Evolution */}
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 backdrop-blur-md">
+            <div className="rounded-sm border border-zinc-800/80 bg-[#141518] p-5">
               <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
                 <Zap className="h-4 w-4 text-orange-500" />
                 Attack Generation Evolution: Gen A → Gen B
@@ -1777,7 +1829,7 @@ export default function AnalystPortal() {
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Gen A: Original */}
-                <div className="rounded-xl border border-zinc-700/50 bg-zinc-950/40 p-4">
+                <div className="rounded-sm border border-zinc-800/80 bg-[#0c0d0e] p-3.5">
                   <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Gen A: Original (Static)</span>
                   <div className="mt-3 space-y-2 text-xs text-zinc-400">
                     <div className="flex justify-between items-center">
@@ -1803,8 +1855,8 @@ export default function AnalystPortal() {
                 </div>
 
                 {/* Gen B: Adaptive */}
-                <div className="rounded-xl border border-orange-500/30 bg-orange-950/10 p-4">
-                  <span className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">Gen B: Adaptive (Evolved)</span>
+                <div className="rounded-sm border border-blue-500/40 bg-[#0c0d0e] p-3.5">
+                  <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Gen B: Adaptive (Evolved)</span>
                   <div className="mt-3 space-y-2 text-xs text-zinc-400">
                     <div className="flex justify-between items-center">
                       <span>Attack Family</span>
@@ -1820,15 +1872,15 @@ export default function AnalystPortal() {
                     </div>
                     <div className="flex justify-between items-center">
                       <span>Improvement</span>
-                      <span className="font-mono font-bold text-orange-300">+0.58%</span>
+                      <span className="font-mono font-bold text-emerald-400">+0.58%</span>
                     </div>
                     <div className="border-t border-orange-500/20 my-2 pt-2">
-                      <span className="text-[10px] text-orange-400">Single top counterparty + age floor</span>
+                      <span className="text-[10px] text-zinc-400">Single top counterparty + age floor</span>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="mt-4 p-3 rounded-lg bg-zinc-950/60 border border-zinc-700/30">
+              <div className="mt-4 p-3 rounded-sm bg-[#0c0d0e] border border-zinc-800/80">
                 <p className="text-[11px] text-zinc-500">
                   <span className="text-zinc-300 font-semibold">Measurement (Real):</span> Retraining on Gen B&rsquo;s adaptive attacks
                   achieved <span className="text-emerald-300 font-bold">perfect recall (100.00% @ 0.1% FPR)</span> on the
@@ -1840,7 +1892,7 @@ export default function AnalystPortal() {
 
             {/* Model History Comparison */}
             {modelHistory.length > 0 && (
-              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 backdrop-blur-md">
+              <div className="rounded-sm border border-zinc-800/80 bg-[#141518] p-5">
                 <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-blue-500" />
                   Model Evolution History (Real Metrics comparison)
@@ -1850,7 +1902,7 @@ export default function AnalystPortal() {
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {modelHistory.map((meta: any, idx: number) => (
-                    <div key={idx} className="rounded-xl border border-zinc-700/50 bg-zinc-950/40 p-4">
+                    <div key={idx} className="rounded-sm border border-zinc-800/80 bg-[#0c0d0e] p-3.5">
                       <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">{meta.label}</span>
                       <div className="mt-3 space-y-2 text-xs text-zinc-400">
                         <div className="flex justify-between items-center">
@@ -1896,7 +1948,7 @@ export default function AnalystPortal() {
 
             {/* Per-Family Performance Panel */}
             {familyMetrics && familyMetrics.by_family && (
-              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 backdrop-blur-md">
+              <div className="rounded-sm border border-zinc-800/80 bg-[#141518] p-5">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
                     <Target className="h-4 w-4 text-orange-500" />
@@ -1958,7 +2010,7 @@ export default function AnalystPortal() {
             {/* Performance Metrics Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {metricsData?.recorded_metrics.map((item, idx) => (
-                <div key={idx} className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5 backdrop-blur-md flex items-center justify-between">
+                <div key={idx} className="rounded-sm border border-zinc-800/80 bg-[#141518] p-4 flex items-center justify-between">
                   <div>
                     <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">
                       {item.metric}
@@ -1975,7 +2027,7 @@ export default function AnalystPortal() {
                         cx="24"
                         cy="24"
                         r="20"
-                        stroke="#F97316"
+                        stroke="#3B82F6"
                         strokeWidth="4"
                         fill="transparent"
                         strokeDasharray={2 * Math.PI * 20}
@@ -1983,13 +2035,13 @@ export default function AnalystPortal() {
                         strokeLinecap="round"
                       />
                     </svg>
-                    <TrendingUp className="h-4 w-4 text-orange-500" />
+                    <TrendingUp className="h-4 w-4 text-blue-400" />
                   </div>
                 </div>
               ))}
               {/* Alert volume card — shows real-world feasibility: ~5 alerts per 1k means analyst can handle it */}
               {metricsData?.model_provenance?.alerts_per_1000 != null && (
-                <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5 backdrop-blur-md flex items-center justify-between">
+                <div className="rounded-sm border border-zinc-800/80 bg-[#141518] p-4 flex items-center justify-between">
                   <div>
                     <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">
                       Alerts per 1,000 txns
@@ -1999,7 +2051,7 @@ export default function AnalystPortal() {
                     </span>
                     <span className="text-[9px] text-zinc-500 mt-1 block">at F1-optimal threshold</span>
                   </div>
-                  <Activity className="h-8 w-8 text-orange-500" />
+                  <Activity className="h-6 w-6 text-zinc-500" />
                 </div>
               )}
             </div>
@@ -2007,7 +2059,7 @@ export default function AnalystPortal() {
             {/* Feature Importance Panel */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
               {/* Feature Importance Bar chart - 7 Cols */}
-              <div className="md:col-span-8 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 backdrop-blur-md">
+              <div className="md:col-span-8 rounded-sm border border-zinc-800/80 bg-[#141518] p-5">
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-6">
                   Live Model Feature Importances (Top 10)
                 </h3>
@@ -2028,7 +2080,7 @@ export default function AnalystPortal() {
                         <div className="flex-1 h-5 bg-zinc-950 rounded-md overflow-hidden relative border border-zinc-900">
                           <div
                             style={{ width: `${item.importance * 100}%` }}
-                            className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-r-md transition-all duration-1000"
+                            className="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-r-sm transition-all duration-1000"
                           />
                         </div>
                         <span className="text-xs text-zinc-300 font-mono font-bold w-12">
@@ -2041,7 +2093,7 @@ export default function AnalystPortal() {
               </div>
 
               {/* Targets & Configuration - 5 Cols */}
-              <div className="md:col-span-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 backdrop-blur-md flex flex-col gap-4">
+              <div className="md:col-span-4 rounded-sm border border-zinc-800/80 bg-[#141518] p-5 flex flex-col gap-4">
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-2">
                   Next Campaign Target Parameters
                 </h3>
@@ -2052,8 +2104,8 @@ export default function AnalystPortal() {
                 {metricsData && metricsData.adaptive_config && Object.keys(metricsData.adaptive_config).length > 0 ? (
                   <div className="space-y-4 flex-1">
                     {Object.entries(metricsData.adaptive_config).map(([key, val]) => (
-                      <div key={key} className="p-4 rounded-xl bg-zinc-950/60 border border-zinc-800">
-                        <span className="text-[10px] font-bold text-orange-500 uppercase tracking-widest block mb-1">
+                      <div key={key} className="p-3 rounded-sm bg-[#0c0d0e] border border-zinc-800/60">
+                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">
                           {key.replace(/_/g, " ")}
                         </span>
                         <span className="text-sm font-bold text-white font-mono">
@@ -2079,18 +2131,18 @@ export default function AnalystPortal() {
         {activeTab === "graph" && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-fade-in">
             {guideActive && (
-              <div className="lg:col-span-12 rounded-2xl border border-orange-500/40 bg-zinc-950/80 p-5 ring-2 ring-orange-500/20 shadow-lg shadow-orange-500/10 animate-fade-in flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="lg:col-span-12 rounded-sm border border-zinc-800/80 bg-[#141518] p-4 animate-fade-in flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="flex items-start gap-3">
-                  <div className="h-9 w-9 rounded-xl bg-orange-600/10 border border-orange-500/30 flex items-center justify-center text-orange-400 shrink-0 mt-0.5">
-                    <Network className="h-5 w-5" />
+                  <div className="h-8 w-8 rounded-sm bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-300 shrink-0 mt-0.5">
+                    <Network className="h-4 w-4 text-blue-400" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="text-sm font-bold text-white uppercase tracking-wider">
                         Threat Topology & Graph Analysis Walkthrough
                       </h3>
-                      <span className="text-[9px] bg-orange-500/20 text-orange-400 border border-orange-500/40 px-2 py-0.5 rounded-full font-bold">
-                        Active Guide
+                      <span className="text-[9px] bg-blue-600/15 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-sm font-medium">
+                        Guide Active
                       </span>
                     </div>
                     <p className="text-xs text-zinc-400 mt-1 leading-relaxed max-w-3xl">
@@ -2106,7 +2158,7 @@ export default function AnalystPortal() {
                       setActiveTab("playground");
                       if (guideActive) setGuideStep("playground");
                     }}
-                    className="px-3.5 py-1.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-lg transition flex items-center gap-1"
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded-sm transition flex items-center gap-1"
                   >
                     Next: Simulator Playground ➔
                   </button>
@@ -2115,7 +2167,7 @@ export default function AnalystPortal() {
             )}
 
             {/* The SVG Network Canvas - 8 Cols */}
-            <div className="lg:col-span-8 rounded-2xl border border-zinc-900 bg-zinc-950/40 p-6 backdrop-blur-md flex flex-col relative min-h-[520px]">
+            <div className="lg:col-span-8 rounded-sm border border-zinc-800/80 bg-[#141518] p-5 flex flex-col relative min-h-[520px]">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                 <div>
                   <h2 className="text-sm font-bold text-white uppercase tracking-wider">Network Connection Graph</h2>
@@ -2129,15 +2181,15 @@ export default function AnalystPortal() {
                   {graphViewMode === "transaction" && scoreResult?.network_graph && (
                     <button
                       onClick={clearGraphHistory}
-                      className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-red-400 border border-red-900/30 bg-red-950/10 rounded-lg hover:bg-red-950/20 transition"
+                      className="px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-red-400 border border-red-900/30 bg-[#0c0d0e] rounded-sm hover:bg-red-950/20 transition"
                     >
                       Clear History
                     </button>
                   )}
-                  <div className="flex bg-zinc-950 border border-zinc-900 rounded-lg p-1 gap-1">
+                  <div className="flex bg-[#0c0d0e] border border-zinc-800 rounded-sm p-0.5 gap-0.5">
                     <button
                       onClick={() => setGraphViewMode("lifecycle")}
-                      className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded transition-all ${
+                      className={`px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider rounded-sm transition-all ${
                         graphViewMode === "lifecycle"
                           ? "bg-zinc-800 text-white"
                           : "text-zinc-500 hover:text-zinc-300"
@@ -2147,7 +2199,7 @@ export default function AnalystPortal() {
                     </button>
                     <button
                       onClick={() => setGraphViewMode("transaction")}
-                      className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded transition-all ${
+                      className={`px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider rounded-sm transition-all ${
                         graphViewMode === "transaction"
                           ? "bg-zinc-800 text-white"
                           : "text-zinc-500 hover:text-zinc-300"
@@ -2160,7 +2212,7 @@ export default function AnalystPortal() {
               </div>
 
               {/* SVG Grid */}
-              <div className="flex-1 relative border border-zinc-900 bg-zinc-950 rounded-xl overflow-hidden min-h-[440px]">
+              <div className="flex-1 relative border border-zinc-900 bg-zinc-950 rounded-sm overflow-hidden min-h-[440px]">
                 {/* Visual grid overlay */}
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#16161a_1px,transparent_1px),linear-gradient(to_bottom,#16161a_1px,transparent_1px)] bg-[size:2rem_2rem] pointer-events-none" />
 
@@ -2374,12 +2426,12 @@ export default function AnalystPortal() {
               {graphViewMode === "lifecycle" ? (
                 // Lifecycle Details (Original)
                 !selectedNode ? (
-                  <div className="rounded-2xl border border-zinc-900 bg-zinc-950/40 p-6 backdrop-blur-md flex flex-col items-center justify-center text-center flex-1">
+                  <div className="rounded-sm border border-zinc-800/80 bg-[#141518] p-5 flex flex-col items-center justify-center text-center flex-1">
                     <Network className="h-10 w-10 text-zinc-700 mb-2" />
                     <span className="text-xs text-zinc-500">Select a vector node on the map to review threat logs</span>
                   </div>
                 ) : (
-                  <div className="rounded-2xl border border-zinc-900 bg-zinc-950/40 p-6 backdrop-blur-md flex-1 flex flex-col gap-5 animate-fade-in">
+                  <div className="rounded-sm border border-zinc-800/80 bg-[#141518] p-5 flex-1 flex flex-col gap-5 animate-fade-in">
                     <div className="flex items-start justify-between border-b border-zinc-900 pb-3">
                       <div>
                         <span className="inline-block text-[9px] font-black bg-orange-600/10 border border-orange-500/20 text-orange-500 px-2 py-0.5 rounded uppercase tracking-wider mb-1">
@@ -2452,12 +2504,12 @@ export default function AnalystPortal() {
               ) : (
                 // Transaction Graph Node Details (Dynamic)
                 !selectedTransactionNode ? (
-                  <div className="rounded-2xl border border-zinc-900 bg-zinc-950/40 p-6 backdrop-blur-md flex flex-col items-center justify-center text-center flex-1">
+                  <div className="rounded-sm border border-zinc-800/80 bg-[#141518] p-5 flex flex-col items-center justify-center text-center flex-1">
                     <Network className="h-10 w-10 text-zinc-700 mb-2" />
                     <span className="text-xs text-zinc-500">Select a node in the network to inspect its linkage metadata</span>
                   </div>
                 ) : (
-                  <div className="rounded-2xl border border-zinc-900 bg-zinc-950/40 p-6 backdrop-blur-md flex-1 flex flex-col gap-5 animate-fade-in">
+                  <div className="rounded-sm border border-zinc-800/80 bg-[#141518] p-5 flex-1 flex flex-col gap-5 animate-fade-in">
                     <div className="flex items-start justify-between border-b border-zinc-900 pb-3">
                       <div>
                         <span className={`inline-block text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-wider mb-1 ${
@@ -2494,7 +2546,7 @@ export default function AnalystPortal() {
               {/* Session Transaction Timeline -- every run accumulated in
                   this session's graph, reused here for free */}
               {graphViewMode === "transaction" && scoreResult?.network_graph && scoreResult.network_graph.nodes.length > 0 && (
-                <div className="rounded-2xl border border-zinc-900 bg-zinc-950/40 p-4 backdrop-blur-md">
+                <div className="rounded-sm border border-zinc-800/80 bg-[#141518] p-4">
                   <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-3">
                     Session Transaction Timeline
                   </span>
@@ -2507,9 +2559,9 @@ export default function AnalystPortal() {
                           <button
                             key={n.id}
                             onClick={() => setSelectedTransactionNode(n)}
-                            className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-left transition ${
+                            className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-sm border text-left transition ${
                               isActive
-                                ? "border-orange-500/40 bg-orange-950/20"
+                                ? "border-blue-500/40 bg-blue-950/20"
                                 : "border-zinc-900 bg-zinc-950/40 hover:border-zinc-800"
                             }`}
                           >
@@ -2545,18 +2597,18 @@ export default function AnalystPortal() {
         {activeTab === "playground" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start animate-fade-in">
             {guideActive && (
-              <div className="lg:col-span-3 rounded-2xl border border-orange-500/40 bg-zinc-950/80 p-5 ring-2 ring-orange-500/20 shadow-lg shadow-orange-500/10 animate-fade-in flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="lg:col-span-3 rounded-sm border border-zinc-800/80 bg-[#141518] p-4 animate-fade-in flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="flex items-start gap-3">
-                  <div className="h-9 w-9 rounded-xl bg-orange-600/10 border border-orange-500/30 flex items-center justify-center text-orange-400 shrink-0 mt-0.5">
-                    <Zap className="h-5 w-5" />
+                  <div className="h-8 w-8 rounded-sm bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-300 shrink-0 mt-0.5">
+                    <Zap className="h-4 w-4 text-blue-400" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="text-sm font-bold text-white uppercase tracking-wider">
                         Attack Simulator Playground Walkthrough
                       </h3>
-                      <span className="text-[9px] bg-orange-500/20 text-orange-400 border border-orange-500/40 px-2 py-0.5 rounded-full font-bold">
-                        Active Guide
+                      <span className="text-[9px] bg-blue-600/15 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-sm font-medium">
+                        Guide Active
                       </span>
                     </div>
                     <p className="text-xs text-zinc-400 mt-1 leading-relaxed max-w-3xl">
@@ -2572,7 +2624,7 @@ export default function AnalystPortal() {
                       setActiveTab("scoring");
                       if (guideActive) setGuideStep("choose_scenario");
                     }}
-                    className="px-3.5 py-1.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-lg transition flex items-center gap-1"
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded-sm transition flex items-center gap-1"
                   >
                     Restart Tour (Scoring Studio) ➔
                   </button>
@@ -2581,7 +2633,7 @@ export default function AnalystPortal() {
             )}
 
             {/* Left Sidebar: Controls */}
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 backdrop-blur-md space-y-6">
+            <div className="rounded-sm border border-zinc-800/80 bg-[#141518] p-5 space-y-6">
               <div>
                 <h3 className="text-sm font-bold text-white mb-1 flex items-center gap-2">
                   <Settings className="h-4 w-4 text-orange-500" />
@@ -2597,7 +2649,7 @@ export default function AnalystPortal() {
                   value={playgroundAttackId}
                   onChange={(e) => setPlaygroundAttackId(e.target.value)}
                   disabled={isPlaygroundSimulating}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs font-semibold text-zinc-200 outline-none focus:border-orange-500/50 transition cursor-pointer text-ellipsis overflow-hidden"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-sm px-3 py-2 text-xs font-mono text-zinc-200 outline-none focus:border-orange-500/50 transition cursor-pointer text-ellipsis overflow-hidden"
                 >
                   <option value="scam_induced_push">Phone Call Pressured Transfer (Scam-induced Push)</option>
                   <option value="mule_network">Multi-Account Fund Forwarding (Mule Network)</option>
@@ -2628,10 +2680,10 @@ export default function AnalystPortal() {
                       type="button"
                       disabled={isPlaygroundSimulating}
                       onClick={() => setPlaygroundIntensity(level)}
-                      className={`py-2 rounded-lg text-xs font-bold border transition ${
+                      className={`py-1.5 rounded-sm text-xs font-medium border transition ${
                         playgroundIntensity === level
-                          ? "bg-orange-600/10 border-orange-500/50 text-orange-500"
-                          : "bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                          ? "bg-blue-600/15 border-blue-500/50 text-blue-400"
+                          : "bg-[#0c0d0e] border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900"
                       }`}
                     >
                       {level}
@@ -2644,7 +2696,7 @@ export default function AnalystPortal() {
               <button
                 onClick={startPlaygroundSimulation}
                 disabled={isPlaygroundSimulating}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 text-xs font-black text-white hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none transition shadow-lg shadow-orange-950/20"
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded-sm transition disabled:opacity-50"
               >
                 <Play className={`h-4 w-4 ${isPlaygroundSimulating ? "animate-spin" : ""}`} />
                 {isPlaygroundSimulating ? "Simulating Hop-by-Hop..." : "Start Live Campaign Simulation"}
@@ -2681,7 +2733,7 @@ export default function AnalystPortal() {
             </div>
 
             {/* Middle: Hop-by-hop Feed */}
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 backdrop-blur-md min-h-[500px] flex flex-col gap-4">
+            <div className="rounded-sm border border-zinc-800/80 bg-[#141518] p-5 min-h-[500px] flex flex-col gap-4">
               <div>
                 <h3 className="text-sm font-bold text-white mb-1 flex items-center gap-2">
                   <Activity className="h-4 w-4 text-orange-500" />
@@ -2709,14 +2761,14 @@ export default function AnalystPortal() {
                       <button
                         key={idx}
                         onClick={() => setPlaygroundCurrentIndex(idx)}
-                        className={`w-full text-left rounded-xl border p-4 transition-all flex items-start gap-3 relative overflow-hidden ${
+                        className={`w-full text-left rounded-sm border p-3 transition-all flex items-start gap-3 relative overflow-hidden ${
                           isSelected
-                            ? "border-orange-500/40 bg-zinc-900 shadow-md shadow-orange-950/10"
-                            : "border-zinc-800 bg-zinc-950/40 hover:border-zinc-700"
+                            ? "border-blue-500/40 bg-[#0c0d0e]"
+                            : "border-zinc-800/80 bg-[#0c0d0e] hover:border-zinc-700"
                         }`}
                       >
                         {/* Sequence indicator */}
-                        <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-zinc-900 border border-zinc-850 font-mono text-[10px] font-bold text-zinc-400">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-sm bg-zinc-850 border border-zinc-700 font-mono text-[10px] font-medium text-zinc-300">
                           {txItem.sequence}
                         </div>
 
@@ -2760,12 +2812,12 @@ export default function AnalystPortal() {
             {/* Right: Hop Details */}
             <div className="space-y-6">
               {playgroundCurrentIndex === -1 || playgroundTransactions.length === 0 ? (
-                <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 backdrop-blur-md min-h-[500px] flex flex-col items-center justify-center text-center">
+                <div className="rounded-sm border border-zinc-800/80 bg-[#141518] p-5 min-h-[500px] flex flex-col items-center justify-center text-center">
                   <Activity className="h-10 w-10 text-zinc-700 mb-2" />
                   <span className="text-xs text-zinc-500">Select a transaction hop from the ticker to inspect its score analysis</span>
                 </div>
               ) : (
-                <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 backdrop-blur-md space-y-6 animate-fade-in">
+                <div className="rounded-sm border border-zinc-800/80 bg-[#141518] p-5 space-y-6 animate-fade-in">
                   <div>
                     <h3 className="text-sm font-bold text-white mb-1 flex items-center gap-2">
                       <Target className="h-4 w-4 text-orange-500" />
@@ -2777,35 +2829,35 @@ export default function AnalystPortal() {
                   {/* Risk Score Dial/Gauge */}
                   <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-4 flex flex-col items-center justify-center gap-3">
                     <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Live Risk Score</span>
-                    <div className="h-28 w-28 relative flex items-center justify-center">
+                    <div className="h-20 w-20 relative flex items-center justify-center">
                       <svg className="absolute inset-0 h-full w-full -rotate-90">
-                        <circle cx="56" cy="56" r="44" stroke="#18181b" strokeWidth="8" fill="transparent" />
+                        <circle cx="40" cy="40" r="34" stroke="#1f2024" strokeWidth="3" fill="transparent" />
                         <circle
-                          cx="56"
-                          cy="56"
-                          r="44"
+                          cx="40"
+                          cy="40"
+                          r="34"
                           stroke={
                             playgroundTransactions[playgroundCurrentIndex].result.risk_level === "CRITICAL" ||
                             playgroundTransactions[playgroundCurrentIndex].result.risk_level === "HIGH"
                               ? "#ef4444"
                               : playgroundTransactions[playgroundCurrentIndex].result.risk_level === "MEDIUM"
-                              ? "#f97316"
+                              ? "#f59e0b"
                               : "#10b981"
                           }
-                          strokeWidth="8"
+                          strokeWidth="3"
                           fill="transparent"
-                          strokeDasharray={2 * Math.PI * 44}
+                          strokeDasharray={2 * Math.PI * 34}
                           strokeDashoffset={
-                            2 * Math.PI * 44 * (1 - playgroundTransactions[playgroundCurrentIndex].result.risk_score / 100)
+                            2 * Math.PI * 34 * (1 - playgroundTransactions[playgroundCurrentIndex].result.risk_score / 100)
                           }
                           strokeLinecap="round"
                         />
                       </svg>
-                      <div className="flex flex-col items-center">
-                        <span className="text-2xl font-black text-white font-mono">
+                      <div className="flex flex-col items-center z-10">
+                        <span className="text-xl font-bold text-white font-mono leading-none">
                           {playgroundTransactions[playgroundCurrentIndex].result.risk_score.toFixed(0)}
                         </span>
-                        <span className="text-[9px] font-black text-zinc-500 uppercase">/ 100</span>
+                        <span className="text-[8px] font-mono text-zinc-500 uppercase mt-0.5">/ 100</span>
                       </div>
                     </div>
                     <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${

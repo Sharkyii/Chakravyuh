@@ -334,7 +334,7 @@ export default function AnalystPortal() {
   };
 
   // Dashboard Tabs State
-  const [activeTab, setActiveTab] = useState<"scoring" | "closed-loop" | "graph">("scoring");
+  const [activeTab, setActiveTab] = useState<"scoring" | "closed-loop" | "graph" | "playground">("scoring");
 
   // Live Scoring State
   const [scenarios, setScenarios] = useState<Record<string, Scenario>>({});
@@ -346,6 +346,18 @@ export default function AnalystPortal() {
 
   // Metrics / Feature Importance State
   const [metricsData, setMetricsData] = useState<MetricsResult | null>(null);
+  const [familyMetrics, setFamilyMetrics] = useState<any>(null);
+  const [showFamilyBreakdown, setShowFamilyBreakdown] = useState(false);
+
+  // Attack Simulator Playground State
+  const [playgroundAttackId, setPlaygroundAttackId] = useState("scam_induced_push");
+  const [playgroundIntensity, setPlaygroundIntensity] = useState("MEDIUM");
+  const [isPlaygroundSimulating, setIsPlaygroundSimulating] = useState(false);
+  const [playgroundTransactions, setPlaygroundTransactions] = useState<any[]>([]);
+  const [playgroundCurrentIndex, setPlaygroundCurrentIndex] = useState(-1);
+  const [playgroundPretext, setPlaygroundPretext] = useState("");
+  const [playgroundCampaignId, setPlaygroundCampaignId] = useState("");
+  const [playgroundError, setPlaygroundError] = useState("");
 
   // Lifecycle graph edges are drawn as SVG <path> curves between two
   // percentage-positioned nodes -- but the `d` attribute doesn't accept
@@ -371,6 +383,167 @@ export default function AnalystPortal() {
   const [selectedTransactionNode, setSelectedTransactionNode] = useState<any>(null);
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
+  const [shouldRetrain, setShouldRetrain] = useState(false);
+  const [retrainReason, setRetrainReason] = useState("");
+  const [retraining, setRetraining] = useState(false);
+  const [modelHistory, setModelHistory] = useState<any[]>([]);
+
+  const checkRetrainStatus = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/analyst/feedback-status`);
+      if (res.ok) {
+        const data = await res.json();
+        setShouldRetrain(data.should_retrain);
+        setRetrainReason(data.feedback_summary?.reason || "");
+      }
+    } catch (err) {
+      console.warn("Failed to check retrain status:", err);
+    }
+  };
+
+  const fetchModelHistory = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/analyst/model-history`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.history) {
+          setModelHistory(data.history);
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to fetch model history:", err);
+    }
+  };
+
+  const fetchFamilyMetrics = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/metrics/family`);
+      if (res.ok) {
+        const data = await res.json();
+        setFamilyMetrics(data);
+      }
+    } catch (err) {
+      console.warn("Failed to fetch family metrics:", err);
+    }
+  };
+
+  const startPlaygroundSimulation = async () => {
+    if (isPlaygroundSimulating) return;
+    setIsPlaygroundSimulating(true);
+    setPlaygroundError("");
+    setPlaygroundTransactions([]);
+    setPlaygroundCurrentIndex(-1);
+    setPlaygroundPretext("");
+    setPlaygroundCampaignId("");
+    
+    // Clear graph before starting so we only see this playground campaign
+    await clearGraphHistory();
+    
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/playground/generate-campaign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          attack_id: playgroundAttackId,
+          intensity: playgroundIntensity
+        })
+      });
+      
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+      
+      const data = await res.json();
+      setPlaygroundPretext(data.pretext || "");
+      setPlaygroundCampaignId(data.campaign_id || "");
+      
+      const txns = data.transactions || [];
+      if (txns.length === 0) {
+        throw new Error("No transactions were generated.");
+      }
+      
+      // We will feed the transactions into the analyze endpoint one-by-one with a delay
+      let currentIdx = 0;
+      const feedNextTransaction = async () => {
+        if (currentIdx >= txns.length) {
+          setIsPlaygroundSimulating(false);
+          return;
+        }
+        
+        try {
+          const currentTx = txns[currentIdx];
+          
+          // Call analyze endpoint to update the global graph and score it
+          const analyzeRes = await fetch(`${API_BASE_URL}/api/analyze`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-session-id": getSessionId()
+            },
+            body: JSON.stringify({
+              transaction: currentTx
+            })
+          });
+          
+          if (analyzeRes.ok) {
+            const analyzeData = await analyzeRes.json();
+            
+            // Set global score result to update network graph visualizer
+            setScoreResult(analyzeData);
+            
+            // Add to simulated list
+            setPlaygroundTransactions(prev => [
+              ...prev,
+              {
+                sequence: currentIdx + 1,
+                transaction: currentTx,
+                result: analyzeData
+              }
+            ]);
+            setPlaygroundCurrentIndex(currentIdx);
+            
+            // Re-fetch metrics dynamically
+            fetchMetrics();
+          }
+        } catch (err) {
+          console.warn("Failed to score playground transaction:", err);
+        }
+        
+        currentIdx++;
+        setTimeout(feedNextTransaction, 1500);
+      };
+      
+      // Start the feed
+      feedNextTransaction();
+      
+    } catch (err: any) {
+      setPlaygroundError(err.message || "Failed to generate campaign.");
+      setIsPlaygroundSimulating(false);
+    }
+  };
+
+
+  const handleTriggerRetrain = async () => {
+    setRetraining(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/analyst/trigger-retrain`, {
+        method: "POST"
+      });
+      if (res.ok) {
+        alert("Model successfully retrained!");
+        await checkRetrainStatus();
+        await fetchModelHistory();
+        await fetchMetrics();
+      } else {
+        alert("Failed to retrain model.");
+      }
+    } catch (err) {
+      console.warn("Failed to trigger retrain:", err);
+      alert("Error triggering model retrain.");
+    } finally {
+      setRetraining(false);
+    }
+  };
 
   const submitFeedbackOutcome = async (actualLabel: "fraud" | "legitimate") => {
     if (!scoreResult) return;
@@ -381,17 +554,22 @@ export default function AnalystPortal() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          txn_id: scoreResult.txn_id || "demo-txn-1",
+          txn_id: scoreResult.txn_id || `txn_${Date.now()}`,
           actual_label: actualLabel,
           risk_score: scoreResult.risk_score
         })
       });
       if (res.ok) {
+        const data = await res.json();
         setFeedbackSuccess(true);
-        fetchMetrics(); // Refresh metrics tab instantly
+        setShouldRetrain(data.should_retrain);
+        setRetrainReason(data.reason || "");
+        await fetchMetrics(); // Refresh metrics tab instantly
+        await checkRetrainStatus();
+        await fetchModelHistory();
       }
     } catch (err) {
-      console.error("Failed to submit feedback:", err);
+      console.warn("Failed to submit feedback:", err);
     } finally {
       setSubmittingFeedback(false);
     }
@@ -417,6 +595,9 @@ export default function AnalystPortal() {
     if (isLoggedIn) {
       fetchScenarios();
       fetchMetrics();
+      checkRetrainStatus();
+      fetchModelHistory();
+      fetchFamilyMetrics();
     }
   }, [isLoggedIn]);
 
@@ -600,6 +781,17 @@ export default function AnalystPortal() {
           >
             <Network className="h-4 w-4" />
             Attack Connection Graph
+          </button>
+          <button
+            onClick={() => setActiveTab("playground")}
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
+              activeTab === "playground"
+                ? "bg-zinc-800 text-orange-500 shadow-sm"
+                : "text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            <Zap className="h-4 w-4" />
+            Attack Simulator Playground
           </button>
         </nav>
 
@@ -1178,14 +1370,14 @@ export default function AnalystPortal() {
                       Closed-Loop Analyst Feedback Loop
                     </span>
                     <p className="text-xs text-zinc-400 mb-3">
-                      Submit the actual outcome of this transaction. This is a simulated feedback signal for demo purposes — it nudges the displayed metrics but does not retrain the model.
+                      Submit the actual outcome of this transaction. Feedbacks are recorded in a local SQLite datastore. When 5 total verdicts are met, the option to retrain the live XGBoost model will become available.
                     </p>
                     {feedbackSuccess ? (
                       <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-950/20 border border-emerald-900/50 text-sm text-emerald-400">
                         <CheckCircle className="h-5 w-5 shrink-0" />
                         <div>
-                          <p className="font-bold">Feedback Incorporated Successfully!</p>
-                          <p className="text-[11px] text-emerald-500 mt-0.5">Simulated metric adjustment recorded. See the Closed-Loop tab — no live model retraining occurs.</p>
+                          <p className="font-bold">Feedback Incorporated!</p>
+                          <p className="text-[11px] text-emerald-500 mt-0.5">Real-time outcome saved. Go to the Closed-Loop tab to view live model retraining and evolution history.</p>
                         </div>
                       </div>
                     ) : (
@@ -1203,6 +1395,29 @@ export default function AnalystPortal() {
                           className="flex-1 py-2 rounded-lg border border-red-800/40 bg-red-950/20 text-red-400 hover:bg-red-950/40 font-semibold text-xs transition disabled:opacity-50"
                         >
                           Report Fraud / Block
+                        </button>
+                      </div>
+                    )}
+
+                    {shouldRetrain && (
+                      <div className="mt-4 p-3 rounded-lg bg-orange-500/20 border border-orange-500/30">
+                        <p className="text-orange-300 font-semibold text-xs mb-2">✓ Ready to Retrain</p>
+                        <button
+                          onClick={handleTriggerRetrain}
+                          disabled={retraining}
+                          className="w-full py-2 rounded-lg bg-orange-600 hover:bg-orange-500 disabled:bg-zinc-700 text-white font-bold flex items-center justify-center gap-2 transition text-xs"
+                        >
+                          {retraining ? (
+                            <>
+                              <RefreshCw className="h-4 w-4 animate-spin" />
+                              Retraining Model...
+                            </>
+                          ) : (
+                            <>
+                              <TrendingUp className="h-4 w-4" />
+                              Retrain Model
+                            </>
+                          )}
                         </button>
                       </div>
                     )}
@@ -1374,6 +1589,123 @@ export default function AnalystPortal() {
                 </p>
               </div>
             </div>
+
+            {/* Model History Comparison */}
+            {modelHistory.length > 0 && (
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 backdrop-blur-md">
+                <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-blue-500" />
+                  Model Evolution History (Real Metrics comparison)
+                </h3>
+                <p className="text-xs text-zinc-500 mb-5">
+                  Actual evaluated performance comparing the initial baseline model to the retrained models.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {modelHistory.map((meta: any, idx: number) => (
+                    <div key={idx} className="rounded-xl border border-zinc-700/50 bg-zinc-950/40 p-4">
+                      <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">{meta.label}</span>
+                      <div className="mt-3 space-y-2 text-xs text-zinc-400">
+                        <div className="flex justify-between items-center">
+                          <span>Model Version</span>
+                          <span className="font-mono font-bold text-zinc-200">{meta.version}</span>
+                        </div>
+                        {meta.timestamp && (
+                          <div className="flex justify-between items-center text-[11px] text-zinc-500">
+                            <span>Trained At</span>
+                            <span className="font-mono font-bold text-zinc-400">
+                              {new Date(meta.timestamp).toLocaleString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                second: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex justify-between items-center">
+                          <span>PR-AUC (test)</span>
+                          <span className="font-mono font-bold text-emerald-400">{(meta.pr_auc * 100).toFixed(2)}%</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span>Precision</span>
+                          <span className="font-mono font-bold text-emerald-400">{(meta.precision * 100).toFixed(2)}%</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span>Recall</span>
+                          <span className="font-mono font-bold text-emerald-400">{(meta.recall * 100).toFixed(2)}%</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span>Evasion Rate</span>
+                          <span className="font-mono font-bold text-red-400">{(meta.evasion_rate * 100).toFixed(1)}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Per-Family Performance Panel */}
+            {familyMetrics && familyMetrics.by_family && (
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 backdrop-blur-md">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Target className="h-4 w-4 text-orange-500" />
+                    Adversarial Campaign Recall (Per-Family Breakdown)
+                  </h3>
+                  <button
+                    onClick={() => setShowFamilyBreakdown(!showFamilyBreakdown)}
+                    className="px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-[10px] font-bold text-zinc-300 transition"
+                  >
+                    {showFamilyBreakdown ? "Hide Detailed Metrics" : "Show Detailed Metrics"}
+                  </button>
+                </div>
+                <p className="text-xs text-zinc-500 mb-5">
+                  Detailed evaluation of the active model against each individual synthetic fraud family across key operating points.
+                </p>
+
+                {showFamilyBreakdown && (
+                  <div className="overflow-x-auto border border-zinc-800 rounded-xl bg-zinc-950/40">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-zinc-800 bg-zinc-950/80 text-zinc-400 font-bold uppercase tracking-wider text-[10px]">
+                          <th className="px-4 py-3">Attack Family</th>
+                          <th className="px-4 py-3 text-right">Samples (N)</th>
+                          <th className="px-4 py-3 text-right">Mean Prob.</th>
+                          <th className="px-4 py-3 text-right">Recall @ 0.1% FPR</th>
+                          <th className="px-4 py-3 text-right">Recall @ 1.0% FPR</th>
+                          <th className="px-4 py-3 text-right">Recall @ Selected Thresh</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-900">
+                        {familyMetrics.by_family.map((f: any, idx: number) => {
+                          if (f.family === "__legit__") return null;
+                          return (
+                            <tr key={idx} className="hover:bg-zinc-900/30 transition text-zinc-300">
+                              <td className="px-4 py-3 font-semibold text-zinc-200 capitalize">
+                                {f.family.replace(/_/g, " ")}
+                              </td>
+                              <td className="px-4 py-3 text-right font-mono text-zinc-400">{f.n}</td>
+                              <td className="px-4 py-3 text-right font-mono text-zinc-400">{(f.mean_prob * 100).toFixed(1)}%</td>
+                              <td className="px-4 py-3 text-right font-mono font-semibold text-emerald-400">
+                                {f.recall_01pct !== null ? `${(f.recall_01pct * 100).toFixed(1)}%` : "N/A"}
+                              </td>
+                              <td className="px-4 py-3 text-right font-mono font-semibold text-emerald-400">
+                                {f.recall_1pct !== null ? `${(f.recall_1pct * 100).toFixed(1)}%` : "N/A"}
+                              </td>
+                              <td className="px-4 py-3 text-right font-mono font-semibold text-orange-400">
+                                {f.recall_selected !== null ? `${(f.recall_selected * 100).toFixed(1)}%` : "N/A"}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Performance Metrics Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -2018,6 +2350,301 @@ export default function AnalystPortal() {
                       })
                       .reverse()}
                   </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: ATTACK SIMULATOR PLAYGROUND */}
+        {activeTab === "playground" && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start animate-fade-in">
+            {/* Left Sidebar: Controls */}
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 backdrop-blur-md space-y-6">
+              <div>
+                <h3 className="text-sm font-bold text-white mb-1 flex items-center gap-2">
+                  <Settings className="h-4 w-4 text-orange-500" />
+                  Simulator Configuration
+                </h3>
+                <p className="text-[11px] text-zinc-500">Configure parameters to generate a synthetic campaign.</p>
+              </div>
+
+              {/* Attack Family Dropdown */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Attack Vector Family</label>
+                <select
+                  value={playgroundAttackId}
+                  onChange={(e) => setPlaygroundAttackId(e.target.value)}
+                  disabled={isPlaygroundSimulating}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs font-semibold text-zinc-200 outline-none focus:border-orange-500/50 transition cursor-pointer text-ellipsis overflow-hidden"
+                >
+                  <option value="scam_induced_push">Phone Call Pressured Transfer (Scam-induced Push)</option>
+                  <option value="mule_network">Multi-Account Fund Forwarding (Mule Network)</option>
+                  <option value="card_testing_probe">Micro-Amount Acquiring Test (Card Testing)</option>
+                  <option value="adversarial_evasion">Model evasion / Distributed velocity (Adversarial Evasion)</option>
+                  <option value="first_party_dispute">Chargeback abuse / Refund fraud (First-party Dispute)</option>
+                  <option value="stealth_mandate">AutoPay dark-pattern mandate abuse (Stealth Mandate)</option>
+                  <option value="synthetic_merchant">Fictitious seller cashout (Synthetic Merchant)</option>
+                  <option value="transaction_laundering">Declared MCC classification mismatch (Laundering)</option>
+                  <option value="credential_takeover">Device change with anomalous takeover (Credential Takeover)</option>
+                  <option value="synthetic_identity_bustout">Clean-profile limit build & exit (Synthetic ID Bustout)</option>
+                  <option value="subthreshold_fragmentation">AFA regulation limit bypass (Fragmentation)</option>
+                  <option value="agentic_injection">Prompt injection VPA extraction (Agentic Injection)</option>
+                  <option value="insider_abuse">Internal ledger adjustment bypass (Insider Abuse)</option>
+                  <option value="device_fan_out">Single credential device fan-out (Velocity Probe)</option>
+                  <option value="balance_drain_exit">Final liquidation / Account sweep (Exit Drain)</option>
+                  <option value="tpap_account_switch">Cross-TPAP credential rotation (Account Switch)</option>
+                </select>
+              </div>
+
+              {/* Intensity Select */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Campaign Intensity</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {["LOW", "MEDIUM", "HIGH"].map((level) => (
+                    <button
+                      key={level}
+                      type="button"
+                      disabled={isPlaygroundSimulating}
+                      onClick={() => setPlaygroundIntensity(level)}
+                      className={`py-2 rounded-lg text-xs font-bold border transition ${
+                        playgroundIntensity === level
+                          ? "bg-orange-600/10 border-orange-500/50 text-orange-500"
+                          : "bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                      }`}
+                    >
+                      {level}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Trigger Button */}
+              <button
+                onClick={startPlaygroundSimulation}
+                disabled={isPlaygroundSimulating}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 text-xs font-black text-white hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none transition shadow-lg shadow-orange-950/20"
+              >
+                <Play className={`h-4 w-4 ${isPlaygroundSimulating ? "animate-spin" : ""}`} />
+                {isPlaygroundSimulating ? "Simulating Hop-by-Hop..." : "Start Live Campaign Simulation"}
+              </button>
+
+              {playgroundError && (
+                <div className="p-3.5 rounded-xl border border-red-900/50 bg-red-950/20 text-red-400 text-xs flex gap-2">
+                  <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <span>{playgroundError}</span>
+                </div>
+              )}
+
+              {/* Pretext Card */}
+              {playgroundCampaignId && (
+                <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4 space-y-3.5 animate-fade-in">
+                  <div className="border-b border-zinc-900 pb-2 flex justify-between items-center">
+                    <span className="text-[9px] font-black bg-orange-600/10 border border-orange-500/20 text-orange-500 px-2 py-0.5 rounded uppercase tracking-wider">
+                      Active Campaign
+                    </span>
+                    <span className="text-[10px] font-mono text-zinc-500">{playgroundCampaignId.slice(0, 8)}...</span>
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-zinc-500">Attack Pretext</span>
+                      <span className="font-semibold text-zinc-300 font-mono capitalize">{playgroundPretext.replace(/_/g, " ")}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-500">Hops / Transactions</span>
+                      <span className="font-mono font-bold text-zinc-300">{playgroundTransactions.length} generated</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Middle: Hop-by-hop Feed */}
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 backdrop-blur-md min-h-[500px] flex flex-col gap-4">
+              <div>
+                <h3 className="text-sm font-bold text-white mb-1 flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-orange-500" />
+                  Live Campaign Ticker
+                </h3>
+                <p className="text-[11px] text-zinc-500">Hop-by-hop transactional steps generated by the simulator.</p>
+              </div>
+
+              {playgroundTransactions.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                  <Network className={`h-12 w-12 text-zinc-700 mb-3 ${isPlaygroundSimulating ? "animate-pulse text-orange-500/40" : ""}`} />
+                  <span className="text-xs text-zinc-500">
+                    {isPlaygroundSimulating
+                      ? "Generating synthetic campaign sequence..."
+                      : "Configure parameters on the left and trigger simulation to watch campaign data."}
+                  </span>
+                </div>
+              ) : (
+                <div className="space-y-3 flex-1 overflow-y-auto max-h-[550px] pr-1">
+                  {playgroundTransactions.map((txItem, idx) => {
+                    const isSelected = playgroundCurrentIndex === idx;
+                    const r = txItem.result;
+                    const tx = txItem.transaction;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => setPlaygroundCurrentIndex(idx)}
+                        className={`w-full text-left rounded-xl border p-4 transition-all flex items-start gap-3 relative overflow-hidden ${
+                          isSelected
+                            ? "border-orange-500/40 bg-zinc-900 shadow-md shadow-orange-950/10"
+                            : "border-zinc-800 bg-zinc-950/40 hover:border-zinc-700"
+                        }`}
+                      >
+                        {/* Sequence indicator */}
+                        <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-zinc-900 border border-zinc-850 font-mono text-[10px] font-bold text-zinc-400">
+                          {txItem.sequence}
+                        </div>
+
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex justify-between items-start">
+                            <span className="font-mono text-[11px] text-zinc-300 font-bold">
+                              ₹{parseFloat(tx.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                            </span>
+                            <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider ${
+                              r.risk_level === "CRITICAL" || r.risk_level === "HIGH"
+                                ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                                : r.risk_level === "MEDIUM"
+                                ? "bg-orange-500/10 text-orange-400 border border-orange-500/20"
+                                : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                            }`}>
+                              {r.risk_level}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between text-[10px] text-zinc-500">
+                            <span className="capitalize">{tx.rail.replace(/_/g, " ")} ({tx.channel})</span>
+                            <span className="font-mono">Score: {r.risk_score.toFixed(1)}</span>
+                          </div>
+                        </div>
+
+                        {/* Visual indicator bar on the side */}
+                        <div className={`absolute top-0 right-0 bottom-0 w-1 ${
+                          r.risk_level === "CRITICAL" || r.risk_level === "HIGH"
+                            ? "bg-red-500"
+                            : r.risk_level === "MEDIUM"
+                            ? "bg-orange-500"
+                            : "bg-emerald-500"
+                        }`} />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Right: Hop Details */}
+            <div className="space-y-6">
+              {playgroundCurrentIndex === -1 || playgroundTransactions.length === 0 ? (
+                <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 backdrop-blur-md min-h-[500px] flex flex-col items-center justify-center text-center">
+                  <Activity className="h-10 w-10 text-zinc-700 mb-2" />
+                  <span className="text-xs text-zinc-500">Select a transaction hop from the ticker to inspect its score analysis</span>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 backdrop-blur-md space-y-6 animate-fade-in">
+                  <div>
+                    <h3 className="text-sm font-bold text-white mb-1 flex items-center gap-2">
+                      <Target className="h-4 w-4 text-orange-500" />
+                      Hop Analysis
+                    </h3>
+                    <p className="text-[11px] text-zinc-500">Deep-dive risk scoring and SHAP attributions.</p>
+                  </div>
+
+                  {/* Risk Score Dial/Gauge */}
+                  <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-4 flex flex-col items-center justify-center gap-3">
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Live Risk Score</span>
+                    <div className="h-28 w-28 relative flex items-center justify-center">
+                      <svg className="absolute inset-0 h-full w-full -rotate-90">
+                        <circle cx="56" cy="56" r="44" stroke="#18181b" strokeWidth="8" fill="transparent" />
+                        <circle
+                          cx="56"
+                          cy="56"
+                          r="44"
+                          stroke={
+                            playgroundTransactions[playgroundCurrentIndex].result.risk_level === "CRITICAL" ||
+                            playgroundTransactions[playgroundCurrentIndex].result.risk_level === "HIGH"
+                              ? "#ef4444"
+                              : playgroundTransactions[playgroundCurrentIndex].result.risk_level === "MEDIUM"
+                              ? "#f97316"
+                              : "#10b981"
+                          }
+                          strokeWidth="8"
+                          fill="transparent"
+                          strokeDasharray={2 * Math.PI * 44}
+                          strokeDashoffset={
+                            2 * Math.PI * 44 * (1 - playgroundTransactions[playgroundCurrentIndex].result.risk_score / 100)
+                          }
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      <div className="flex flex-col items-center">
+                        <span className="text-2xl font-black text-white font-mono">
+                          {playgroundTransactions[playgroundCurrentIndex].result.risk_score.toFixed(0)}
+                        </span>
+                        <span className="text-[9px] font-black text-zinc-500 uppercase">/ 100</span>
+                      </div>
+                    </div>
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${
+                      playgroundTransactions[playgroundCurrentIndex].result.action === "BLOCK"
+                        ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                        : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                    }`}>
+                      Action: {playgroundTransactions[playgroundCurrentIndex].result.action}
+                    </span>
+                  </div>
+
+                  {/* SHAP Contributions bar chart */}
+                  {playgroundTransactions[playgroundCurrentIndex].result.shap_contributions && (
+                    <div className="space-y-4">
+                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Model SHAP Attributions</span>
+                      <div className="space-y-2">
+                        {playgroundTransactions[playgroundCurrentIndex].result.shap_contributions.map((s: any, idx: number) => {
+                          const isPositive = s.direction === "increases_risk";
+                          return (
+                            <div key={idx} className="space-y-1 text-xs">
+                              <div className="flex justify-between font-mono text-[10px]">
+                                <span className="text-zinc-400 truncate max-w-[150px]">{s.feature}</span>
+                                <span className={isPositive ? "text-red-400" : "text-emerald-400"}>
+                                  {isPositive ? "+" : ""}{s.shap_value.toFixed(2)}
+                                </span>
+                              </div>
+                              <div className="h-1.5 w-full bg-zinc-900 rounded overflow-hidden relative">
+                                <div
+                                  className="absolute top-0 bottom-0 rounded"
+                                  style={{
+                                    left: isPositive ? "50%" : "auto",
+                                    right: isPositive ? "auto" : "50%",
+                                    width: `${Math.min(50, Math.abs(s.shap_value) * 10)}%`,
+                                    backgroundColor: isPositive ? "#ef4444" : "#10b981"
+                                  }}
+                                />
+                                <div className="absolute top-0 bottom-0 left-1/2 w-0.5 bg-zinc-700" />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Dynamic Contributing Signals */}
+                  {playgroundTransactions[playgroundCurrentIndex].result.contributing_signals &&
+                    playgroundTransactions[playgroundCurrentIndex].result.contributing_signals.length > 0 && (
+                      <div className="space-y-2">
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Threat Indicators</span>
+                        <div className="space-y-1.5">
+                          {playgroundTransactions[playgroundCurrentIndex].result.contributing_signals.map((sig: string, sIdx: number) => (
+                            <div key={sIdx} className="flex items-start gap-2 text-xs text-zinc-300">
+                              <span className="h-1.5 w-1.5 rounded-full bg-orange-500 mt-1.5 shrink-0" />
+                              <span>{sig}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                 </div>
               )}
             </div>

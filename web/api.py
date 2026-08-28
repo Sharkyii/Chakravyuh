@@ -329,14 +329,34 @@ async def submit_feedback(request: Request):
     delta_1 = 0.0004 if agreement else -0.0002
     DYNAMIC_METRICS["Recall @ 1% FPR"] = min(0.9999, max(0.9700, DYNAMIC_METRICS["Recall @ 1% FPR"] + delta_1))
     
-    print(f"[Closed-Loop Feedback] Feedbacks: {n_feedback} | Agreement: {agreement}. Simulated closed-loop metric adjusted based on prediction/label agreement \u2014 illustrative only, no live model retraining occurs.")
+    # Store feedback in the actual SQL database so retraining works on Simulator page!
+    try:
+        verdict = "FRAUD" if actual_label == "fraud" else "LEGITIMATE"
+        verdict_data = {
+            "analyst_verdict": verdict,
+            "analyst_confidence": 1.0,
+            "analyst_reasoning": "Submitted via Simulator Dashboard",
+            "key_signals": ["Manual Outcome Override"],
+            "patterns": []
+        }
+        store = FeedbackStore()
+        store.add_verdict(txn_id, verdict_data)
+    except Exception as e:
+        print(f"[Feedback Engine Error] Failed to store feedback: {e}")
+        
+    eligibility = check_retraining_eligibility()
+    
+    print(f"[Closed-Loop Feedback] Feedbacks: {n_feedback} | Agreement: {agreement}. Real outcome saved to database.")
     print(f"[Closed-Loop Feedback] New metrics: PR-AUC={DYNAMIC_METRICS['PR-AUC']:.4f}, Recall@0.1%={DYNAMIC_METRICS['Recall @ 0.1% FPR']:.4f}")
     
     return {
         "status": "success",
         "retrained": False,
         "feedback_count": n_feedback,
-        "message": "Feedback recorded. Simulated closed-loop metric adjusted based on prediction/label agreement \u2014 illustrative only, no live model retraining occurs.",
+        "should_retrain": eligibility["should_retrain"],
+        "reason": eligibility["summary"]["reason"],
+        "feedback_summary": eligibility["summary"],
+        "message": "Feedback recorded. Saved outcome to SQLite database for retraining loop.",
         "metrics": DYNAMIC_METRICS
     }
 
@@ -538,3 +558,143 @@ async def feedback_status():
             "family": "Claude Sonnet 5 (non-hallucinating, production-grade)"
         }
     }
+
+
+@app.post("/api/analyst/trigger-retrain")
+async def trigger_retrain(request: Request):
+    """
+    Triggers the feedback retrain orchestrator synchronously.
+    """
+    from stage5.training.feedback_retrain_orchestrator import run_retrain
+    try:
+        success = await run_in_threadpool(run_retrain)
+        if success:
+            return {"status": "success", "message": "Model retrained successfully."}
+        else:
+            return {"status": "error", "message": "No feedback data to retrain on."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/analyst/model-history")
+def model_history():
+    """
+    Returns the differences between the current and previous models.
+    """
+    history = []
+    
+    def extract_metrics(meta_path, label):
+        if not meta_path.exists():
+            return None
+        try:
+            with open(meta_path, "r", encoding="utf-8") as f:
+                meta = json.load(f)
+            test_metrics = meta.get("test_metrics", {})
+            f1_opt = test_metrics.get("f1_optimal_threshold_metrics", {})
+            
+            # Use held out generalisation recall if available, otherwise test set recall
+            held_out = test_metrics.get("held_out_family_generalisation", [{}])
+            evasion = 1.0 - (held_out[1].get("held_out_recall", 1.0) if len(held_out) > 1 else 1.0)
+
+            return {
+                "label": label,
+                "version": meta.get("model_version", "Unknown"),
+                "timestamp": meta.get("trained_timestamp", ""),
+                "pr_auc": test_metrics.get("pr_auc", 0),
+                "precision": f1_opt.get("precision", 0),
+                "recall": f1_opt.get("recall", 0),
+                "evasion_rate": evasion
+            }
+        except Exception:
+            return None
+            
+    old_meta = extract_metrics(MODELS_DIR / "previous_metadata.json", "Previous Model")
+    if old_meta:
+        history.append(old_meta)
+        
+    cur_meta = extract_metrics(MODELS_DIR / "model_metadata.json", "Current Model")
+    if cur_meta:
+        history.append(cur_meta)
+        
+    return {"history": history}
+
+
+GLOBAL_BASELINE = None
+
+def get_baseline_dataset():
+    global GLOBAL_BASELINE
+    if GLOBAL_BASELINE is None:
+        from src.dataset.loader import load_dataset
+        from stage5.config.settings import DATA_DIR
+        baseline_path = DATA_DIR / "generated" / "stage5" / "baseline" / "stage2"
+        if baseline_path.exists():
+            GLOBAL_BASELINE = load_dataset(baseline_path)
+    return GLOBAL_BASELINE
+
+
+@app.get("/api/metrics/family")
+def get_family_metrics():
+    results_path = project_root / "stage5" / "validation" / "full_family_battery_results.json"
+    if not results_path.exists():
+        return {"by_family": []}
+    try:
+        with open(results_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read family metrics: {str(e)}")
+
+
+@app.post("/api/playground/generate-campaign")
+async def generate_playground_campaign(request: Request):
+    data = await request.json()
+    attack_id = data.get("attack_id")
+    intensity = data.get("intensity", "MEDIUM")
+    
+    if not attack_id:
+        raise HTTPException(status_code=400, detail="attack_id is required")
+        
+    baseline = await run_in_threadpool(get_baseline_dataset)
+    if not baseline:
+        raise HTTPException(status_code=500, detail="Baseline dataset not found on disk")
+        
+    try:
+        from src.attacks.registry import build_attack_generator
+        from decimal import Decimal
+        from datetime import datetime
+        
+        generator = build_attack_generator(attack_id)
+        seed = int(np.random.randint(1, 1000000))
+        
+        # Generate campaign transactions
+        campaign, attack_txs, attack_labels = await run_in_threadpool(
+            generator.generate, baseline, seed=seed, intensity=intensity
+        )
+        
+        # Limit events to avoid overloading frontend
+        attack_txs = attack_txs[:12]
+        
+        # Clean transaction datatypes for JSON serialization (Decimal -> float, datetime -> isoformat)
+        cleaned_txs = []
+        for tx in attack_txs:
+            tx_clean = {}
+            for k, v in tx.items():
+                if isinstance(v, Decimal):
+                    tx_clean[k] = float(v)
+                elif isinstance(v, datetime):
+                    tx_clean[k] = v.isoformat()
+                else:
+                    tx_clean[k] = v
+            cleaned_txs.append(tx_clean)
+            
+        return {
+            "status": "success",
+            "campaign_id": campaign.campaign_id,
+            "pretext": campaign.pretext,
+            "attack_id": attack_id,
+            "intensity": intensity,
+            "transactions": cleaned_txs
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate campaign: {str(e)}")
+
+

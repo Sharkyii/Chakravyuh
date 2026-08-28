@@ -82,13 +82,13 @@ class FeedbackStore:
         count = self.get_feedback_count()
         fraud_count = len(self.get_confirmed_fraud())
 
-        if fraud_count >= 20:
+        if fraud_count >= 5:
             return True, f"Enough fraud feedback ({fraud_count} confirmed)"
 
-        if count >= 50:
+        if count >= 5:
             return True, f"Enough total feedback ({count} verdicts)"
 
-        return False, f"Not enough feedback yet ({count}/50, {fraud_count}/20 fraud)"
+        return False, f"Not enough feedback yet ({count}/5, {fraud_count}/5 fraud)"
 
     def get_summary(self) -> dict:
         """Get summary statistics about feedback collected."""

@@ -46,8 +46,8 @@ os.makedirs(REPORTS_DIR, exist_ok=True)
 # Reduced to 8_000/320 (40% of 20k, same 25:1 ratio) for build_features() to
 # have a chance of completing. Restore to 100_000/4_000 when running on a
 # machine with more headroom.
-STAGE5_N_CONSUMERS = 8_000
-STAGE5_N_MERCHANTS = 320
+STAGE5_N_CONSUMERS = 20_000
+STAGE5_N_MERCHANTS = 800
 
 # Campaigns generated per attack family. Two competing constraints: total
 # fraud+lookalike volume should stay a small minority of the dataset (not

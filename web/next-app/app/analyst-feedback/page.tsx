@@ -55,6 +55,8 @@ export default function AnalystFeedbackPage() {
   const [analystVerdictOverride, setAnalystVerdictOverride] = useState<string | null>(null);
   const [confidence, setConfidence] = useState(0.8);
   const [reasoning, setReasoning] = useState("");
+  const [retraining, setRetraining] = useState(false);
+  const [modelHistory, setModelHistory] = useState<any[]>([]);
 
   // Demo transaction with SHAP features
   const demoTransaction: Transaction = {
@@ -160,8 +162,39 @@ export default function AnalystFeedbackPage() {
     }
   };
 
+  const checkModelHistory = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/analyst/model-history`);
+      const result = await response.json();
+      if (result.history) setModelHistory(result.history);
+    } catch (error) {
+      console.error("Model history fetch error:", error);
+    }
+  };
+
+  const handleTriggerRetrain = async () => {
+    setRetraining(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/analyst/trigger-retrain`, { method: "POST" });
+      const result = await response.json();
+      if (result.status === "success") {
+        await checkFeedbackStatus();
+        await checkModelHistory();
+        alert("Model successfully retrained!");
+      } else {
+        alert("Failed to retrain: " + result.message);
+      }
+    } catch (error) {
+      console.error("Retrain error:", error);
+      alert("Error triggering retrain");
+    } finally {
+      setRetraining(false);
+    }
+  };
+
   React.useEffect(() => {
     checkFeedbackStatus();
+    checkModelHistory();
   }, []);
 
   return (
@@ -347,11 +380,61 @@ export default function AnalystFeedbackPage() {
                     <span className="font-bold text-emerald-400">{feedbackStatus.legitimate_confirmed}</span>
                   </div>
                   {feedbackStatus.should_retrain && (
-                    <div className="mt-3 p-2 rounded bg-orange-500/20 border border-orange-500/30">
-                      <p className="text-orange-300 font-semibold">✓ Ready to Retrain</p>
-                      <p className="text-[10px] text-orange-200 mt-1">{feedbackStatus.reason}</p>
+                    <div className="mt-3 p-3 rounded-lg bg-orange-500/20 border border-orange-500/30">
+                      <p className="text-orange-300 font-semibold mb-2">✓ Ready to Retrain</p>
+                      <button
+                        onClick={handleTriggerRetrain}
+                        disabled={retraining}
+                        className="w-full py-2 rounded-lg bg-orange-600 hover:bg-orange-500 disabled:bg-zinc-700 text-white font-bold flex items-center justify-center gap-2 transition text-xs"
+                      >
+                        {retraining ? (
+                          <>
+                            <RotateCw className="h-4 w-4 animate-spin" />
+                            Retraining Model...
+                          </>
+                        ) : (
+                          <>
+                            <TrendingUp className="h-4 w-4" />
+                            Retrain Model
+                          </>
+                        )}
+                      </button>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Model History Comparison */}
+            {modelHistory.length > 0 && (
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 backdrop-blur-md">
+                <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-blue-400" /> Model Evolution
+                </h3>
+                <div className="space-y-4">
+                  {modelHistory.map((meta: any, idx: number) => (
+                    <div key={idx} className="p-3 rounded-lg bg-zinc-950/50 border border-zinc-700/50">
+                      <p className="text-xs font-bold text-blue-300 mb-2">{meta.label} <span className="text-[10px] text-zinc-500 font-mono font-normal">({meta.version})</span></p>
+                      <div className="grid grid-cols-2 gap-2 text-[10px]">
+                        <div>
+                          <span className="text-zinc-500">PR-AUC</span>
+                          <p className="text-white font-semibold">{(meta.pr_auc * 100).toFixed(2)}%</p>
+                        </div>
+                        <div>
+                          <span className="text-zinc-500">Precision</span>
+                          <p className="text-white font-semibold">{(meta.precision * 100).toFixed(2)}%</p>
+                        </div>
+                        <div>
+                          <span className="text-zinc-500">Test Recall</span>
+                          <p className="text-white font-semibold">{(meta.recall * 100).toFixed(2)}%</p>
+                        </div>
+                        <div>
+                          <span className="text-zinc-500">Evasion Rate</span>
+                          <p className="text-red-400 font-semibold">{(meta.evasion_rate * 100).toFixed(1)}%</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

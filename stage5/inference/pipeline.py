@@ -414,14 +414,25 @@ def analyze_transaction(transaction: dict, api_key: str | None = None) -> dict:
     top_attack_family = None
     top_attack_probability = 0.0
     if attack_classifier is not None:
-        attack_probs = attack_classifier.predict_proba(X_proc)[0]
-        for idx, prob in enumerate(attack_probs):
-            atk_name = idx_to_attack[idx]
-            attack_probabilities[atk_name] = float(prob)
+        try:
+            attack_probs = attack_classifier.predict_proba(X_proc)[0]
+            for idx, prob in enumerate(attack_probs):
+                atk_name = idx_to_attack[idx]
+                attack_probabilities[atk_name] = float(prob)
 
-        best_idx = int(np.argmax(attack_probs))
-        top_attack_family = idx_to_attack[best_idx]
-        top_attack_probability = float(attack_probs[best_idx])
+            best_idx = int(np.argmax(attack_probs))
+            top_attack_family = idx_to_attack[best_idx]
+            top_attack_probability = float(attack_probs[best_idx])
+        except Exception as e:
+            # Fall back gracefully if the attack classifier is stale or has mismatched feature schema
+            import logging
+            logging.warning(
+                f"Attack classifier prediction failed (likely due to category schema drift). "
+                f"Continuing with primary fraud score only. Detail: {e}"
+            )
+            attack_probabilities = {}
+            top_attack_family = None
+            top_attack_probability = 0.0
     
     # 4. Risk Fusion Engine
     base_score = _calibrated_base_score(fraud_probability, fraud_recall_threshold, fraud_precision_threshold)
@@ -505,7 +516,6 @@ def analyze_transaction(transaction: dict, api_key: str | None = None) -> dict:
             contributing_signals.append(f"Significant transaction amount deviation ({ratio:.1f}x historical average)")
         elif ratio > 2.0:
             contributing_signals.append(f"Moderate transaction amount deviation ({ratio:.1f}x historical average)")
-
     # PIN attempts. low=1 matches the original cutoff (0 or 1 attempts stay at
     # 0 risk); high=5 is the Studio's slider max, not an original step
     # threshold -- unlike the other flags, pin_attempts is an integer with no

@@ -29,7 +29,7 @@ def _as_feature_frame(attacks: list) -> pd.DataFrame:
     return df.reindex(columns=ALL_FEATURES)
 
 
-RETAINED_SAMPLE_CAP = 1500
+RETAINED_SAMPLE_CAP = 3000
 LEVEL_ATTACK_CAP = 600
 TRAIN_FRACTION = 0.8
 # Curriculum pass/fail checks use the detector's 1%-FPR decision point, the

@@ -8,9 +8,7 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-  // TODO: point this at the deployed FastAPI backend (see backend/wrangler.toml)
-  // once the Cloudflare Container is live.
   "vars": {
-    "NEXT_PUBLIC_API_BASE_URL": "http://localhost:8000"
+    "NEXT_PUBLIC_API_BASE_URL": "https://chakravyuh-api.chatbot-sockscarving.workers.dev"
   }
 }

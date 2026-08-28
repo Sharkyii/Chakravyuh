@@ -14,6 +14,7 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY src ./src
 COPY stage5 ./stage5
 COPY web ./web
+COPY data/generated/stage5/baseline/stage2 ./data/generated/stage5/baseline/stage2
 
 ENV PATH="/app/.venv/bin:$PATH"
 

@@ -106,6 +106,8 @@ interface GraphNode {
   difficulty: number;
   novelty: number;
   description: string;
+  x: number;
+  y: number;
 }
 
 const ATTACK_NODES: GraphNode[] = [
@@ -117,7 +119,9 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "Device anomalous, account changes, auth success",
     difficulty: 3,
     novelty: 3,
-    description: "Fraudsters bypass authentication (OTP phishing/SIM swap/deepfakes) to hijack a real account, initiating transfers from anomalous devices."
+    description: "Fraudsters bypass authentication (OTP phishing/SIM swap/deepfakes) to hijack a real account, initiating transfers from anomalous devices.",
+    x: 10,
+    y: 20
   },
   {
     id: "G10",
@@ -127,7 +131,9 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "Credit building followed by sudden utilization spike",
     difficulty: 4,
     novelty: 3,
-    description: "Establishing credit accounts using fictitious identities. They behave normally to build a credit limit, then trigger a simultaneous utilization spike."
+    description: "Establishing credit accounts using fictitious identities. They behave normally to build a credit limit, then trigger a simultaneous utilization spike.",
+    x: 10,
+    y: 50
   },
   {
     id: "G13",
@@ -137,7 +143,9 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "Approval velocity signals, internal access pattern anomalies",
     difficulty: 3,
     novelty: 2,
-    description: "Internal staff or compromised internal banking credentials authorizing high-velocity modifications or refunds without typical consumer device trails."
+    description: "Internal staff or compromised internal banking credentials authorizing high-velocity modifications or refunds without typical consumer device trails.",
+    x: 10,
+    y: 80
   },
   {
     id: "G03",
@@ -147,7 +155,9 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "Micro-amounts, high decline rates, card rotation",
     difficulty: 3,
     novelty: 2,
-    description: "Automated scripts making rapid micro-transactions to validate stolen credentials and BIN ranges before executing large fraud sweeps."
+    description: "Automated scripts making rapid micro-transactions to validate stolen credentials and BIN ranges before executing large fraud sweeps.",
+    x: 30,
+    y: 35
   },
   {
     id: "G06",
@@ -157,7 +167,9 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "Uniform recurring small amounts, high max_amount settings",
     difficulty: 4,
     novelty: 3,
-    description: "Setting up recurring UPI mandates under false pretenses (e.g., small trial setup), but configuring high transaction caps to extract money later."
+    description: "Setting up recurring UPI mandates under false pretenses (e.g., small trial setup), but configuring high transaction caps to extract money later.",
+    x: 30,
+    y: 65
   },
   {
     id: "G01",
@@ -167,7 +179,9 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "Genuine device & PIN, brand-new payee, active call session",
     difficulty: 4,
     novelty: 4,
-    description: "Victims are socially engineered (e.g., voice clone, digital arrest scam) to initiate transactions themselves. Session metadata reveals active calls or screen-sharing."
+    description: "Victims are socially engineered (e.g., voice clone, digital arrest scam) to initiate transactions themselves. Session metadata reveals active calls or screen-sharing.",
+    x: 50,
+    y: 35
   },
   {
     id: "G12",
@@ -177,7 +191,9 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "is_agent_initiated, VPA not in directory",
     difficulty: 5,
     novelty: 5,
-    description: "Exploiting GenAI delegates or payment agents using prompt injection attacks, forcing the AI agent to authorize payments to unregistered VPAs."
+    description: "Exploiting GenAI delegates or payment agents using prompt injection attacks, forcing the AI agent to authorize payments to unregistered VPAs.",
+    x: 50,
+    y: 65
   },
   {
     id: "G04",
@@ -187,7 +203,9 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "Features aligned inside legitimate data distributions",
     difficulty: 5,
     novelty: 5,
-    description: "Using ML model feedback to specifically optimize transaction sizes, intervals, and counterparty routing to avoid triggering detection thresholds."
+    description: "Using ML model feedback to specifically optimize transaction sizes, intervals, and counterparty routing to avoid triggering detection thresholds.",
+    x: 70,
+    y: 35
   },
   {
     id: "G11",
@@ -197,7 +215,9 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "Amounts just below limits (e.g. under ₹1,000)",
     difficulty: 3,
     novelty: 3,
-    description: "Splitting a large fraudulent transfer into dozens of tiny transactions falling under regulatory authentication caps (AFA bypass thresholds)."
+    description: "Splitting a large fraudulent transfer into dozens of tiny transactions falling under regulatory authentication caps (AFA bypass thresholds).",
+    x: 70,
+    y: 65
   },
   {
     id: "G02",
@@ -207,7 +227,9 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "Fan-in/fan-out graph topology, pass-through ratio near 1",
     difficulty: 4,
     novelty: 3,
-    description: "Layering stolen money through accounts characterized by rapid inflows immediately followed by outbound transfers to downstream accounts."
+    description: "Layering stolen money through accounts characterized by rapid inflows immediately followed by outbound transfers to downstream accounts.",
+    x: 90,
+    y: 20
   },
   {
     id: "G07",
@@ -217,7 +239,9 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "New merchant, step volume curves, unverified KYB",
     difficulty: 4,
     novelty: 3,
-    description: "Creating fake business accounts to process stolen cards. Accounts show sudden step-wise processing jumps followed by immediate cash liquidation."
+    description: "Creating fake business accounts to process stolen cards. Accounts show sudden step-wise processing jumps followed by immediate cash liquidation.",
+    x: 90,
+    y: 43
   },
   {
     id: "G08",
@@ -227,7 +251,9 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "Declared MCC differs from inferred basket category",
     difficulty: 4,
     novelty: 3,
-    description: "Routing forbidden or illegal transactions through approved merchant accounts, disguising payment codes to bypass acquirer checks."
+    description: "Routing forbidden or illegal transactions through approved merchant accounts, disguising payment codes to bypass acquirer checks.",
+    x: 90,
+    y: 66
   },
   {
     id: "G05",
@@ -237,7 +263,9 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "Genuine details, history of high claimant disputes",
     difficulty: 4,
     novelty: 3,
-    description: "A legitimate buyer completes a purchase, then uses automated AI templates to file false dispute chargebacks to obtain refunds illegally."
+    description: "A legitimate buyer completes a purchase, then uses automated AI templates to file false dispute chargebacks to obtain refunds illegally.",
+    x: 90,
+    y: 90
   }
 ];
 
@@ -344,68 +372,22 @@ export default function AnalystPortal() {
   const [selectedTransactionNode, setSelectedTransactionNode] = useState<any>(null);
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
 
-  // Lifecycle Map: static attack taxonomy laid out left-to-right by phase via dagre.
-  const lifecyclePositionedNodes = useMemo(() => {
-    const phaseOrder = ["Access", "Probing", "Execution", "Evasion", "Exfiltration"];
-    const edges: { source: string; target: string }[] = [];
-    for (let i = 0; i < phaseOrder.length - 1; i++) {
-      const srcs = ATTACK_NODES.filter(n => n.phase === phaseOrder[i]);
-      const dests = ATTACK_NODES.filter(n => n.phase === phaseOrder[i + 1]);
-      for (const src of srcs) {
-        for (const dest of dests) {
-          edges.push({ source: src.id, target: dest.id });
-        }
-      }
-    }
-    return layoutWithDagre(ATTACK_NODES, edges, {
-      rankdir: "LR",
-      nodesep: 60,
-      ranksep: 180,
-      nodeWidth: 140,
-      nodeHeight: 40,
-    });
-  }, []);
-
-  const lifecycleFlowNodes: FlowNode[] = useMemo(
-    () =>
-      lifecyclePositionedNodes.map(node => ({
-        id: node.id,
-        type: "attackLifecycleNode",
-        position: node.position,
-        data: { ...node, isSelected: selectedNode?.id === node.id },
-      })),
-    [lifecyclePositionedNodes, selectedNode]
-  );
-
-  const lifecycleFlowEdges: FlowEdge[] = useMemo(() => {
-    const phaseOrder = ["Access", "Probing", "Execution", "Evasion", "Exfiltration"];
-    const edges: FlowEdge[] = [];
-    for (let i = 0; i < phaseOrder.length - 1; i++) {
-      const srcs = ATTACK_NODES.filter(n => n.phase === phaseOrder[i]);
-      const dests = ATTACK_NODES.filter(n => n.phase === phaseOrder[i + 1]);
-      for (const src of srcs) {
-        for (const dest of dests) {
-          const isHighlighted = selectedNode && (selectedNode.id === src.id || selectedNode.id === dest.id);
-          edges.push({
-            id: `${src.id}-${dest.id}`,
-            source: src.id,
-            target: dest.id,
-            type: "smoothstep",
-            style: {
-              stroke: isHighlighted ? "#f97316" : "#18181b",
-              strokeWidth: isHighlighted ? 1.5 : 1,
-              opacity: isHighlighted ? 0.8 : 0.4,
-            },
-            markerEnd: {
-              type: MarkerType.ArrowClosed,
-              color: isHighlighted ? "#f97316" : "#3f3f46",
-            },
-          });
-        }
-      }
-    }
-    return edges;
-  }, [selectedNode]);
+  // Lifecycle graph edges are drawn as SVG <path> curves between two
+  // percentage-positioned nodes -- but the `d` attribute doesn't accept
+  // percentage units (unlike <circle cx/cy> or <line x1/y1>, which do), so
+  // the coordinates need converting to real pixels against the SVG's actual
+  // rendered size.
+  const lifecycleSvgRef = useRef<SVGSVGElement>(null);
+  const [lifecycleDims, setLifecycleDims] = useState({ width: 1000, height: 440 });
+  useEffect(() => {
+    const el = lifecycleSvgRef.current;
+    if (!el) return;
+    const update = () => setLifecycleDims({ width: el.clientWidth, height: el.clientHeight });
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [activeTab]);
 
   // Transaction Linkage: dynamic per-session graph, laid out once as a whole
   // (not per-cluster) so dagre's connected-component packing separates
@@ -1955,19 +1937,149 @@ export default function AnalystPortal() {
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#16161a_1px,transparent_1px),linear-gradient(to_bottom,#16161a_1px,transparent_1px)] bg-[size:2rem_2rem] pointer-events-none" />
 
                 {graphViewMode === "lifecycle" ? (
-                  <ReactFlow
-                    nodes={lifecycleFlowNodes}
-                    edges={lifecycleFlowEdges}
-                    nodeTypes={nodeTypes}
-                    onNodeClick={(_, node) =>
-                      setSelectedNode(ATTACK_NODES.find(n => n.id === node.id) ?? null)
-                    }
-                    fitView
-                    proOptions={{ hideAttribution: true }}
-                    className="w-full h-full min-h-[440px]"
-                  >
-                    <Background color="#16161a" gap={32} />
-                  </ReactFlow>
+                  <svg ref={lifecycleSvgRef} className="w-full h-full min-h-[440px]">
+                    {/* Markers */}
+                    <defs>
+                      <marker
+                        id="arrow"
+                        viewBox="0 0 10 10"
+                        refX="6"
+                        refY="5"
+                        markerWidth="6"
+                        markerHeight="6"
+                        orient="auto-start-reverse"
+                      >
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#3f3f46" />
+                      </marker>
+                      <marker
+                        id="arrow-glow"
+                        viewBox="0 0 10 10"
+                        refX="6"
+                        refY="5"
+                        markerWidth="6"
+                        markerHeight="6"
+                        orient="auto-start-reverse"
+                      >
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#f97316" />
+                      </marker>
+                    </defs>
+
+                    {/* Draw connection pathways */}
+                    {/* Access to Probing */}
+                    {ATTACK_NODES.filter(n => n.phase === "Access").map(src =>
+                      ATTACK_NODES.filter(n => n.phase === "Probing").map(dest => {
+                        const isHighlighted = selectedNode && (selectedNode.id === src.id || selectedNode.id === dest.id);
+                        return (
+                          <path
+                            key={`${src.id}-${dest.id}`}
+                            d={`M ${src.x/100*lifecycleDims.width} ${src.y/100*lifecycleDims.height} Q ${(src.x + dest.x)/2/100*lifecycleDims.width} ${((src.y + dest.y)/2 - 4)/100*lifecycleDims.height} ${dest.x/100*lifecycleDims.width} ${dest.y/100*lifecycleDims.height}`}
+                            fill="none"
+                            stroke={isHighlighted ? "#f97316" : "#18181b"}
+                            strokeWidth={isHighlighted ? "1.5" : "1"}
+                            markerEnd={`url(#${isHighlighted ? "arrow-glow" : "arrow"})`}
+                            opacity={isHighlighted ? 0.8 : 0.4}
+                            className="transition-all duration-300"
+                          />
+                        );
+                      })
+                    )}
+
+                    {/* Probing to Execution */}
+                    {ATTACK_NODES.filter(n => n.phase === "Probing").map(src =>
+                      ATTACK_NODES.filter(n => n.phase === "Execution").map(dest => {
+                        const isHighlighted = selectedNode && (selectedNode.id === src.id || selectedNode.id === dest.id);
+                        return (
+                          <path
+                            key={`${src.id}-${dest.id}`}
+                            d={`M ${src.x/100*lifecycleDims.width} ${src.y/100*lifecycleDims.height} Q ${(src.x + dest.x)/2/100*lifecycleDims.width} ${((src.y + dest.y)/2 + 3)/100*lifecycleDims.height} ${dest.x/100*lifecycleDims.width} ${dest.y/100*lifecycleDims.height}`}
+                            fill="none"
+                            stroke={isHighlighted ? "#f97316" : "#18181b"}
+                            strokeWidth={isHighlighted ? "1.5" : "1"}
+                            markerEnd={`url(#${isHighlighted ? "arrow-glow" : "arrow"})`}
+                            opacity={isHighlighted ? 0.8 : 0.4}
+                            className="transition-all duration-300"
+                          />
+                        );
+                      })
+                    )}
+
+                    {/* Execution to Evasion */}
+                    {ATTACK_NODES.filter(n => n.phase === "Execution").map(src =>
+                      ATTACK_NODES.filter(n => n.phase === "Evasion").map(dest => {
+                        const isHighlighted = selectedNode && (selectedNode.id === src.id || selectedNode.id === dest.id);
+                        return (
+                          <path
+                            key={`${src.id}-${dest.id}`}
+                            d={`M ${src.x/100*lifecycleDims.width} ${src.y/100*lifecycleDims.height} L ${dest.x/100*lifecycleDims.width} ${dest.y/100*lifecycleDims.height}`}
+                            fill="none"
+                            stroke={isHighlighted ? "#f97316" : "#18181b"}
+                            strokeWidth={isHighlighted ? "1.5" : "1"}
+                            markerEnd={`url(#${isHighlighted ? "arrow-glow" : "arrow"})`}
+                            opacity={isHighlighted ? 0.8 : 0.4}
+                            className="transition-all duration-300"
+                          />
+                        );
+                      })
+                    )}
+
+                    {/* Evasion to Exfiltration */}
+                    {ATTACK_NODES.filter(n => n.phase === "Evasion").map(src =>
+                      ATTACK_NODES.filter(n => n.phase === "Exfiltration").map(dest => {
+                        const isHighlighted = selectedNode && (selectedNode.id === src.id || selectedNode.id === dest.id);
+                        return (
+                          <path
+                            key={`${src.id}-${dest.id}`}
+                            d={`M ${src.x/100*lifecycleDims.width} ${src.y/100*lifecycleDims.height} Q ${(src.x + dest.x)/2/100*lifecycleDims.width} ${((src.y + dest.y)/2 + 2)/100*lifecycleDims.height} ${dest.x/100*lifecycleDims.width} ${dest.y/100*lifecycleDims.height}`}
+                            fill="none"
+                            stroke={isHighlighted ? "#f97316" : "#18181b"}
+                            strokeWidth={isHighlighted ? "1.5" : "1"}
+                            markerEnd={`url(#${isHighlighted ? "arrow-glow" : "arrow"})`}
+                            opacity={isHighlighted ? 0.8 : 0.4}
+                            className="transition-all duration-300"
+                          />
+                        );
+                      })
+                    )}
+
+                    {/* Draw Nodes */}
+                    {ATTACK_NODES.map(node => {
+                      const isSelected = selectedNode && selectedNode.id === node.id;
+                      return (
+                        <g
+                          key={node.id}
+                          onClick={() => setSelectedNode(node)}
+                          className="cursor-pointer group"
+                        >
+                          <circle
+                            cx={`${node.x}%`}
+                            cy={`${node.y}%`}
+                            r={isSelected ? "13" : "10"}
+                            fill="#09090b"
+                            stroke={isSelected ? "#ff5f00" : "#27272a"}
+                            strokeWidth={isSelected ? "3" : "1.5"}
+                            className="transition-all duration-300 group-hover:stroke-orange-500"
+                          />
+                          <circle
+                            cx={`${node.x}%`}
+                            cy={`${node.y}%`}
+                            r="3"
+                            fill={isSelected ? "#ff5f00" : "#52525b"}
+                          />
+                          <text
+                            x={`${node.x}%`}
+                            y={`${node.y + 6}%`}
+                            textAnchor="middle"
+                            fill={isSelected ? "#ffffff" : "#a1a1aa"}
+                            fontSize="9"
+                            fontWeight={isSelected ? "bold" : "normal"}
+                            className="transition-colors duration-300 select-none group-hover:fill-white"
+                          >
+                            {node.name}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </svg>
                 ) : (
                   // Dynamic Transaction Graph
                   <div className="w-full h-full min-h-[440px] relative animate-fade-in flex flex-col">

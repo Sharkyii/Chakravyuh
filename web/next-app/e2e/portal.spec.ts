@@ -46,11 +46,10 @@ test("attack connection graph tab renders without console errors", async ({ page
   await page.getByRole("button", { name: "Attack Connection Graph" }).click();
   await expect(page.getByText("NETWORK CONNECTION GRAPH")).toBeVisible();
   // At least one node from the 13-generator catalogue should render.
-  // Scoped to React Flow's node layer since the same label also appears in
-  // the side detail panel's heading -- an unscoped locator matches both and
-  // fails strict mode.
-  await expect(page.locator(".react-flow__node").getByText("Credential Takeover")).toBeVisible();
-  await page.waitForTimeout(500); // let dagre layout + fitView settle
+  // Scoped to the svg since the same label also appears in the side detail
+  // panel's heading -- an unscoped locator matches both and fails strict mode.
+  await expect(page.locator("svg").getByText("Credential Takeover")).toBeVisible();
+  await page.waitForTimeout(500); // let SVG path draws settle
   expect(errors).toEqual([]);
 });
 

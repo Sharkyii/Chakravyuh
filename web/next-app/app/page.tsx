@@ -341,6 +341,18 @@ export default function AnalystPortal() {
   // Dashboard Tabs State
   const [activeTab, setActiveTab] = useState<"scoring" | "closed-loop" | "graph" | "playground">("scoring");
 
+  // Interactive Walkthrough Guide State
+  const [guideActive, setGuideActive] = useState(true);
+  const [guideStep, setGuideStep] = useState<
+    | "choose_scenario"
+    | "inspect_parameters"
+    | "submit_feedback"
+    | "choose_destination"
+    | "closed_loop"
+    | "graph"
+    | "playground"
+  >("choose_scenario");
+
   // Live Scoring State
   const [scenarios, setScenarios] = useState<Record<string, Scenario>>({});
   const [selectedScenarioName, setSelectedScenarioName] = useState("");
@@ -618,6 +630,9 @@ export default function AnalystPortal() {
       if (res.ok) {
         const data = await res.json();
         setFeedbackSuccess(true);
+        if (guideActive) {
+          setGuideStep("choose_destination");
+        }
         setShouldRetrain(data.should_retrain);
         setRetrainReason(data.reason || "");
         await fetchMetrics(); // Refresh metrics tab instantly
@@ -721,6 +736,9 @@ export default function AnalystPortal() {
       const result = await res.json();
       setScoreResult(result);
       setFeedbackSuccess(false); // Reset feedback success state
+      if (guideActive) {
+        setGuideStep("submit_feedback");
+      }
       if (result.network_graph?.nodes?.length > 0) {
         const targetNodeId = `payer_${result.txn_id}`;
         const currentNode = result.network_graph.nodes.find((n: any) => n.id === targetNodeId) || result.network_graph.nodes[0];
@@ -732,6 +750,13 @@ export default function AnalystPortal() {
       setIsScoring(false);
     }
   };
+
+  // Synchronize guide steps on risk scoring results
+  useEffect(() => {
+    if (guideActive && scoreResult && !isScoring && !feedbackSuccess && guideStep === "inspect_parameters") {
+      setGuideStep("submit_feedback");
+    }
+  }, [scoreResult, isScoring, feedbackSuccess, guideActive, guideStep]);
 
   const updateOverrideField = (field: string, val: any) => {
     setTxnOverrides(prev => ({
@@ -883,16 +908,32 @@ export default function AnalystPortal() {
             {/* Control Panel (Scenarios & Inputs) - 5 Cols */}
             <section className="lg:col-span-5 flex flex-col gap-6">
               {/* Scenario selector */}
-              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5 backdrop-blur-md">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-3">
-                  Select Simulation Scenario
-                </label>
+              <div className={`rounded-2xl border bg-zinc-900/40 p-5 backdrop-blur-md transition-all ${
+                guideActive && guideStep === "choose_scenario"
+                  ? "border-orange-500 ring-2 ring-orange-500/30 shadow-lg shadow-orange-500/10"
+                  : "border-zinc-800"
+              }`}>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                    Select Simulation Scenario
+                  </label>
+                  {guideActive && guideStep === "choose_scenario" && (
+                    <span className="text-[10px] bg-orange-500/20 text-orange-400 border border-orange-500/40 px-2 py-0.5 rounded-full font-bold animate-pulse">
+                      💡 Choose any simulation scenario from dropdown
+                    </span>
+                  )}
+                </div>
                 {Object.keys(scenarios).length === 0 ? (
                   <div className="h-11 bg-zinc-950 rounded-xl animate-pulse" />
                 ) : (
                   <select
                     value={selectedScenarioName}
-                    onChange={(e) => setSelectedScenarioName(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedScenarioName(e.target.value);
+                      if (guideActive && guideStep === "choose_scenario") {
+                        setGuideStep("inspect_parameters");
+                      }
+                    }}
                     className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-4 py-3 text-sm text-zinc-200 outline-none transition focus:border-orange-500"
                   >
                     {Object.keys(scenarios).map((name) => (
@@ -905,11 +946,20 @@ export default function AnalystPortal() {
               </div>
 
               {/* Transaction Param overrides */}
-              <div className="rounded-2xl border border-zinc-900 bg-zinc-950/40 p-5 backdrop-blur-md flex-1 flex flex-col gap-6">
-                <div>
-                  <h3 className="text-xs font-bold text-white uppercase tracking-widest border-b border-zinc-900 pb-2">
+              <div className={`rounded-2xl border bg-zinc-950/40 p-5 backdrop-blur-md flex-1 flex flex-col gap-6 transition-all ${
+                guideActive && guideStep === "inspect_parameters"
+                  ? "border-orange-500 ring-2 ring-orange-500/30 shadow-lg shadow-orange-500/10"
+                  : "border-zinc-900"
+              }`}>
+                <div className="flex items-center justify-between border-b border-zinc-900 pb-2">
+                  <h3 className="text-xs font-bold text-white uppercase tracking-widest">
                     Override Parameter Signals
                   </h3>
+                  {guideActive && guideStep === "inspect_parameters" && (
+                    <span className="text-[10px] bg-orange-500/20 text-orange-400 border border-orange-500/40 px-2 py-0.5 rounded-full font-bold animate-pulse">
+                      💡 Review parameter signals & click &quot;Run Risk Assessment&quot;
+                    </span>
+                  )}
                 </div>
 
                 {/* Category 1: Financial Profile */}
@@ -1149,8 +1199,22 @@ export default function AnalystPortal() {
                   </p>
                 </div>
               ) : (
-                <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 backdrop-blur-md flex-1 flex flex-col gap-6 animate-fade-in">
-                  
+                <div className={`rounded-2xl border bg-zinc-900/40 p-6 backdrop-blur-md flex-1 flex flex-col gap-6 animate-fade-in transition-all ${
+                  guideActive && guideStep === "submit_feedback"
+                    ? "border-orange-500 ring-2 ring-orange-500/30 shadow-lg shadow-orange-500/10"
+                    : "border-zinc-800"
+                }`}>
+                  {guideActive && guideStep === "submit_feedback" && (
+                    <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-xl flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">💡</span>
+                        <span className="text-xs text-orange-300 font-semibold">
+                          Review calculated risk score and SHAP features, then scroll down to log your feedback verdict.
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Gauge and Decision header */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center border-b border-zinc-800/80 pb-6">
                     {/* Radial SVG Gauge */}
@@ -1479,6 +1543,98 @@ export default function AnalystPortal() {
                     )}
                   </div>
 
+                  {/* Step 4: 3-Way Guided Exploration Paths */}
+                  {(feedbackSuccess || guideStep === "choose_destination") && (
+                    <div className="rounded-xl border border-orange-500/40 bg-zinc-950/80 p-4 ring-2 ring-orange-500/20 shadow-lg shadow-orange-500/10 animate-fade-in space-y-3">
+                      <div className="flex items-center justify-between border-b border-zinc-850 pb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">🎯</span>
+                          <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                            Explore Chakravyuh Defense Modules
+                          </h4>
+                        </div>
+                        <span className="text-[10px] bg-orange-500/20 text-orange-400 border border-orange-500/40 px-2 py-0.5 rounded-full font-bold">
+                          Next Destination
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-zinc-400">
+                        Select any of the 3 modules below to continue the guided exploration of the platform:
+                      </p>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                        {/* Destination 1: Closed-Loop */}
+                        <button
+                          onClick={() => {
+                            setActiveTab("closed-loop");
+                            if (guideActive) setGuideStep("closed_loop");
+                          }}
+                          className="flex flex-col text-left p-3 rounded-lg border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 hover:border-orange-500/50 transition group"
+                        >
+                          <div className="flex items-center justify-between text-zinc-400 group-hover:text-orange-400 mb-1.5">
+                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider">Module 1</span>
+                            <Layers className="h-4 w-4" />
+                          </div>
+                          <span className="text-xs font-bold text-zinc-200 group-hover:text-white block mb-1">
+                            Closed-Loop Intelligence
+                          </span>
+                          <span className="text-[10px] text-zinc-400 leading-relaxed">
+                            Compare Gen A vs Gen B drift metrics, audit SQLite feedback logs, and trigger curriculum model retraining.
+                          </span>
+                          <span className="text-[10px] text-orange-400 font-bold mt-2 inline-flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                            Open Closed-Loop ➔
+                          </span>
+                        </button>
+
+                        {/* Destination 2: Threat Graph */}
+                        <button
+                          onClick={() => {
+                            setActiveTab("graph");
+                            if (guideActive) setGuideStep("graph");
+                          }}
+                          className="flex flex-col text-left p-3 rounded-lg border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 hover:border-orange-500/50 transition group"
+                        >
+                          <div className="flex items-center justify-between text-zinc-400 group-hover:text-orange-400 mb-1.5">
+                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider">Module 2</span>
+                            <Network className="h-4 w-4" />
+                          </div>
+                          <span className="text-xs font-bold text-zinc-200 group-hover:text-white block mb-1">
+                            Attack Connection Graph
+                          </span>
+                          <span className="text-[10px] text-zinc-400 leading-relaxed">
+                            Visualize interactive subgraphs, detect active remote screen hijackers, and unmask multi-hop mule routes.
+                          </span>
+                          <span className="text-[10px] text-orange-400 font-bold mt-2 inline-flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                            Open Threat Graph ➔
+                          </span>
+                        </button>
+
+                        {/* Destination 3: Attack Playground */}
+                        <button
+                          onClick={() => {
+                            setActiveTab("playground");
+                            if (guideActive) setGuideStep("playground");
+                          }}
+                          className="flex flex-col text-left p-3 rounded-lg border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 hover:border-orange-500/50 transition group"
+                        >
+                          <div className="flex items-center justify-between text-zinc-400 group-hover:text-orange-400 mb-1.5">
+                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider">Module 3</span>
+                            <Zap className="h-4 w-4" />
+                          </div>
+                          <span className="text-xs font-bold text-zinc-200 group-hover:text-white block mb-1">
+                            Simulator Playground
+                          </span>
+                          <span className="text-[10px] text-zinc-400 leading-relaxed">
+                            Inject synthetic fraud campaigns across 58 frozen vectors to stress-test real-time hop-by-hop detection.
+                          </span>
+                          <span className="text-[10px] text-orange-400 font-bold mt-2 inline-flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                            Open Simulator ➔
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                 </div>
               )}
             </section>
@@ -1488,6 +1644,42 @@ export default function AnalystPortal() {
         {/* TAB 2: CLOSED-LOOP INTELLIGENCE */}
         {activeTab === "closed-loop" && (
           <div className="space-y-6 animate-fade-in">
+            {guideActive && (
+              <div className="rounded-2xl border border-orange-500/40 bg-zinc-950/80 p-5 ring-2 ring-orange-500/20 shadow-lg shadow-orange-500/10 animate-fade-in flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-orange-600/10 border border-orange-500/30 flex items-center justify-center text-orange-400 shrink-0 mt-0.5">
+                    <Layers className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                        Closed-Loop Intelligence Walkthrough
+                      </h3>
+                      <span className="text-[9px] bg-orange-500/20 text-orange-400 border border-orange-500/40 px-2 py-0.5 rounded-full font-bold">
+                        Active Guide
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-400 mt-1 leading-relaxed max-w-3xl">
+                      <strong className="text-zinc-200">1. Comparative Metrics & Drift:</strong> Compare Gen A (Baseline) vs Gen B (Retrained) below to observe PR-AUC gains and false-positive elimination.
+                      <br />
+                      <strong className="text-zinc-200">2. Automated Retraining:</strong> Every 5 human verdicts logged in the studio accumulate in SQLite and trigger automated curriculum retraining to patch evasion blindspots.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
+                  <button
+                    onClick={() => {
+                      setActiveTab("graph");
+                      if (guideActive) setGuideStep("graph");
+                    }}
+                    className="px-3.5 py-1.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-lg transition flex items-center gap-1"
+                  >
+                    Next: Threat Graph ➔
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Concept explainer */}
             <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 backdrop-blur-md">
               <h2 className="text-lg font-bold text-white mb-2">What is the Closed-Loop Cycle?</h2>
@@ -1886,6 +2078,42 @@ export default function AnalystPortal() {
         {/* TAB 3: ATTACK CONNECTION GRAPH */}
         {activeTab === "graph" && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-fade-in">
+            {guideActive && (
+              <div className="lg:col-span-12 rounded-2xl border border-orange-500/40 bg-zinc-950/80 p-5 ring-2 ring-orange-500/20 shadow-lg shadow-orange-500/10 animate-fade-in flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-orange-600/10 border border-orange-500/30 flex items-center justify-center text-orange-400 shrink-0 mt-0.5">
+                    <Network className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                        Threat Topology & Graph Analysis Walkthrough
+                      </h3>
+                      <span className="text-[9px] bg-orange-500/20 text-orange-400 border border-orange-500/40 px-2 py-0.5 rounded-full font-bold">
+                        Active Guide
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-400 mt-1 leading-relaxed max-w-3xl">
+                      <strong className="text-zinc-200">1. Subgraph Topology:</strong> Displays payer, payee, and attacker remote channel nodes (e.g. active voice calls, screen sharing tools).
+                      <br />
+                      <strong className="text-zinc-200">2. Mule Linkages & Lifecycle:</strong> Toggle between single-transaction view and the 4-phase lifecycle map to reveal multi-hop mule forwarding networks.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
+                  <button
+                    onClick={() => {
+                      setActiveTab("playground");
+                      if (guideActive) setGuideStep("playground");
+                    }}
+                    className="px-3.5 py-1.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-lg transition flex items-center gap-1"
+                  >
+                    Next: Simulator Playground ➔
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* The SVG Network Canvas - 8 Cols */}
             <div className="lg:col-span-8 rounded-2xl border border-zinc-900 bg-zinc-950/40 p-6 backdrop-blur-md flex flex-col relative min-h-[520px]">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
@@ -2316,6 +2544,42 @@ export default function AnalystPortal() {
         {/* TAB 4: ATTACK SIMULATOR PLAYGROUND */}
         {activeTab === "playground" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start animate-fade-in">
+            {guideActive && (
+              <div className="lg:col-span-3 rounded-2xl border border-orange-500/40 bg-zinc-950/80 p-5 ring-2 ring-orange-500/20 shadow-lg shadow-orange-500/10 animate-fade-in flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-orange-600/10 border border-orange-500/30 flex items-center justify-center text-orange-400 shrink-0 mt-0.5">
+                    <Zap className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                        Attack Simulator Playground Walkthrough
+                      </h3>
+                      <span className="text-[9px] bg-orange-500/20 text-orange-400 border border-orange-500/40 px-2 py-0.5 rounded-full font-bold">
+                        Active Guide
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-400 mt-1 leading-relaxed max-w-3xl">
+                      <strong className="text-zinc-200">1. Attack Family Catalog:</strong> Choose from 13 generator families (e.g., Scam-induced Push, Mule Network, Credential Takeover) and set attack intensity.
+                      <br />
+                      <strong className="text-zinc-200">2. Live Campaign Flood:</strong> Injects synthetic transactions into the scoring pipeline one by one to stress-test real-time detection and graph hop propagation.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
+                  <button
+                    onClick={() => {
+                      setActiveTab("scoring");
+                      if (guideActive) setGuideStep("choose_scenario");
+                    }}
+                    className="px-3.5 py-1.5 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-lg transition flex items-center gap-1"
+                  >
+                    Restart Tour (Scoring Studio) ➔
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Left Sidebar: Controls */}
             <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 backdrop-blur-md space-y-6">
               <div>

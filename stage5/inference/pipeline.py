@@ -416,7 +416,18 @@ def analyze_transaction(transaction: dict, api_key: str | None = None) -> dict:
     top_attack_probability = 0.0
     if attack_classifier is not None:
         try:
-            attack_probs = attack_classifier.predict_proba(X_proc)[0]
+            if hasattr(attack_classifier, "feature_names_in_"):
+                expected_cols = list(attack_classifier.feature_names_in_)
+                curr_cols = list(preprocessor.get_feature_names_out())
+                X_df = pd.DataFrame(X_proc, columns=curr_cols)
+                for col in expected_cols:
+                    if col not in X_df.columns:
+                        X_df[col] = 0.0
+                X_eval = X_df[expected_cols]
+                attack_probs = attack_classifier.predict_proba(X_eval)[0]
+            else:
+                attack_probs = attack_classifier.predict_proba(X_proc)[0]
+
             for idx, prob in enumerate(attack_probs):
                 atk_name = idx_to_attack[idx]
                 attack_probabilities[atk_name] = float(prob)

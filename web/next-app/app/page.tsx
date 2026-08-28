@@ -1,8 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import CountUp from "react-countup";
+import { ReactFlow, Background, Controls, MarkerType, type Node as FlowNode, type Edge as FlowEdge } from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
+import { nodeTypes } from "@/components/graph/nodeTypes";
+import { layoutWithDagre } from "@/lib/graphLayout";
+import { edgeStatusColor } from "@/lib/graphColors";
 import {
   Shield,
   Lock,
@@ -58,7 +63,7 @@ interface AnalysisResult {
     uncertainty_caveats: string;
   };
   network_graph?: {
-    nodes: Array<{ id: string; label: string; type: string; risk: string; details: Record<string, string>; x: number; y: number }>;
+    nodes: Array<{ id: string; label: string; type: string; risk: string; details: Record<string, string> }>;
     edges: Array<{ source: string; target: string; label: string; status: string }>;
   };
   campaign_alerts?: string[];
@@ -101,8 +106,6 @@ interface GraphNode {
   difficulty: number;
   novelty: number;
   description: string;
-  x: number;
-  y: number;
 }
 
 const ATTACK_NODES: GraphNode[] = [
@@ -114,9 +117,7 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "Device anomalous, account changes, auth success",
     difficulty: 3,
     novelty: 3,
-    description: "Fraudsters bypass authentication (OTP phishing/SIM swap/deepfakes) to hijack a real account, initiating transfers from anomalous devices.",
-    x: 10,
-    y: 20
+    description: "Fraudsters bypass authentication (OTP phishing/SIM swap/deepfakes) to hijack a real account, initiating transfers from anomalous devices."
   },
   {
     id: "G10",
@@ -126,9 +127,7 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "Credit building followed by sudden utilization spike",
     difficulty: 4,
     novelty: 3,
-    description: "Establishing credit accounts using fictitious identities. They behave normally to build a credit limit, then trigger a simultaneous utilization spike.",
-    x: 10,
-    y: 50
+    description: "Establishing credit accounts using fictitious identities. They behave normally to build a credit limit, then trigger a simultaneous utilization spike."
   },
   {
     id: "G13",
@@ -138,9 +137,7 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "Approval velocity signals, internal access pattern anomalies",
     difficulty: 3,
     novelty: 2,
-    description: "Internal staff or compromised internal banking credentials authorizing high-velocity modifications or refunds without typical consumer device trails.",
-    x: 10,
-    y: 80
+    description: "Internal staff or compromised internal banking credentials authorizing high-velocity modifications or refunds without typical consumer device trails."
   },
   {
     id: "G03",
@@ -150,9 +147,7 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "Micro-amounts, high decline rates, card rotation",
     difficulty: 3,
     novelty: 2,
-    description: "Automated scripts making rapid micro-transactions to validate stolen credentials and BIN ranges before executing large fraud sweeps.",
-    x: 30,
-    y: 35
+    description: "Automated scripts making rapid micro-transactions to validate stolen credentials and BIN ranges before executing large fraud sweeps."
   },
   {
     id: "G06",
@@ -162,9 +157,7 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "Uniform recurring small amounts, high max_amount settings",
     difficulty: 4,
     novelty: 3,
-    description: "Setting up recurring UPI mandates under false pretenses (e.g., small trial setup), but configuring high transaction caps to extract money later.",
-    x: 30,
-    y: 65
+    description: "Setting up recurring UPI mandates under false pretenses (e.g., small trial setup), but configuring high transaction caps to extract money later."
   },
   {
     id: "G01",
@@ -174,9 +167,7 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "Genuine device & PIN, brand-new payee, active call session",
     difficulty: 4,
     novelty: 4,
-    description: "Victims are socially engineered (e.g., voice clone, digital arrest scam) to initiate transactions themselves. Session metadata reveals active calls or screen-sharing.",
-    x: 50,
-    y: 35
+    description: "Victims are socially engineered (e.g., voice clone, digital arrest scam) to initiate transactions themselves. Session metadata reveals active calls or screen-sharing."
   },
   {
     id: "G12",
@@ -186,9 +177,7 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "is_agent_initiated, VPA not in directory",
     difficulty: 5,
     novelty: 5,
-    description: "Exploiting GenAI delegates or payment agents using prompt injection attacks, forcing the AI agent to authorize payments to unregistered VPAs.",
-    x: 50,
-    y: 65
+    description: "Exploiting GenAI delegates or payment agents using prompt injection attacks, forcing the AI agent to authorize payments to unregistered VPAs."
   },
   {
     id: "G04",
@@ -198,9 +187,7 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "Features aligned inside legitimate data distributions",
     difficulty: 5,
     novelty: 5,
-    description: "Using ML model feedback to specifically optimize transaction sizes, intervals, and counterparty routing to avoid triggering detection thresholds.",
-    x: 70,
-    y: 35
+    description: "Using ML model feedback to specifically optimize transaction sizes, intervals, and counterparty routing to avoid triggering detection thresholds."
   },
   {
     id: "G11",
@@ -210,9 +197,7 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "Amounts just below limits (e.g. under ₹1,000)",
     difficulty: 3,
     novelty: 3,
-    description: "Splitting a large fraudulent transfer into dozens of tiny transactions falling under regulatory authentication caps (AFA bypass thresholds).",
-    x: 70,
-    y: 65
+    description: "Splitting a large fraudulent transfer into dozens of tiny transactions falling under regulatory authentication caps (AFA bypass thresholds)."
   },
   {
     id: "G02",
@@ -222,9 +207,7 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "Fan-in/fan-out graph topology, pass-through ratio near 1",
     difficulty: 4,
     novelty: 3,
-    description: "Layering stolen money through accounts characterized by rapid inflows immediately followed by outbound transfers to downstream accounts.",
-    x: 90,
-    y: 20
+    description: "Layering stolen money through accounts characterized by rapid inflows immediately followed by outbound transfers to downstream accounts."
   },
   {
     id: "G07",
@@ -234,9 +217,7 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "New merchant, step volume curves, unverified KYB",
     difficulty: 4,
     novelty: 3,
-    description: "Creating fake business accounts to process stolen cards. Accounts show sudden step-wise processing jumps followed by immediate cash liquidation.",
-    x: 90,
-    y: 43
+    description: "Creating fake business accounts to process stolen cards. Accounts show sudden step-wise processing jumps followed by immediate cash liquidation."
   },
   {
     id: "G08",
@@ -246,9 +227,7 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "Declared MCC differs from inferred basket category",
     difficulty: 4,
     novelty: 3,
-    description: "Routing forbidden or illegal transactions through approved merchant accounts, disguising payment codes to bypass acquirer checks.",
-    x: 90,
-    y: 66
+    description: "Routing forbidden or illegal transactions through approved merchant accounts, disguising payment codes to bypass acquirer checks."
   },
   {
     id: "G05",
@@ -258,9 +237,7 @@ const ATTACK_NODES: GraphNode[] = [
     signature: "Genuine details, history of high claimant disputes",
     difficulty: 4,
     novelty: 3,
-    description: "A legitimate buyer completes a purchase, then uses automated AI templates to file false dispute chargebacks to obtain refunds illegally.",
-    x: 90,
-    y: 90
+    description: "A legitimate buyer completes a purchase, then uses automated AI templates to file false dispute chargebacks to obtain refunds illegally."
   }
 ];
 
@@ -359,22 +336,6 @@ export default function AnalystPortal() {
   const [playgroundCampaignId, setPlaygroundCampaignId] = useState("");
   const [playgroundError, setPlaygroundError] = useState("");
 
-  // Lifecycle graph edges are drawn as SVG <path> curves between two
-  // percentage-positioned nodes -- but the `d` attribute doesn't accept
-  // percentage units (unlike <circle cx/cy> or <line x1/y1>, which do), so
-  // the coordinates need converting to real pixels against the SVG's actual
-  // rendered size.
-  const lifecycleSvgRef = useRef<SVGSVGElement>(null);
-  const [lifecycleDims, setLifecycleDims] = useState({ width: 1000, height: 440 });
-  useEffect(() => {
-    const el = lifecycleSvgRef.current;
-    if (!el) return;
-    const update = () => setLifecycleDims({ width: el.clientWidth, height: el.clientHeight });
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [activeTab]);
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
 
   // Graph tab State
@@ -382,6 +343,119 @@ export default function AnalystPortal() {
   const [graphViewMode, setGraphViewMode] = useState<"lifecycle" | "transaction">("lifecycle");
   const [selectedTransactionNode, setSelectedTransactionNode] = useState<any>(null);
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
+
+  // Lifecycle Map: static attack taxonomy laid out left-to-right by phase via dagre.
+  const lifecyclePositionedNodes = useMemo(() => {
+    const phaseOrder = ["Access", "Probing", "Execution", "Evasion", "Exfiltration"];
+    const edges: { source: string; target: string }[] = [];
+    for (let i = 0; i < phaseOrder.length - 1; i++) {
+      const srcs = ATTACK_NODES.filter(n => n.phase === phaseOrder[i]);
+      const dests = ATTACK_NODES.filter(n => n.phase === phaseOrder[i + 1]);
+      for (const src of srcs) {
+        for (const dest of dests) {
+          edges.push({ source: src.id, target: dest.id });
+        }
+      }
+    }
+    return layoutWithDagre(ATTACK_NODES, edges, {
+      rankdir: "LR",
+      nodesep: 60,
+      ranksep: 180,
+      nodeWidth: 140,
+      nodeHeight: 40,
+    });
+  }, []);
+
+  const lifecycleFlowNodes: FlowNode[] = useMemo(
+    () =>
+      lifecyclePositionedNodes.map(node => ({
+        id: node.id,
+        type: "attackLifecycleNode",
+        position: node.position,
+        data: { ...node, isSelected: selectedNode?.id === node.id },
+      })),
+    [lifecyclePositionedNodes, selectedNode]
+  );
+
+  const lifecycleFlowEdges: FlowEdge[] = useMemo(() => {
+    const phaseOrder = ["Access", "Probing", "Execution", "Evasion", "Exfiltration"];
+    const edges: FlowEdge[] = [];
+    for (let i = 0; i < phaseOrder.length - 1; i++) {
+      const srcs = ATTACK_NODES.filter(n => n.phase === phaseOrder[i]);
+      const dests = ATTACK_NODES.filter(n => n.phase === phaseOrder[i + 1]);
+      for (const src of srcs) {
+        for (const dest of dests) {
+          const isHighlighted = selectedNode && (selectedNode.id === src.id || selectedNode.id === dest.id);
+          edges.push({
+            id: `${src.id}-${dest.id}`,
+            source: src.id,
+            target: dest.id,
+            type: "smoothstep",
+            style: {
+              stroke: isHighlighted ? "#f97316" : "#18181b",
+              strokeWidth: isHighlighted ? 1.5 : 1,
+              opacity: isHighlighted ? 0.8 : 0.4,
+            },
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              color: isHighlighted ? "#f97316" : "#3f3f46",
+            },
+          });
+        }
+      }
+    }
+    return edges;
+  }, [selectedNode]);
+
+  // Transaction Linkage: dynamic per-session graph, laid out once as a whole
+  // (not per-cluster) so dagre's connected-component packing separates
+  // disjoint transaction clusters without the overlap that manual percentage
+  // math used to produce.
+  const transactionFlowNodes: FlowNode[] = useMemo(() => {
+    const rawNodes = scoreResult?.network_graph?.nodes ?? [];
+    const rawEdges = scoreResult?.network_graph?.edges ?? [];
+    if (rawNodes.length === 0) return [];
+    const positioned = layoutWithDagre(rawNodes, rawEdges, {
+      rankdir: "LR",
+      nodesep: 50,
+      ranksep: 120,
+      nodeWidth: 160,
+      nodeHeight: 44,
+    });
+    return positioned.map(node => ({
+      id: node.id,
+      type: "actorNode",
+      position: node.position,
+      data: { ...node, isSelected: selectedTransactionNode?.id === node.id },
+    }));
+  }, [scoreResult?.network_graph, selectedTransactionNode]);
+
+  const transactionFlowEdges: FlowEdge[] = useMemo(() => {
+    const rawEdges = scoreResult?.network_graph?.edges ?? [];
+    return rawEdges.map((edge, eIdx) => {
+      const isAlert = edge.status === "critical" || edge.status === "high";
+      const isLinkage = edge.status === "linkage";
+      const color = edgeStatusColor(edge.status);
+      return {
+        id: `${edge.source}-${edge.target}-${eIdx}`,
+        source: edge.source,
+        target: edge.target,
+        label: edge.label,
+        type: "smoothstep",
+        className: isAlert ? "pulse-edge" : undefined,
+        style: {
+          stroke: color,
+          strokeWidth: isLinkage || isAlert ? 2 : 1.2,
+          strokeDasharray: isLinkage || isAlert ? "4 4" : undefined,
+        },
+        labelStyle: { fill: isLinkage ? "#10b981" : "#a1a1aa", fontSize: 8, fontWeight: 700 },
+        labelBgStyle: { fill: "#09090b", fillOpacity: 0.8 },
+        markerEnd: isLinkage
+          ? undefined
+          : { type: MarkerType.ArrowClosed, color: isAlert ? "#ef4444" : "#52525b" },
+      };
+    });
+  }, [scoreResult?.network_graph]);
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
   const [shouldRetrain, setShouldRetrain] = useState(false);
   const [retrainReason, setRetrainReason] = useState("");
@@ -1881,149 +1955,19 @@ export default function AnalystPortal() {
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#16161a_1px,transparent_1px),linear-gradient(to_bottom,#16161a_1px,transparent_1px)] bg-[size:2rem_2rem] pointer-events-none" />
 
                 {graphViewMode === "lifecycle" ? (
-                  <svg ref={lifecycleSvgRef} className="w-full h-full min-h-[440px]">
-                    {/* Markers */}
-                    <defs>
-                      <marker
-                        id="arrow"
-                        viewBox="0 0 10 10"
-                        refX="6"
-                        refY="5"
-                        markerWidth="6"
-                        markerHeight="6"
-                        orient="auto-start-reverse"
-                      >
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#3f3f46" />
-                      </marker>
-                      <marker
-                        id="arrow-glow"
-                        viewBox="0 0 10 10"
-                        refX="6"
-                        refY="5"
-                        markerWidth="6"
-                        markerHeight="6"
-                        orient="auto-start-reverse"
-                      >
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#f97316" />
-                      </marker>
-                    </defs>
-
-                    {/* Draw connection pathways */}
-                    {/* Access to Probing */}
-                    {ATTACK_NODES.filter(n => n.phase === "Access").map(src => 
-                      ATTACK_NODES.filter(n => n.phase === "Probing").map(dest => {
-                        const isHighlighted = selectedNode && (selectedNode.id === src.id || selectedNode.id === dest.id);
-                        return (
-                          <path
-                            key={`${src.id}-${dest.id}`}
-                            d={`M ${src.x/100*lifecycleDims.width} ${src.y/100*lifecycleDims.height} Q ${(src.x + dest.x)/2/100*lifecycleDims.width} ${((src.y + dest.y)/2 - 4)/100*lifecycleDims.height} ${dest.x/100*lifecycleDims.width} ${dest.y/100*lifecycleDims.height}`}
-                            fill="none"
-                            stroke={isHighlighted ? "#f97316" : "#18181b"}
-                            strokeWidth={isHighlighted ? "1.5" : "1"}
-                            markerEnd={`url(#${isHighlighted ? "arrow-glow" : "arrow"})`}
-                            opacity={isHighlighted ? 0.8 : 0.4}
-                            className="transition-all duration-300"
-                          />
-                        );
-                      })
-                    )}
-
-                    {/* Probing to Execution */}
-                    {ATTACK_NODES.filter(n => n.phase === "Probing").map(src => 
-                      ATTACK_NODES.filter(n => n.phase === "Execution").map(dest => {
-                        const isHighlighted = selectedNode && (selectedNode.id === src.id || selectedNode.id === dest.id);
-                        return (
-                          <path
-                            key={`${src.id}-${dest.id}`}
-                            d={`M ${src.x/100*lifecycleDims.width} ${src.y/100*lifecycleDims.height} Q ${(src.x + dest.x)/2/100*lifecycleDims.width} ${((src.y + dest.y)/2 + 3)/100*lifecycleDims.height} ${dest.x/100*lifecycleDims.width} ${dest.y/100*lifecycleDims.height}`}
-                            fill="none"
-                            stroke={isHighlighted ? "#f97316" : "#18181b"}
-                            strokeWidth={isHighlighted ? "1.5" : "1"}
-                            markerEnd={`url(#${isHighlighted ? "arrow-glow" : "arrow"})`}
-                            opacity={isHighlighted ? 0.8 : 0.4}
-                            className="transition-all duration-300"
-                          />
-                        );
-                      })
-                    )}
-
-                    {/* Execution to Evasion */}
-                    {ATTACK_NODES.filter(n => n.phase === "Execution").map(src => 
-                      ATTACK_NODES.filter(n => n.phase === "Evasion").map(dest => {
-                        const isHighlighted = selectedNode && (selectedNode.id === src.id || selectedNode.id === dest.id);
-                        return (
-                          <path
-                            key={`${src.id}-${dest.id}`}
-                            d={`M ${src.x/100*lifecycleDims.width} ${src.y/100*lifecycleDims.height} L ${dest.x/100*lifecycleDims.width} ${dest.y/100*lifecycleDims.height}`}
-                            fill="none"
-                            stroke={isHighlighted ? "#f97316" : "#18181b"}
-                            strokeWidth={isHighlighted ? "1.5" : "1"}
-                            markerEnd={`url(#${isHighlighted ? "arrow-glow" : "arrow"})`}
-                            opacity={isHighlighted ? 0.8 : 0.4}
-                            className="transition-all duration-300"
-                          />
-                        );
-                      })
-                    )}
-
-                    {/* Evasion to Exfiltration */}
-                    {ATTACK_NODES.filter(n => n.phase === "Evasion").map(src => 
-                      ATTACK_NODES.filter(n => n.phase === "Exfiltration").map(dest => {
-                        const isHighlighted = selectedNode && (selectedNode.id === src.id || selectedNode.id === dest.id);
-                        return (
-                          <path
-                            key={`${src.id}-${dest.id}`}
-                            d={`M ${src.x/100*lifecycleDims.width} ${src.y/100*lifecycleDims.height} Q ${(src.x + dest.x)/2/100*lifecycleDims.width} ${((src.y + dest.y)/2 + 2)/100*lifecycleDims.height} ${dest.x/100*lifecycleDims.width} ${dest.y/100*lifecycleDims.height}`}
-                            fill="none"
-                            stroke={isHighlighted ? "#f97316" : "#18181b"}
-                            strokeWidth={isHighlighted ? "1.5" : "1"}
-                            markerEnd={`url(#${isHighlighted ? "arrow-glow" : "arrow"})`}
-                            opacity={isHighlighted ? 0.8 : 0.4}
-                            className="transition-all duration-300"
-                          />
-                        );
-                      })
-                    )}
-
-                    {/* Draw Nodes */}
-                    {ATTACK_NODES.map(node => {
-                      const isSelected = selectedNode && selectedNode.id === node.id;
-                      return (
-                        <g
-                          key={node.id}
-                          onClick={() => setSelectedNode(node)}
-                          className="cursor-pointer group"
-                        >
-                          <circle
-                            cx={`${node.x}%`}
-                            cy={`${node.y}%`}
-                            r={isSelected ? "13" : "10"}
-                            fill="#09090b"
-                            stroke={isSelected ? "#ff5f00" : "#27272a"}
-                            strokeWidth={isSelected ? "3" : "1.5"}
-                            className="transition-all duration-300 group-hover:stroke-orange-500"
-                          />
-                          <circle
-                            cx={`${node.x}%`}
-                            cy={`${node.y}%`}
-                            r="3"
-                            fill={isSelected ? "#ff5f00" : "#52525b"}
-                          />
-                          <text
-                            x={`${node.x}%`}
-                            y={`${node.y + 6}%`}
-                            textAnchor="middle"
-                            fill={isSelected ? "#ffffff" : "#a1a1aa"}
-                            fontSize="9"
-                            fontWeight={isSelected ? "bold" : "normal"}
-                            className="transition-colors duration-300 select-none group-hover:fill-white"
-                          >
-                            {node.name}
-                          </text>
-                        </g>
-                      );
-                    })}
-                  </svg>
+                  <ReactFlow
+                    nodes={lifecycleFlowNodes}
+                    edges={lifecycleFlowEdges}
+                    nodeTypes={nodeTypes}
+                    onNodeClick={(_, node) =>
+                      setSelectedNode(ATTACK_NODES.find(n => n.id === node.id) ?? null)
+                    }
+                    fitView
+                    proOptions={{ hideAttribution: true }}
+                    className="w-full h-full min-h-[440px]"
+                  >
+                    <Background color="#16161a" gap={32} />
+                  </ReactFlow>
                 ) : (
                   // Dynamic Transaction Graph
                   <div className="w-full h-full min-h-[440px] relative animate-fade-in flex flex-col">
@@ -2050,121 +1994,22 @@ export default function AnalystPortal() {
                         )}
                         
                         <div className="flex-1 relative">
-                          <svg className="w-full h-full min-h-[350px]">
-                            <defs>
-                              <marker
-                                id="txn-arrow"
-                                viewBox="0 0 10 10"
-                                refX="18"
-                                refY="5"
-                                markerWidth="6"
-                                markerHeight="6"
-                                orient="auto-start-reverse"
-                              >
-                                <path d="M 0 0 L 10 5 L 0 10 z" fill="#52525b" />
-                              </marker>
-                              <marker
-                                id="txn-arrow-red"
-                                viewBox="0 0 10 10"
-                                refX="18"
-                                refY="5"
-                                markerWidth="6"
-                                markerHeight="6"
-                                orient="auto-start-reverse"
-                              >
-                                <path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444" />
-                              </marker>
-                            </defs>
-
-                            {/* Draw connection edges */}
-                            {scoreResult.network_graph.edges.map((edge, eIdx) => {
-                              const srcNode = scoreResult.network_graph?.nodes.find(n => n.id === edge.source);
-                              const destNode = scoreResult.network_graph?.nodes.find(n => n.id === edge.target);
-                              if (!srcNode || !destNode) return null;
-                              
-                              const srcPos = { x: srcNode.x, y: srcNode.y };
-                              const destPos = { x: destNode.x, y: destNode.y };
-                              
-                              const isAlert = edge.status === "critical" || edge.status === "high";
-                              const isLinkage = edge.status === "linkage";
-                              
-                              let strokeColor = "#27272a";
-                              if (isAlert) strokeColor = "#ef4444";
-                              else if (edge.status === "medium" || edge.status === "warning") strokeColor = "#f97316";
-                              else if (isLinkage) strokeColor = "#10b981"; // Clean green line for campaign links!
-                              
-                              return (
-                                <g key={eIdx}>
-                                  <motion.line
-                                    layout
-                                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                    x1={`${srcPos.x}%`}
-                                    y1={`${srcPos.y}%`}
-                                    x2={`${destPos.x}%`}
-                                    y2={`${destPos.y}%`}
-                                    stroke={strokeColor}
-                                    strokeWidth={isLinkage ? "2" : isAlert ? "2" : "1.2"}
-                                    strokeDasharray={isLinkage ? "4 4" : isAlert ? "4 4" : "0"}
-                                    markerEnd={isLinkage ? undefined : `url(#${isAlert ? "txn-arrow-red" : "txn-arrow"})`}
-                                    className={`transition-all duration-300 ${isAlert ? "pulse-edge" : ""}`}
-                                  />
-                                  {/* Edge text label */}
-                                  <text
-                                    x={`${(srcPos.x + destPos.x) / 2}%`}
-                                    y={`${(srcPos.y + destPos.y) / 2 - 2}%`}
-                                    fill={isLinkage ? "#10b981" : "#a1a1aa"}
-                                    fontSize="8"
-                                    fontWeight="bold"
-                                    textAnchor="middle"
-                                    className="bg-zinc-950 px-1 select-none"
-                                  >
-                                    {edge.label}
-                                  </text>
-                                </g>
-                              );
-                            })}
-
-                            {/* Draw transaction nodes */}
-                            {scoreResult.network_graph.nodes.map((node) => {
-                              const isSelected = selectedTransactionNode && selectedTransactionNode.id === node.id;
-                              
-                              let strokeColor = "#27272a";
-                              if (node.risk === "critical" || node.risk === "high") strokeColor = "#ef4444";
-                              else if (node.risk === "medium" || node.risk === "warning") strokeColor = "#f97316";
-                              else if (node.risk === "low") strokeColor = "#10b981";
-                              
-                              return (
-                                <motion.g
-                                  layout
-                                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                  key={node.id}
-                                  onClick={() => setSelectedTransactionNode(node)}
-                                  className="cursor-pointer group hover:scale-[1.02]"
-                                >
-                                  <circle
-                                    cx={`${node.x}%`}
-                                    cy={`${node.y}%`}
-                                    r={isSelected ? "16" : "13"}
-                                    fill="#09090b"
-                                    stroke={isSelected ? "#ff5f00" : strokeColor}
-                                    strokeWidth={isSelected ? "3" : "2"}
-                                    className="transition-all duration-300"
-                                  />
-                                  <text
-                                    x={`${node.x}%`}
-                                    y={`${node.y + 6}%`}
-                                    fill={isSelected ? "#ffffff" : "#a1a1aa"}
-                                    fontSize="8"
-                                    fontWeight="bold"
-                                    textAnchor="middle"
-                                    className="transition-colors duration-300 select-none group-hover:fill-white"
-                                  >
-                                    {node.label}
-                                  </text>
-                                </motion.g>
-                              );
-                            })}
-                          </svg>
+                          <ReactFlow
+                            nodes={transactionFlowNodes}
+                            edges={transactionFlowEdges}
+                            nodeTypes={nodeTypes}
+                            onNodeClick={(_, node) =>
+                              setSelectedTransactionNode(
+                                scoreResult.network_graph?.nodes.find(n => n.id === node.id) ?? null
+                              )
+                            }
+                            fitView
+                            proOptions={{ hideAttribution: true }}
+                            className="w-full h-full min-h-[350px]"
+                          >
+                            <Background color="#16161a" gap={32} />
+                            <Controls />
+                          </ReactFlow>
                         </div>
                       </>
                     )}

@@ -177,19 +177,12 @@ async def analyze(request: Request):
             t_pin = int(t_txn.get("pin_attempts", 1))
             t_rail = t_txn.get("rail", "upi_p2p")
             
-            # Dynamic Horizontal coordinates to spread clusters across canvas (15% to 85%)
-            # We want each cluster to occupy a 20% width block
-            base_x = 15 + (70 / max(1, len(session_txns) - 1)) * idx if len(session_txns) > 1 else 50
-            base_y = 50 + (idx % 2 - 0.5) * 12
-            
             # Add Payer Node
             nodes.append({
                 "id": f"payer_{t_id}",
                 "label": f"Payer ({t_id})",
                 "type": "payer",
                 "risk": t_res.get("risk_level", "low").lower(),
-                "x": base_x - 10,
-                "y": base_y,
                 "details": {
                     "Transaction ID": t_id,
                     "Account Age": "180 Days",
@@ -204,8 +197,6 @@ async def analyze(request: Request):
                 "label": f"Payee ({t_id})",
                 "type": "payee",
                 "risk": t_risk.lower(),
-                "x": base_x + 10,
-                "y": base_y,
                 "details": {
                     "Transaction ID": t_id,
                     "Account Age": f"{float(t_txn.get('beneficiary_added_ago_s', 86400 * 17)) / 86400:.0f} Days",
@@ -229,8 +220,6 @@ async def analyze(request: Request):
                     "label": f"Attacker ({t_id})",
                     "type": "attacker",
                     "risk": "critical",
-                    "x": base_x - 10,
-                    "y": base_y - 22,
                     "details": {
                         "Control Channel": "Active Voice Call" if bool(t_txn.get("call_active_during_txn", False)) else "Screen Sharing Tool",
                         "Location": "Proxy/VPN (ip_is_proxy=True)" if bool(t_txn.get("ip_is_proxy", False)) else "Unmasked IP",
@@ -252,8 +241,6 @@ async def analyze(request: Request):
                     "label": f"Co-Payer ({t_id})",
                     "type": "payer_other",
                     "risk": "low",
-                    "x": base_x + 5,
-                    "y": base_y + 20,
                     "details": {
                         "Relationship": f"Part of {int(t_edges_cnt)} observed edges (mule fan-in)"
                     }

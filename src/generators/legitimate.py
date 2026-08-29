@@ -70,8 +70,7 @@ def _amount_for_rail(
     else:
         value = rng.lognormal(mean=5.55, sigma=0.9) * persona_multiplier
     if mcc is not None:
-        # issues.md I16 -- MCC-conditioned amount shape, sourced qualitatively
-        # against BankSim's documented category-amount relationship (see
+        # issues.md I16 -- MCC-conditioned amount shape (see
         # calibration.MCC_AMOUNT_MULTIPLIER's comment).
         value *= cal.MCC_AMOUNT_MULTIPLIER.get(mcc, cal.DEFAULT_MCC_AMOUNT_MULTIPLIER)
     return _money(value)

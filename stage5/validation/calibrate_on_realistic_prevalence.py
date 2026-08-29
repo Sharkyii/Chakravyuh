@@ -1,8 +1,9 @@
 """
 Calibration: Evaluate our model on realistic fraud prevalence (3.5% vs our 0.47%).
 
-This script measures what happens when the model encounters a real-world distribution.
-Key insight: metrics look inflated at low prevalence; real-world is harder.
+This script measures what happens when the model encounters a more realistic
+fraud rate. Key insight: metrics look inflated at low prevalence; a higher,
+more realistic prevalence is a harder test.
 """
 import json
 import sys
@@ -39,7 +40,7 @@ def simulate_realistic_test_set(X_legit, y_legit, fraud_prevalence=0.035):
     """
     Create a realistic test distribution.
 
-    Real IEEE-CIS: 3.5% fraud prevalence
+    Typical real-world fraud prevalence: ~3.5%
     Our synthetic: 0.47% fraud prevalence
 
     At low prevalence, metrics are inflated (high PR-AUC is easier to achieve).

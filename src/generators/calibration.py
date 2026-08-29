@@ -1,10 +1,7 @@
 """Every distribution parameter used by the generators lives here, nowhere
 else. Each constant carries a comment saying where it comes from: a cited
-public figure, or an explicit "reasoned assumption" when no public dataset
-gives us the number. Assumptions get checked for plausibility in the
-validation report (src/validation/) against IEEE-CIS / PaySim / BankSim /
-ULB marginals -- that comparison is what earns the fidelity score, not the
-citation alone.
+public figure, or an explicit "reasoned assumption" when no public source
+gives us the number.
 
 Anything with a regulatory limit attached carries the date it was true as
 of. UPI limits moved more than once in 2025; a stale number here is a
@@ -221,13 +218,11 @@ MCC_WEIGHTS: dict[int, float] = {
 }
 
 # Multiplier applied to the rail-level amount draw (issues.md I16 -- amounts
-# used to be MCC-independent, contradicting BankSim's documented shape:
-# "high-frequency categories skew toward small amounts; low-frequency
-# categories skew toward much larger amounts" (data/reference/banksim.json,
-# amount_by_category_shape). Everyday/high-frequency MCCs get multipliers
+# used to be MCC-independent, which is unrealistic: high-frequency
+# categories should skew toward small amounts, low-frequency categories
+# toward much larger ones. Everyday/high-frequency MCCs get multipliers
 # below 1.0, travel/insurance/electronics-adjacent low-frequency MCCs above
-# it. Reasoned relative scale, not a per-MCC cited figure -- the shape is
-# what's sourced, not the exact ratios.
+# it. Reasoned relative scale, not a per-MCC cited figure.
 MCC_AMOUNT_MULTIPLIER: dict[int, float] = {
     5411: 0.55,  # grocery -- frequent, small basket
     5812: 0.70,  # restaurants
@@ -238,8 +233,8 @@ MCC_AMOUNT_MULTIPLIER: dict[int, float] = {
     5651: 1.30,  # clothing
     5999: 0.80,  # misc retail
     4121: 0.50,  # taxi / rideshare
-    5732: 2.20,  # electronics -- BankSim's es_tech is low-frequency/high-value
-    7011: 4.50,  # hotels -- BankSim's es_hotelservices/es_travel are the clearest high-value tail
+    5732: 2.20,  # electronics -- low-frequency/high-value
+    7011: 4.50,  # hotels -- infrequent, clearest high-value tail
     5813: 0.60,  # bars
     8299: 1.80,  # education services
     6300: 2.50,  # insurance -- premium-sized, infrequent

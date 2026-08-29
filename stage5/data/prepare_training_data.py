@@ -130,8 +130,9 @@ def prepare_synthetic_training_data(
     fraud_df['timestamp'] = t_min + pd.to_timedelta(rng.uniform(0, span_seconds, size=len(fraud_df)), unit='s')
 
     # legit_df comes from Chakravyuh's own simulator and fraud_df's numeric
-    # columns are renamed IEEE/Cifer/BankSim fields -- same names, unrelated
-    # units (e.g. "amount" scale differs ~30x between the two). Left as raw
+    # columns are renamed fields from a different source population --
+    # same names, unrelated units (e.g. "amount" scale differs ~30x between
+    # the two). Left as raw
     # values, several columns separate the classes almost perfectly on scale
     # alone, which is a data artifact, not a fraud signal. Quantile-normalize
     # each shared numeric column within its own source population first, so

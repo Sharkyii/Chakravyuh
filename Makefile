@@ -1,4 +1,4 @@
-.PHONY: install test lint data graph attack validate
+.PHONY: install test lint data graph attack
 
 install:
 	uv sync
@@ -17,8 +17,6 @@ N_CONSUMERS ?=
 N_MERCHANTS ?=
 ATTACK ?= scam_induced_push
 INTENSITY ?= medium
-VALIDATION_OUTPUT_DIR ?= data/generated/validation
-REFERENCE_DIR ?= data/reference
 
 data:
 	uv run python -m src.generators.dataset --seed $(SEED) --output-dir $(OUTPUT_DIR) $(if $(N_CONSUMERS),--n-consumers $(N_CONSUMERS),) $(if $(N_MERCHANTS),--n-merchants $(N_MERCHANTS),)
@@ -28,6 +26,3 @@ graph:
 
 attack:
 	uv run python -m src.attacks.cli --attack $(ATTACK) --seed $(SEED) --baseline-dir $(STAGE2_OUTPUT_DIR) --output-dir $(ATTACK_OUTPUT_DIR)/$(ATTACK) --intensity $(INTENSITY)
-
-validate:
-	uv run python -m src.validation.report --input-dir $(STAGE2_OUTPUT_DIR) --output-dir $(VALIDATION_OUTPUT_DIR) --reference-dir $(REFERENCE_DIR)

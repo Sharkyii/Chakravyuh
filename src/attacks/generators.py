@@ -1901,9 +1901,9 @@ class DeviceFanOutAttack(AttackGenerator):
     cards in a tight time window (2 hours), each to different merchants.
     Signature: per-device card clustering, not per-account velocity.
 
-    Grounding: Device fingerprint reuse across distinct cards is a documented
-    top-5 predictive signal in fraud detection (IEEE-CIS Kaggle competition
-    write-ups and solution discussions). This family targets that signal directly.
+    Grounding: device fingerprint reuse across distinct cards is a well
+    documented top-tier predictive signal in fraud detection research. This
+    family targets that signal directly.
     """
 
     attack_id = "device_fan_out"
@@ -2006,9 +2006,9 @@ class BalanceDrainExitAttack(AttackGenerator):
     it to a newly-added beneficiary within 5 minutes. Money-movement fraud
     signature: receive-then-drain pattern.
 
-    Grounding: PaySim's documented fraud-generation mechanism (PaySim paper:
-    account takeover → TRANSFER → CASH_OUT sequences with rapid balance
-    liquidation). This family synthesizes that specific signature pattern.
+    Grounding: a well documented fraud mechanism -- account takeover followed
+    by a transfer-then-cash-out sequence with rapid balance liquidation. This
+    family synthesizes that specific signature pattern.
     """
 
     attack_id = "balance_drain_exit"

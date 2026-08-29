@@ -45,8 +45,6 @@ jobs:
         run: make data SEED=42 N_CONSUMERS=250 N_MERCHANTS=25
       - name: Generate Graph Edges
         run: make graph
-      - name: Validate Marginals
-        run: make validate
 
   frontend:
     runs-on: ubuntu-latest

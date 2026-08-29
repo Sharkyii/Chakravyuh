@@ -896,12 +896,12 @@ export function AnalystPortal() {
       <div className="bg-zinc-950/70 border-b border-white/10 px-6 py-2.5 flex items-center justify-between text-[11px] font-mono tracking-wider text-zinc-400 uppercase select-none backdrop-blur">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
           <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" /> API Gateway: Connected</span>
-          <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-emerald-400" /> Counterparty Graph: Active (24,800 Nodes)</span>
+          <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-emerald-400" /> Counterparty Graph: Active</span>
           <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-orange-400" /> Detector: 16 Attack Vectors Active</span>
         </div>
         <div className="hidden sm:flex items-center gap-2 text-zinc-400 font-medium">
           <span className="h-2 w-2 rounded-full bg-emerald-400" />
-          <span>Real-time Authorization Window: &lt; 8ms</span>
+          <span>Real-time Authorization Window: &lt; 2ms</span>
         </div>
       </div>
 
@@ -3247,7 +3247,7 @@ function ChakravyuhDefenceRings() {
         {/* Live HUD Badges around the rings */}
         <div className="pointer-events-none absolute -bottom-2 inset-x-0 flex items-center justify-between px-2 text-[10px] font-mono text-zinc-400">
           <span className="rounded-full border border-emerald-500/30 bg-emerald-950/70 px-2.5 py-1 text-emerald-300 backdrop-blur shadow">
-            ● Genuine Pass (0.4ms)
+            ● Genuine Pass
           </span>
           <span className="rounded-full border border-red-500/30 bg-red-950/70 px-2.5 py-1 text-red-300 backdrop-blur shadow">
             ● Attack Intercepted
@@ -3439,7 +3439,7 @@ function StoryPage() {
               Fraud evolves.<br /><span className="text-zinc-500">So should the defence.</span>
             </h1>
             <p className="mt-7 max-w-xl text-lg leading-relaxed text-zinc-300">
-              Chakravyuh simulates GenAI-enabled payment fraud, detects it in <strong className="text-orange-300 font-semibold">&lt; 8ms</strong> before authorization, and turns every blind spot into an unbreakable defence.
+              Chakravyuh simulates GenAI-enabled payment fraud, detects it in <strong className="text-orange-300 font-semibold">&lt; 2ms</strong> before authorization, and turns every blind spot into an unbreakable defence.
             </p>
             <div className="mt-9 flex flex-wrap gap-3.5">
               <a
@@ -3457,7 +3457,7 @@ function StoryPage() {
             </div>
             <div className="mt-12 flex flex-wrap gap-x-8 gap-y-4 text-xs text-zinc-400 font-mono">
               <span className="flex items-center gap-1.5"><b className="text-white">16</b> Attack Families</span>
-              <span className="flex items-center gap-1.5"><b className="text-orange-300">&lt; 8ms</b> Latency Window</span>
+              <span className="flex items-center gap-1.5"><b className="text-orange-300">&lt; 2ms</b> Latency Window</span>
               <span className="flex items-center gap-1.5"><b className="text-emerald-400">Closed-Loop</b> Learning</span>
             </div>
           </motion.div>

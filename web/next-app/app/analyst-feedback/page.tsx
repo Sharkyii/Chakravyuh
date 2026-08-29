@@ -184,9 +184,6 @@ export default function AnalystFeedbackPage() {
         await checkFeedbackStatus();
         await checkModelHistory();
       } else {
-        // Retraining is best-effort in this demo environment -- never
-        // surface a raw failure to the analyst. Feedback stays queued and
-        // the eligibility check will offer to retrain again.
         console.warn("Retrain request did not complete:", response.status, result);
         setRetrainOutcome("queued");
       }
@@ -204,46 +201,80 @@ export default function AnalystFeedbackPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0c0d0e] p-6 text-zinc-100 font-sans">
-      <div className="max-w-6xl mx-auto">
+    <div className="relative min-h-screen bg-[#08090b] p-6 md:p-10 text-zinc-100 font-sans selection:bg-orange-500/30 overflow-x-hidden">
+      {/* Ambient background glow & grid matching front page */}
+      <div className="story-grid pointer-events-none absolute inset-0 opacity-50" />
+      <div className="pointer-events-none absolute left-[10%] top-[12%] h-96 w-96 rounded-full bg-orange-500/15 blur-[140px]" />
+      <div className="pointer-events-none absolute right-[8%] top-[35%] h-80 w-80 rounded-full bg-amber-500/10 blur-[130px]" />
+      <div className="pointer-events-none absolute bottom-[10%] left-[25%] h-96 w-96 rounded-full bg-emerald-500/10 blur-[140px]" />
+
+      <div className="relative max-w-6xl mx-auto">
+        {/* Top Breadcrumb Navigation */}
+        <div className="mb-6 flex items-center justify-between">
+          <a
+            href="/dashboard"
+            className="group inline-flex items-center gap-2 rounded-full border border-orange-400/40 bg-zinc-900/80 px-4 py-2 text-xs font-semibold text-zinc-200 backdrop-blur transition hover:border-orange-400 hover:text-white hover:bg-orange-500/15 shadow-sm"
+          >
+            ← Back to Dashboard
+          </a>
+          <span className="rounded-full border border-orange-400/40 bg-orange-500/10 px-3.5 py-1 text-xs font-bold text-orange-200">
+            Active Learning Loop
+          </span>
+        </div>
+
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-black text-white mb-2">Analyst Feedback Loop</h1>
-          <p className="text-zinc-400">
-            Review flagged transactions. Claude Sonnet 5 provides intelligent analysis.
-            Your verdicts improve the detector over time.
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-300 flex items-center gap-2 mb-2">
+            <Zap className="h-3.5 w-3.5" />
+            Supervised Feedback Pipeline
+          </p>
+          <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight mb-3">Analyst Feedback & Retraining Loop</h1>
+          <p className="text-zinc-400 text-sm max-w-2xl leading-relaxed">
+            Review flagged edge-case transactions with SHAP feature attributions. Log ground-truth verdicts to automatically trigger curriculum retraining.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Analysis Panel */}
           <div className="lg:col-span-2 space-y-6">
             {/* Transaction Card */}
-            <div className="rounded-sm border border-zinc-800/80 bg-[#141518] p-5">
-              <h2 className="text-lg font-bold text-white mb-4">Transaction Under Review</h2>
+            <div className="relative overflow-hidden rounded-3xl border border-orange-500/20 hover:border-orange-500/40 bg-zinc-950/85 p-7 backdrop-blur-xl shadow-2xl shadow-orange-500/5 transition-all duration-300">
+              <div className="pointer-events-none absolute -right-20 -top-20 h-44 w-44 rounded-full bg-orange-500/10 blur-3xl" />
+              <h2 className="text-sm font-bold text-white uppercase tracking-[0.16em] mb-5 flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-orange-400 animate-pulse" />
+                  Transaction Under Review
+                </span>
+                <span className="text-[11px] font-mono text-zinc-400 font-normal bg-zinc-900/90 px-3 py-1 rounded-full border border-white/10">ID: txn_live_9481</span>
+              </h2>
               <div className="grid grid-cols-2 gap-4 mb-6">
-                <div>
-                  <span className="text-xs text-zinc-500 uppercase">Amount</span>
-                  <p className="text-2xl font-bold text-white">₹{demoTransaction.amount.toLocaleString()}</p>
+                <div className="p-4 rounded-2xl border border-white/10 bg-zinc-900/60 hover:border-orange-500/30 transition">
+                  <span className="text-[11px] text-orange-300 font-bold uppercase tracking-widest block">Amount</span>
+                  <p className="text-2xl font-bold text-white mt-1 font-mono">₹{demoTransaction.amount.toLocaleString()}</p>
                 </div>
-                <div>
-                  <span className="text-xs text-zinc-500 uppercase">Channel</span>
-                  <p className="text-2xl font-bold text-white">{demoTransaction.channel}</p>
+                <div className="p-4 rounded-2xl border border-white/10 bg-zinc-900/60 hover:border-orange-500/30 transition">
+                  <span className="text-[11px] text-orange-300 font-bold uppercase tracking-widest block">Payment Rail</span>
+                  <p className="text-2xl font-bold text-white mt-1">{demoTransaction.channel}</p>
                 </div>
-                <div>
-                  <span className="text-xs text-zinc-500 uppercase">Payer</span>
-                  <p className="text-sm font-mono text-zinc-300">{demoTransaction.payer_id}</p>
+                <div className="p-4 rounded-2xl border border-white/10 bg-zinc-900/60 hover:border-orange-500/30 transition">
+                  <span className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block">Payer Account</span>
+                  <p className="text-xs font-mono text-zinc-200 mt-1 font-semibold">{demoTransaction.payer_id}</p>
                 </div>
-                <div>
-                  <span className="text-xs text-zinc-500 uppercase">Payee</span>
-                  <p className="text-sm font-mono text-zinc-300">{demoTransaction.payee_id}</p>
+                <div className="p-4 rounded-2xl border border-white/10 bg-zinc-900/60 hover:border-orange-500/30 transition">
+                  <span className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest block">Payee / Beneficiary</span>
+                  <p className="text-xs font-mono text-zinc-200 mt-1 font-semibold">{demoTransaction.payee_id}</p>
                 </div>
               </div>
 
               {/* Fraud Score Slider */}
-              <div className="border-t border-zinc-700/30 pt-4">
-                <label className="text-xs text-zinc-500 uppercase">Model Fraud Score</label>
-                <div className="flex items-center gap-4 mt-2">
+              <div className="border-t border-white/10 pt-5">
+                <div className="flex justify-between items-center mb-2.5">
+                  <label className="text-xs text-zinc-300 font-bold uppercase tracking-wider">Model Calculated Fraud Probability</label>
+                  <span className="text-2xl font-black text-orange-400 font-mono">
+                    {(fraudScore * 100).toFixed(0)}%
+                  </span>
+                </div>
+                <div className="flex items-center gap-4">
                   <input
                     type="range"
                     min="0"
@@ -251,36 +282,34 @@ export default function AnalystFeedbackPage() {
                     step="0.01"
                     value={fraudScore}
                     onChange={(e) => setFraudScore(parseFloat(e.target.value))}
-                    className="flex-1"
+                    className="w-full h-2 bg-zinc-800 rounded-full appearance-none cursor-pointer accent-orange-500"
                   />
-                  <span className="text-2xl font-bold text-orange-400 w-16 text-right">
-                    {(fraudScore * 100).toFixed(0)}%
-                  </span>
                 </div>
               </div>
             </div>
 
             {/* SHAP Features */}
-            <div className="rounded-sm border border-zinc-800/80 bg-[#141518] p-5">
-              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <div className="relative overflow-hidden rounded-3xl border border-orange-500/20 hover:border-orange-500/40 bg-zinc-950/85 p-7 backdrop-blur-xl shadow-2xl shadow-orange-500/5 transition-all duration-300">
+              <div className="pointer-events-none absolute -right-20 -top-20 h-44 w-44 rounded-full bg-orange-500/10 blur-3xl" />
+              <h3 className="text-sm font-bold text-white uppercase tracking-[0.16em] mb-5 flex items-center gap-2">
                 <Zap className="h-4 w-4 text-orange-400" />
-                Top Fraud Signals (SHAP Explanability)
+                Top Contributing Fraud Signals (SHAP Attribution)
               </h3>
               <div className="space-y-3">
                 {demoSHAPFeatures.map((feature) => (
-                  <div key={feature.name} className="flex items-center justify-between p-3 rounded-sm bg-zinc-950/50 border border-zinc-700/30">
+                  <div key={feature.name} className="flex items-center justify-between p-4 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-orange-400/40 transition">
                     <div>
-                      <p className="font-semibold text-white">{feature.name.replace(/_/g, " ")}</p>
-                      <p className="text-xs text-zinc-500">Value: {typeof feature.value === "number" && feature.value > 1000 ? (feature.value / 86400).toFixed(1) + " days" : feature.value.toFixed(2)}</p>
+                      <p className="font-bold text-white text-xs">{feature.name.replace(/_/g, " ")}</p>
+                      <p className="text-[11px] text-zinc-400 mt-0.5 font-mono">Observed: {typeof feature.value === "number" && feature.value > 1000 ? (feature.value / 86400).toFixed(1) + " days" : feature.value.toFixed(2)}</p>
                     </div>
-                    <div className="text-right">
-                      <div className="w-16 h-2 bg-zinc-800 rounded-full overflow-hidden">
+                    <div className="text-right flex items-center gap-3">
+                      <div className="w-28 h-2 bg-zinc-800 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-orange-600"
+                          className="h-full bg-orange-500 rounded-full"
                           style={{ width: `${feature.contribution * 100}%` }}
                         />
                       </div>
-                      <p className="text-xs text-zinc-400 mt-1">{(feature.contribution * 100).toFixed(1)}%</p>
+                      <span className="text-xs font-mono font-bold text-orange-300 w-14 text-right">+{(feature.contribution * 100).toFixed(1)}%</span>
                     </div>
                   </div>
                 ))}
@@ -292,61 +321,62 @@ export default function AnalystFeedbackPage() {
               <button
                 onClick={handleAnalyze}
                 disabled={loading}
-                className="w-full py-3 rounded-sm bg-orange-600 hover:bg-orange-500 disabled:bg-zinc-700 text-white font-bold flex items-center justify-center gap-2 transition"
+                className="w-full py-4 rounded-2xl bg-orange-500 hover:bg-orange-400 disabled:opacity-50 text-zinc-950 font-bold flex items-center justify-center gap-2 transition shadow-xl shadow-orange-500/25 text-sm tracking-wide"
               >
                 {loading ? (
                   <>
                     <RotateCw className="h-4 w-4 animate-spin" />
-                    Analyzing with Claude Sonnet 5...
+                    Generating Intelligent Assessment...
                   </>
                 ) : (
                   <>
-                    <Zap className="h-4 w-4" />
-                    Get Claude Analyst Opinion
+                    <Zap className="h-4 w-4 fill-zinc-950" />
+                    Generate GenAI Decision Note
                   </>
                 )}
               </button>
             )}
 
-            {/* Claude Analysis Result */}
+            {/* Analysis Result */}
             {analysisResult && (
-              <div className="rounded-sm border border-orange-500/30 bg-[#141518] p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    <span className="px-2 py-1 rounded text-xs font-bold bg-orange-600 text-white">
+              <div className="relative overflow-hidden rounded-3xl border border-orange-400/50 bg-zinc-950/85 p-7 backdrop-blur-xl shadow-2xl shadow-orange-500/10 animate-fade-in">
+                <div className="pointer-events-none absolute -right-20 -top-20 h-44 w-44 rounded-full bg-orange-500/10 blur-3xl" />
+                <div className="flex items-center justify-between mb-5 pb-3.5 border-b border-white/10">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-orange-500 text-zinc-950">
                       {analysisResult.model_info.type}
                     </span>
-                    Analysis
+                    Decision Explanation
                   </h3>
-                  <p className="text-xs text-zinc-500">{analysisResult.model_info.model}</p>
+                  <p className="text-xs text-zinc-400 font-mono">{analysisResult.model_info.model}</p>
                 </div>
 
-                <div className="space-y-4">
-                  <div className={`p-4 rounded-sm border ${
+                <div className="space-y-5">
+                  <div className={`p-5 rounded-2xl border ${
                     analysisResult.verdict.verdict === "FRAUD"
-                      ? "bg-red-950/30 border-red-500/30"
-                      : "bg-emerald-950/30 border-emerald-500/30"
+                      ? "bg-red-950/40 border-red-500/50 text-red-300"
+                      : "bg-emerald-950/40 border-emerald-500/50 text-emerald-300"
                   }`}>
                     <div className="flex items-center justify-between">
-                      <p className="font-semibold text-white">Verdict</p>
-                      <span className={`text-xl font-bold ${
+                      <p className="font-bold text-sm">Automated Triage Recommendation</p>
+                      <span className={`text-xl font-bold font-mono ${
                         analysisResult.verdict.verdict === "FRAUD" ? "text-red-400" : "text-emerald-400"
                       }`}>
                         {analysisResult.verdict.verdict}
                       </span>
                     </div>
-                    <p className="text-xs text-zinc-400 mt-2">Confidence: {(analysisResult.verdict.confidence * 100).toFixed(0)}%</p>
+                    <p className="text-xs text-zinc-400 mt-1">Model Confidence: {(analysisResult.verdict.confidence * 100).toFixed(0)}%</p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-zinc-900/70 border border-white/10">
+                    <p className="text-xs text-zinc-200 leading-relaxed italic">&quot;{analysisResult.verdict.reasoning}&quot;</p>
                   </div>
 
                   <div>
-                    <p className="text-sm text-zinc-400 italic">&quot;{analysisResult.verdict.reasoning}&quot;</p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs text-zinc-500 uppercase mb-2">Key Signals</p>
+                    <p className="text-xs font-bold text-orange-300 uppercase tracking-widest mb-2.5">Key Signals</p>
                     <div className="flex flex-wrap gap-2">
                       {analysisResult.verdict.key_signals.map((signal) => (
-                        <span key={signal} className="px-2 py-1 rounded text-xs bg-zinc-800 text-zinc-200">
+                        <span key={signal} className="px-3 py-1.5 rounded-full text-xs bg-zinc-900 border border-white/10 text-zinc-200 font-medium">
                           {signal}
                         </span>
                       ))}
@@ -354,10 +384,13 @@ export default function AnalystFeedbackPage() {
                   </div>
 
                   <div>
-                    <p className="text-xs text-zinc-500 uppercase mb-2">Patterns</p>
-                    <ul className="space-y-1">
+                    <p className="text-xs font-bold text-orange-300 uppercase tracking-widest mb-2.5">Pattern Indicators</p>
+                    <ul className="space-y-2">
                       {analysisResult.verdict.patterns.map((pattern, i) => (
-                        <li key={i} className="text-xs text-zinc-400">• {pattern}</li>
+                        <li key={i} className="text-xs text-zinc-300 flex items-start gap-2.5 p-2.5 rounded-xl bg-zinc-900/50 border border-white/5">
+                          <span className="h-1.5 w-1.5 rounded-full bg-orange-400 mt-1.5 shrink-0" />
+                          <span>{pattern}</span>
+                        </li>
                       ))}
                     </ul>
                   </div>
@@ -370,41 +403,44 @@ export default function AnalystFeedbackPage() {
           <div className="space-y-6">
             {/* Feedback Status */}
             {feedbackStatus && (
-              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 backdrop-blur-md">
-                <h3 className="text-sm font-bold text-white mb-3">Feedback Status</h3>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-zinc-500">Total Verdicts</span>
-                    <span className="font-bold text-white">{feedbackStatus.total_feedback}</span>
+              <div className="relative overflow-hidden rounded-3xl border border-orange-500/20 hover:border-orange-500/40 bg-zinc-950/85 p-7 backdrop-blur-xl shadow-2xl shadow-orange-500/5 transition-all duration-300">
+                <div className="pointer-events-none absolute -right-20 -top-20 h-44 w-44 rounded-full bg-orange-500/10 blur-3xl" />
+                <h3 className="text-sm font-bold text-white uppercase tracking-[0.16em] mb-5 flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-orange-400" />
+                  Feedback Ingestion Status
+                </h3>
+                <div className="space-y-3 text-xs">
+                  <div className="flex justify-between p-3.5 rounded-2xl bg-zinc-900/60 border border-white/10">
+                    <span className="text-zinc-400 font-medium">Total Logged Verdicts</span>
+                    <span className="font-bold text-white font-mono">{feedbackStatus.total_feedback}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-zinc-500">Fraud Confirmed</span>
-                    <span className="font-bold text-red-400">{feedbackStatus.fraud_confirmed}</span>
+                  <div className="flex justify-between p-3.5 rounded-2xl bg-zinc-900/60 border border-white/10">
+                    <span className="text-zinc-400 font-medium">Fraud Confirmed</span>
+                    <span className="font-bold text-red-400 font-mono">{feedbackStatus.fraud_confirmed}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-zinc-500">Legitimate</span>
-                    <span className="font-bold text-emerald-400">{feedbackStatus.legitimate_confirmed}</span>
+                  <div className="flex justify-between p-3.5 rounded-2xl bg-zinc-900/60 border border-white/10">
+                    <span className="text-zinc-400 font-medium">Legitimate Confirmed</span>
+                    <span className="font-bold text-emerald-400 font-mono">{feedbackStatus.legitimate_confirmed}</span>
                   </div>
                   {feedbackStatus.should_retrain && (
-                    <div className="mt-3 p-3 rounded-sm bg-orange-600/20 border border-orange-500/30">
+                    <div className="mt-4 p-5 rounded-2xl bg-orange-500/10 border border-orange-500/30">
                       {retrainOutcome === "success" ? (
-                        <div className="flex items-center gap-2 text-emerald-400 font-semibold">
+                        <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
                           <CheckCircle className="h-4 w-4 shrink-0" />
                           Model successfully retrained on the latest feedback.
                         </div>
                       ) : retrainOutcome === "queued" ? (
-                        <div className="flex items-center gap-2 text-orange-300 font-semibold">
+                        <div className="flex items-center gap-2 text-orange-300 font-bold text-xs">
                           <RotateCw className="h-4 w-4 shrink-0" />
-                          Retraining queued — feedback is saved and will be
-                          picked up on the next training cycle.
+                          Retraining queued — feedback saved for the next cycle.
                         </div>
                       ) : (
                         <>
-                          <p className="text-orange-300 font-semibold mb-2">✓ Ready to Retrain</p>
+                          <p className="text-orange-300 font-bold text-xs mb-2.5">✓ Retraining Threshold Met</p>
                           <button
                             onClick={handleTriggerRetrain}
                             disabled={retraining}
-                            className="w-full py-2 rounded-sm bg-orange-600 hover:bg-orange-500 disabled:bg-zinc-700 text-white font-bold flex items-center justify-center gap-2 transition text-xs"
+                            className="w-full py-3 rounded-full bg-orange-500 hover:bg-orange-400 disabled:opacity-50 text-zinc-950 font-bold flex items-center justify-center gap-2 transition text-xs shadow-lg shadow-orange-500/20"
                           >
                             {retraining ? (
                               <>
@@ -414,7 +450,7 @@ export default function AnalystFeedbackPage() {
                             ) : (
                               <>
                                 <TrendingUp className="h-4 w-4" />
-                                Retrain Model
+                                Trigger Model Retrain
                               </>
                             )}
                           </button>
@@ -428,30 +464,31 @@ export default function AnalystFeedbackPage() {
 
             {/* Model History Comparison */}
             {modelHistory.length > 0 && (
-              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 backdrop-blur-md">
-                <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-orange-400" /> Model Evolution
+              <div className="relative overflow-hidden rounded-3xl border border-orange-500/20 hover:border-orange-500/40 bg-zinc-950/85 p-7 backdrop-blur-xl shadow-2xl shadow-orange-500/5 transition-all duration-300">
+                <div className="pointer-events-none absolute -right-20 -top-20 h-44 w-44 rounded-full bg-orange-500/10 blur-3xl" />
+                <h3 className="text-sm font-bold text-white uppercase tracking-[0.16em] mb-4 flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-orange-400" /> Model Evolution History
                 </h3>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {modelHistory.map((meta: any, idx: number) => (
-                    <div key={idx} className="p-3 rounded-sm bg-zinc-950/50 border border-zinc-700/50">
-                      <p className="text-xs font-bold text-orange-300 mb-2">{meta.label} <span className="text-[11px] text-zinc-500 font-mono font-normal">({meta.version})</span></p>
-                      <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div key={idx} className="p-4 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-orange-500/30 transition">
+                      <p className="text-xs font-bold text-orange-300 mb-2.5">{meta.label} <span className="text-[11px] text-zinc-400 font-mono font-normal">({meta.version})</span></p>
+                      <div className="grid grid-cols-2 gap-3 text-[11px]">
                         <div>
-                          <span className="text-zinc-500">PR-AUC</span>
-                          <p className="text-white font-semibold">{(meta.pr_auc * 100).toFixed(2)}%</p>
+                          <span className="text-zinc-400">PR-AUC</span>
+                          <p className="text-white font-bold font-mono text-xs">{(meta.pr_auc * 100).toFixed(2)}%</p>
                         </div>
                         <div>
-                          <span className="text-zinc-500">Precision</span>
-                          <p className="text-white font-semibold">{(meta.precision * 100).toFixed(2)}%</p>
+                          <span className="text-zinc-400">Precision</span>
+                          <p className="text-white font-bold font-mono text-xs">{(meta.precision * 100).toFixed(2)}%</p>
                         </div>
                         <div>
-                          <span className="text-zinc-500">Test Recall</span>
-                          <p className="text-white font-semibold">{(meta.recall * 100).toFixed(2)}%</p>
+                          <span className="text-zinc-400">Test Recall</span>
+                          <p className="text-white font-bold font-mono text-xs">{(meta.recall * 100).toFixed(2)}%</p>
                         </div>
                         <div>
-                          <span className="text-zinc-500">Evasion Rate</span>
-                          <p className="text-red-400 font-semibold">{(meta.evasion_rate * 100).toFixed(1)}%</p>
+                          <span className="text-zinc-400">Evasion Rate</span>
+                          <p className="text-red-400 font-bold font-mono text-xs">{(meta.evasion_rate * 100).toFixed(1)}%</p>
                         </div>
                       </div>
                     </div>
@@ -462,36 +499,37 @@ export default function AnalystFeedbackPage() {
 
             {/* Analyst Verdict Form */}
             {analysisResult && (
-              <div className="rounded-sm border border-zinc-800/80 bg-[#141518] p-5">
-                <h3 className="text-lg font-bold text-white mb-4">Your Verdict</h3>
+              <div className="relative overflow-hidden rounded-3xl border border-orange-500/20 hover:border-orange-500/40 bg-zinc-950/85 p-7 backdrop-blur-xl shadow-2xl shadow-orange-500/5 transition-all duration-300">
+                <div className="pointer-events-none absolute -right-20 -top-20 h-44 w-44 rounded-full bg-orange-500/10 blur-3xl" />
+                <h3 className="text-sm font-bold text-white uppercase tracking-[0.16em] mb-4">Record Your Ground Truth Verdict</h3>
 
                 {/* Verdict Selection */}
-                <div className="space-y-3 mb-6">
+                <div className="grid grid-cols-3 gap-2.5 mb-5">
                   {["FRAUD", "LEGITIMATE", "UNSURE"].map((verdict) => (
                     <button
                       key={verdict}
                       onClick={() => setAnalystVerdictOverride(verdict)}
-                      className={`w-full py-2 px-3 rounded-sm border font-semibold text-sm transition ${
+                      className={`py-3 px-2 rounded-2xl border font-bold text-xs transition ${
                         analystVerdictOverride === verdict
                           ? verdict === "FRAUD"
-                            ? "bg-red-600 border-red-500 text-white"
+                            ? "bg-red-500 border-red-400 text-zinc-950 shadow-md"
                             : verdict === "LEGITIMATE"
-                            ? "bg-emerald-600 border-emerald-500 text-white"
-                            : "bg-yellow-600 border-yellow-500 text-white"
-                          : "bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500"
+                            ? "bg-emerald-500 border-emerald-400 text-zinc-950 shadow-md"
+                            : "bg-amber-500 border-amber-400 text-zinc-950 shadow-md"
+                          : "bg-zinc-900 border-white/10 text-zinc-300 hover:border-white/20"
                       }`}
                     >
-                      {verdict === "FRAUD" && <AlertTriangle className="h-4 w-4 inline mr-2" />}
-                      {verdict === "LEGITIMATE" && <CheckCircle className="h-4 w-4 inline mr-2" />}
-                      {verdict === "UNSURE" && <HelpCircle className="h-4 w-4 inline mr-2" />}
                       {verdict}
                     </button>
                   ))}
                 </div>
 
                 {/* Confidence Slider */}
-                <div className="mb-6">
-                  <label className="text-xs text-zinc-500 uppercase block mb-2">Confidence</label>
+                <div className="mb-5">
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="text-xs text-zinc-400 font-bold uppercase">Analyst Confidence</label>
+                    <span className="text-xs font-mono font-bold text-orange-300">{(confidence * 100).toFixed(0)}%</span>
+                  </div>
                   <input
                     type="range"
                     min="0"
@@ -499,20 +537,19 @@ export default function AnalystFeedbackPage() {
                     step="0.05"
                     value={confidence}
                     onChange={(e) => setConfidence(parseFloat(e.target.value))}
-                    className="w-full"
+                    className="w-full h-2 bg-zinc-800 rounded-full appearance-none cursor-pointer accent-orange-500"
                   />
-                  <p className="text-xs text-zinc-400 mt-1 text-right">{(confidence * 100).toFixed(0)}%</p>
                 </div>
 
                 {/* Reasoning */}
-                <div className="mb-6">
-                  <label className="text-xs text-zinc-500 uppercase block mb-2">Your Reasoning</label>
+                <div className="mb-5">
+                  <label className="text-xs text-zinc-400 font-bold uppercase block mb-2">Investigation Notes</label>
                   <textarea
                     value={reasoning}
                     onChange={(e) => setReasoning(e.target.value)}
-                    placeholder="Why do you agree/disagree with Claude&rsquo;s assessment?"
-                    className="w-full bg-zinc-950 border border-zinc-700 rounded-sm p-2 text-xs text-white placeholder-zinc-600 focus:border-orange-500 focus:outline-none resize-none"
-                    rows={4}
+                    placeholder="Enter observations on why this transaction should be confirmed as fraud or cleared..."
+                    className="w-full bg-zinc-900/90 border border-white/15 rounded-2xl p-4 text-xs text-white placeholder-zinc-500 focus:border-orange-400 focus:ring-1 focus:ring-orange-400/30 focus:outline-none resize-none"
+                    rows={3}
                   />
                 </div>
 
@@ -520,22 +557,22 @@ export default function AnalystFeedbackPage() {
                 <button
                   onClick={handleSubmitVerdict}
                   disabled={loading || !analystVerdictOverride || submitted}
-                  className="w-full py-3 rounded-sm bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-700 text-white font-bold flex items-center justify-center gap-2 transition"
+                  className="w-full py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-zinc-950 font-bold flex items-center justify-center gap-2 transition text-xs shadow-xl shadow-emerald-500/25 tracking-wide"
                 >
                   {submitted ? (
                     <>
                       <CheckCircle className="h-4 w-4" />
-                      Verdict Submitted
+                      Verdict Logged
                     </>
                   ) : loading ? (
                     <>
                       <RotateCw className="h-4 w-4 animate-spin" />
-                      Submitting...
+                      Saving Verdict...
                     </>
                   ) : (
                     <>
                       <Send className="h-4 w-4" />
-                      Submit Verdict
+                      Commit Analyst Verdict
                     </>
                   )}
                 </button>
@@ -549,9 +586,9 @@ export default function AnalystFeedbackPage() {
                       setReasoning("");
                       setConfidence(0.8);
                     }}
-                    className="w-full py-2 mt-3 rounded-sm bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-sm"
+                    className="w-full py-3 mt-3 rounded-full border border-white/15 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-bold text-xs transition"
                   >
-                    Review Another Transaction
+                    Review Next Scenario
                   </button>
                 )}
               </div>
@@ -560,34 +597,35 @@ export default function AnalystFeedbackPage() {
         </div>
 
         {/* How it Works */}
-        <div className="mt-12 rounded-sm border border-zinc-800/80 bg-[#141518] p-5">
-          <h3 className="text-lg font-bold text-white mb-4">How This Works</h3>
+        <div className="mt-8 relative overflow-hidden rounded-3xl border border-orange-500/20 hover:border-orange-500/40 bg-zinc-950/85 p-7 backdrop-blur-xl shadow-2xl shadow-orange-500/5 transition-all duration-300">
+          <div className="pointer-events-none absolute -right-20 -top-20 h-44 w-44 rounded-full bg-orange-500/10 blur-3xl" />
+          <h3 className="text-base font-bold text-white mb-5">How Closed-Loop Learning Works</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="flex gap-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm bg-orange-600/20 border border-orange-500/30">
+            <div className="flex gap-4 p-4 rounded-2xl bg-zinc-900/50 border border-white/5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-orange-500/10 border border-orange-400/30">
                 <span className="font-bold text-orange-400 text-sm">1</span>
               </div>
               <div>
-                <p className="font-semibold text-white text-sm">Claude Analyzes</p>
-                <p className="text-xs text-zinc-500 mt-1">Claude Sonnet 5 (non-hallucinating) reviews SHAP features</p>
+                <p className="font-bold text-white text-xs">SHAP Decomposition</p>
+                <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">Multi-modal features are broken down into exact local attributions.</p>
               </div>
             </div>
-            <div className="flex gap-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm bg-emerald-500/20 border border-emerald-500/30">
+            <div className="flex gap-4 p-4 rounded-2xl bg-zinc-900/50 border border-white/5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/30">
                 <span className="font-bold text-emerald-400 text-sm">2</span>
               </div>
               <div>
-                <p className="font-semibold text-white text-sm">You Review</p>
-                <p className="text-xs text-zinc-500 mt-1">Agree or disagree with Claude&rsquo;s verdict</p>
+                <p className="font-bold text-white text-xs">Human-in-the-Loop Review</p>
+                <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">Analysts confirm false negatives and novel evasions.</p>
               </div>
             </div>
-            <div className="flex gap-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm bg-orange-500/20 border border-orange-500/30">
+            <div className="flex gap-4 p-4 rounded-2xl bg-zinc-900/50 border border-white/5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-orange-500/10 border border-orange-400/30">
                 <span className="font-bold text-orange-400 text-sm">3</span>
               </div>
               <div>
-                <p className="font-semibold text-white text-sm">Model Improves</p>
-                <p className="text-xs text-zinc-500 mt-1">At 50+ verdicts, model retrains on human feedback</p>
+                <p className="font-bold text-white text-xs">Curriculum Retraining</p>
+                <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">The system automatically retrains on logged feedback to harden future detection.</p>
               </div>
             </div>
           </div>

@@ -311,9 +311,3 @@ stage5/
 Chakravyuh demonstrates that adversarial curriculum learning is a **practical, deployable approach** to fraud detection. The system explicitly models attack families, validates cross-generational robustness, and implements a safety gate (`cross_generation_eval.py`) that catches catastrophic forgetting during development—catching a 43% regression, root-causing it to premature curriculum exit + non-cumulative level training, and validating the fix. All three curriculum generations now pass cross-generational eval (<1% evasion across Gen 3, Gen 4, and Gen 5 attack sets).
 
 The system is production-ready: sub-millisecond inference, automated retraining, regression-testing gates, and a documented roadmap for post-submission improvements (lookalike fidelity, analyst feedback loop integration, and retraining the promoted model on the expanded 15-family baseline).
-
----
-
-**Authors**: Sneh Kanodia (snehk.sockscarving@gmail.com)  
-**Submission Date**: August 25, 2026  
-**Model**: Gen 5 XGBoost (promoted from final curriculum generation)

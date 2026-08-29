@@ -2943,6 +2943,238 @@ function TeamAvatar({ profile }: { profile: (typeof profileLinks)[number] }) {
   );
 }
 
+/** Signature Hero Visual: Concentric Counter-Rotating Defence Rings */
+function ChakravyuhDefenceRings() {
+  const [pulseCore, setPulseCore] = useState(false);
+  const [fraudBlocked, setFraudBlocked] = useState(false);
+
+  useEffect(() => {
+    // Pulse intervals matching the particle timing
+    const genuineInterval = setInterval(() => {
+      setPulseCore(true);
+      setTimeout(() => setPulseCore(false), 900);
+    }, 4000);
+
+    const fraudInterval = setInterval(() => {
+      setTimeout(() => {
+        setFraudBlocked(true);
+        setTimeout(() => setFraudBlocked(false), 1200);
+      }, 2000);
+    }, 4000);
+
+    return () => {
+      clearInterval(genuineInterval);
+      clearInterval(fraudInterval);
+    };
+  }, []);
+
+  return (
+    <div className="relative mx-auto flex w-full max-w-md items-center justify-center p-2">
+      {/* Outer ambient glow */}
+      <div className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-tr from-orange-500/15 via-amber-500/10 to-emerald-500/15 blur-2xl" />
+
+      <div className="relative h-[340px] w-[340px] sm:h-[380px] sm:w-[380px]">
+        <svg viewBox="0 0 380 380" className="h-full w-full select-none overflow-visible">
+          <defs>
+            <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+            </radialGradient>
+            <radialGradient id="fraudFlash" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#ef4444" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="#ef4444" stopOpacity="0" />
+            </radialGradient>
+            <linearGradient id="ringGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#f97316" stopOpacity="0.9" />
+              <stop offset="50%" stopColor="#fb923c" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#f97316" stopOpacity="0.8" />
+            </linearGradient>
+            <linearGradient id="ringGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#ea580c" stopOpacity="0.8" />
+              <stop offset="70%" stopColor="#f59e0b" stopOpacity="0.2" />
+              <stop offset="100%" stopColor="#ea580c" stopOpacity="0.9" />
+            </linearGradient>
+            <linearGradient id="ringGrad3" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#f97316" stopOpacity="0.95" />
+              <stop offset="100%" stopColor="#c2410c" stopOpacity="0.4" />
+            </linearGradient>
+          </defs>
+
+          {/* Background Radar Grid Coordinates */}
+          <circle cx="190" cy="190" r="172" fill="none" stroke="#27272a" strokeWidth="1" strokeDasharray="2 6" opacity="0.5" />
+          <circle cx="190" cy="190" r="130" fill="none" stroke="#27272a" strokeWidth="1" strokeDasharray="3 6" opacity="0.4" />
+          <circle cx="190" cy="190" r="85" fill="none" stroke="#27272a" strokeWidth="1" strokeDasharray="2 4" opacity="0.4" />
+
+          {/* Coordinate Crosshairs */}
+          <line x1="190" y1="10" x2="190" y2="370" stroke="#3f3f46" strokeWidth="1" strokeDasharray="4 8" opacity="0.25" />
+          <line x1="10" y1="190" x2="370" y2="190" stroke="#3f3f46" strokeWidth="1" strokeDasharray="4 8" opacity="0.25" />
+
+          {/* RING 1: L1 Edge Telemetry (Radius 150 - Slow Clockwise Counter-Rotation) */}
+          <motion.g
+            animate={{ rotate: 360 }}
+            transition={{ duration: 32, repeat: Infinity, ease: "linear" }}
+            style={{ originX: "190px", originY: "190px" }}
+          >
+            <circle
+              cx="190"
+              cy="190"
+              r="150"
+              fill="none"
+              stroke="url(#ringGrad1)"
+              strokeWidth="2.5"
+              strokeDasharray="220 50 200 60 180 70"
+              strokeLinecap="round"
+            />
+            {/* Satellite sensor nodes on Ring 1 */}
+            <circle cx="190" cy="40" r="3.5" fill="#f97316" className="animate-pulse" />
+            <circle cx="340" cy="190" r="3" fill="#fb923c" />
+            <circle cx="70" cy="270" r="3" fill="#f97316" />
+          </motion.g>
+
+          {/* RING 2: L2 Behavioral Graph (Radius 108 - Counter-Clockwise Rotation) */}
+          <motion.g
+            animate={{ rotate: -360 }}
+            transition={{ duration: 24, repeat: Infinity, ease: "linear" }}
+            style={{ originX: "190px", originY: "190px" }}
+          >
+            <circle
+              cx="190"
+              cy="190"
+              r="108"
+              fill="none"
+              stroke={fraudBlocked ? "#ef4444" : "url(#ringGrad2)"}
+              strokeWidth={fraudBlocked ? "3.5" : "2.5"}
+              strokeDasharray="160 45 140 50 120 40"
+              strokeLinecap="round"
+              className="transition-all duration-300"
+            />
+            {/* Nodes on Ring 2 */}
+            <circle cx="190" cy="82" r="3" fill={fraudBlocked ? "#ef4444" : "#f59e0b"} />
+            <circle cx="280" cy="245" r="3" fill="#ea580c" />
+            <circle cx="100" cy="140" r="3" fill="#fb923c" />
+          </motion.g>
+
+          {/* RING 3: L3 Counterparty AI Shield (Radius 68 - Clockwise Rotation) */}
+          <motion.g
+            animate={{ rotate: 360 }}
+            transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
+            style={{ originX: "190px", originY: "190px" }}
+          >
+            <circle
+              cx="190"
+              cy="190"
+              r="68"
+              fill="none"
+              stroke="url(#ringGrad3)"
+              strokeWidth="2.5"
+              strokeDasharray="110 30 90 35"
+              strokeLinecap="round"
+            />
+            <circle cx="190" cy="122" r="3" fill="#f97316" />
+            <circle cx="245" cy="225" r="3" fill="#f97316" />
+          </motion.g>
+
+          {/* Fraud Interception Barrier Shield Ripple */}
+          {fraudBlocked && (
+            <motion.circle
+              cx="125"
+              cy="235"
+              r="22"
+              fill="url(#fraudFlash)"
+              stroke="#ef4444"
+              strokeWidth="2"
+              initial={{ scale: 0.6, opacity: 0.9 }}
+              animate={{ scale: 1.4, opacity: 0 }}
+              transition={{ duration: 0.8 }}
+            />
+          )}
+
+          {/* Genuine Payment Particle (Green) traveling inward through ring gaps to the core */}
+          <motion.g
+            animate={{
+              x: [130, 85, 45, 0],
+              y: [-120, -75, -35, 0],
+              opacity: [0, 1, 1, 0.9],
+              scale: [0.8, 1, 1.1, 1.3],
+            }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              times: [0, 0.35, 0.75, 1],
+              ease: "easeInOut",
+            }}
+          >
+            <circle cx="190" cy="190" r="4.5" fill="#10b981" className="shadow-lg shadow-emerald-500" />
+            <circle cx="190" cy="190" r="8" fill="none" stroke="#10b981" strokeWidth="1.5" opacity="0.6" />
+          </motion.g>
+
+          {/* Fraudulent Payment Particle (Red/Orange) traveling inward and getting held at Barrier Ring 2 */}
+          <motion.g
+            animate={{
+              x: [-130, -85, -65, -65, -65],
+              y: [120, 75, 45, 45, 45],
+              opacity: [0, 1, 1, 0.8, 0],
+              scale: [0.8, 1, 1.2, 1, 0],
+            }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              times: [0, 0.25, 0.5, 0.8, 1],
+              ease: "easeOut",
+            }}
+          >
+            <circle cx="190" cy="190" r="4.5" fill="#ef4444" className="shadow-lg shadow-red-500" />
+            <circle cx="190" cy="190" r="8" fill="none" stroke="#ef4444" strokeWidth="1.5" opacity="0.7" />
+          </motion.g>
+
+          {/* Central Settlement Vault Core */}
+          <circle
+            cx="190"
+            cy="190"
+            r={pulseCore ? 34 : 28}
+            fill="#090a0f"
+            stroke={pulseCore ? "#10b981" : "#f97316"}
+            strokeWidth="2"
+            className="transition-all duration-300"
+          />
+          {pulseCore && (
+            <circle cx="190" cy="190" r="46" fill="url(#coreGlow)" className="animate-ping" />
+          )}
+          <circle cx="190" cy="190" r="20" fill={pulseCore ? "#10b98120" : "#f9731615"} />
+
+          {/* Core Symbol */}
+          <g transform="translate(181, 181)">
+            <path
+              d="M9 2.5 L3 5.5 V10.5 C3 14.5 9 17.5 9 17.5 C9 17.5 15 14.5 15 10.5 V5.5 L9 2.5 Z"
+              fill="none"
+              stroke={pulseCore ? "#34d399" : "#fb923c"}
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </g>
+        </svg>
+
+        {/* Live HUD Badges around the rings */}
+        <div className="pointer-events-none absolute -bottom-2 inset-x-0 flex items-center justify-between px-2 text-[10px] font-mono text-zinc-400">
+          <span className="rounded-full border border-emerald-500/30 bg-emerald-950/70 px-2.5 py-1 text-emerald-300 backdrop-blur shadow">
+            ● Genuine Pass (0.4ms)
+          </span>
+          <span className="rounded-full border border-red-500/30 bg-red-950/70 px-2.5 py-1 text-red-300 backdrop-blur shadow">
+            ● Attack Intercepted
+          </span>
+        </div>
+
+        <div className="pointer-events-none absolute -top-2 inset-x-0 flex justify-center text-[10px] font-mono font-bold tracking-widest uppercase text-orange-300">
+          <span className="rounded-full border border-orange-500/30 bg-zinc-950/80 px-3 py-0.5 backdrop-blur">
+            Multi-Layer Chakravyuh Perimeter
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const HERO_SCENARIOS = [
   {
     id: "scam_push",
@@ -2952,15 +3184,16 @@ const HERO_SCENARIOS = [
     subtitle: "to a beneficiary added 38 sec ago",
     riskScore: 94,
     riskLevel: "Critical",
-    riskColor: "text-orange-300",
-    riskBg: "border-orange-400/30 bg-orange-400/10",
+    riskColor: "text-orange-400",
+    riskBg: "border-orange-500/40 bg-orange-500/10",
+    gaugeColor: "#f97316",
     action: "HOLD FOR REVIEW",
-    actionBg: "bg-orange-400 text-zinc-950",
-    glowColor: "from-orange-500/20 to-emerald-500/10",
+    actionBg: "bg-orange-500 text-zinc-950",
+    glowColor: "from-orange-500/25 to-amber-500/10",
     signals: [
-      "Call active on confirmation screen",
-      "Screen-share service detected",
-      "Recipient matches mule-network pattern",
+      "Active voice call during confirmation",
+      "Screen share service detected",
+      "Beneficiary matches mule network pattern",
     ],
   },
   {
@@ -2971,13 +3204,14 @@ const HERO_SCENARIOS = [
     subtitle: "3rd transaction under ₹5,000 in 12 mins",
     riskScore: 88,
     riskLevel: "High",
-    riskColor: "text-amber-300",
-    riskBg: "border-amber-400/30 bg-amber-400/10",
+    riskColor: "text-amber-400",
+    riskBg: "border-amber-500/40 bg-amber-500/10",
+    gaugeColor: "#f59e0b",
     action: "CHALLENGE (STEP-UP OTP)",
     actionBg: "bg-amber-400 text-zinc-950",
-    glowColor: "from-amber-500/20 to-rose-500/10",
+    glowColor: "from-amber-500/25 to-rose-500/10",
     signals: [
-      "Velocity anomaly (3 rapid micro-charges)",
+      "Sub-threshold fragmentation velocity",
       "Novel device fingerprint hash",
       "Merchant category risk mismatch",
     ],
@@ -2990,13 +3224,14 @@ const HERO_SCENARIOS = [
     subtitle: "to recurring grocery merchant (MCC 5411)",
     riskScore: 3,
     riskLevel: "Low",
-    riskColor: "text-emerald-300",
-    riskBg: "border-emerald-400/30 bg-emerald-400/10",
+    riskColor: "text-emerald-400",
+    riskBg: "border-emerald-500/40 bg-emerald-500/10",
+    gaugeColor: "#10b981",
     action: "INSTANT APPROVAL",
     actionBg: "bg-emerald-400 text-zinc-950",
-    glowColor: "from-emerald-500/20 to-teal-500/10",
+    glowColor: "from-emerald-500/25 to-teal-500/10",
     signals: [
-      "Known counterparty with 14 prior transactions",
+      "Known counterparty with 14 prior txns",
       "Device biometric authentication verified",
       "Normal historical spend velocity",
     ],
@@ -3008,7 +3243,37 @@ function StoryPage() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [activeScenarioIdx, setActiveScenarioIdx] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [timerProgress, setTimerProgress] = useState(0);
+  const [displayedScore, setDisplayedScore] = useState(HERO_SCENARIOS[0].riskScore);
+  const [activeAct, setActiveAct] = useState(0);
 
+  const scoreRef = useRef(HERO_SCENARIOS[0].riskScore);
+
+  // Smoothly interpolate displayed risk score on scenario change
+  useEffect(() => {
+    const target = HERO_SCENARIOS[activeScenarioIdx].riskScore;
+    const start = scoreRef.current;
+    const duration = 600;
+    const startTime = performance.now();
+
+    let animFrame: number;
+    const animateNumber = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      const currentVal = Math.round(start + (target - start) * progress);
+      scoreRef.current = currentVal;
+      setDisplayedScore(currentVal);
+
+      if (progress < 1) {
+        animFrame = requestAnimationFrame(animateNumber);
+      }
+    };
+
+    animFrame = requestAnimationFrame(animateNumber);
+    return () => cancelAnimationFrame(animFrame);
+  }, [activeScenarioIdx]);
+
+  // Track global scroll
   useEffect(() => {
     const updateProgress = () => {
       const maximum = document.documentElement.scrollHeight - window.innerHeight;
@@ -3019,167 +3284,421 @@ function StoryPage() {
     return () => window.removeEventListener("scroll", updateProgress);
   }, []);
 
+  // 5-second auto-cycle with filling progress bar
   useEffect(() => {
     if (isPaused) return;
-    const interval = setInterval(() => {
-      setActiveScenarioIdx((prev) => (prev + 1) % HERO_SCENARIOS.length);
-    }, 4500);
-    return () => clearInterval(interval);
-  }, [isPaused]);
+
+    const cycleDuration = 5000;
+    const intervalTick = 50;
+    let elapsed = 0;
+
+    const timer = setInterval(() => {
+      elapsed += intervalTick;
+      setTimerProgress(Math.min(100, (elapsed / cycleDuration) * 100));
+
+      if (elapsed >= cycleDuration) {
+        elapsed = 0;
+        setTimerProgress(0);
+        setActiveScenarioIdx((prev) => (prev + 1) % HERO_SCENARIOS.length);
+      }
+    }, intervalTick);
+
+    return () => clearInterval(timer);
+  }, [isPaused, activeScenarioIdx]);
 
   const currentScenario = HERO_SCENARIOS[activeScenarioIdx];
 
   return (
     <main className="story-page min-h-screen overflow-x-hidden bg-[#08090b] text-zinc-100 selection:bg-orange-400/30">
-      <div className="fixed inset-x-0 top-0 z-[60] h-px bg-white/10">
-        <motion.div className="h-full origin-left bg-gradient-to-r from-orange-500 via-amber-300 to-emerald-400" style={{ scaleX: scrollProgress }} />
+      {/* Top Scroll Progress Line */}
+      <div className="fixed inset-x-0 top-0 z-[60] h-1 bg-zinc-900">
+        <motion.div
+          className="h-full origin-left bg-gradient-to-r from-orange-500 via-amber-400 to-emerald-400 shadow-md shadow-orange-500/50"
+          style={{ scaleX: scrollProgress }}
+        />
       </div>
 
-      <header className="fixed inset-x-0 top-0 z-50 flex items-center justify-between px-5 py-5 md:px-10">
+      {/* Header */}
+      <header className="fixed inset-x-0 top-0 z-50 flex items-center justify-between px-5 py-4 md:px-10 backdrop-blur-xl bg-zinc-950/70 border-b border-white/5">
         <a href="#top" className="flex items-center gap-2.5 text-sm font-bold tracking-[0.18em] text-white" aria-label="Back to top">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-orange-400/40 bg-orange-500/10">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-orange-400/40 bg-orange-500/10 shadow-sm">
             <Shield className="h-4 w-4 text-orange-300" />
           </span>
           CHAKRAVYUH
         </a>
-        <Link href="/dashboard" className="group flex items-center gap-2 rounded-full border border-white/15 bg-zinc-950/70 px-4 py-2 text-xs font-semibold text-white backdrop-blur transition hover:border-orange-400/70 hover:bg-orange-500/10">
+        <Link
+          href="/dashboard"
+          className="group flex items-center gap-2 rounded-full border border-orange-400/40 bg-zinc-900/80 px-4 py-2 text-xs font-bold text-white backdrop-blur transition hover:border-orange-400 hover:bg-orange-500/15 shadow-sm"
+        >
           Open live dashboard <ArrowUpRight className="h-3.5 w-3.5 text-orange-300 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
         </Link>
       </header>
 
+      {/* HERO SECTION */}
       <section id="top" className="relative flex min-h-screen items-center px-5 pb-20 pt-28 md:px-10">
         <div className="story-grid pointer-events-none absolute inset-0 opacity-50" />
-        <div className="absolute left-[12%] top-[16%] h-80 w-80 rounded-full bg-orange-500/15 blur-[120px]" />
-        <div className="absolute bottom-[12%] right-[8%] h-72 w-72 rounded-full bg-emerald-500/10 blur-[120px]" />
-        <div className="relative mx-auto grid w-full max-w-7xl items-center gap-12 lg:grid-cols-[1.05fr_.95fr]">
+        <div className="pointer-events-none absolute left-[10%] top-[14%] h-96 w-96 rounded-full bg-orange-500/15 blur-[140px]" />
+        <div className="pointer-events-none absolute bottom-[10%] right-[10%] h-80 w-80 rounded-full bg-emerald-500/10 blur-[140px]" />
+
+        <div className="relative mx-auto grid w-full max-w-7xl items-center gap-12 lg:grid-cols-[1fr_1fr]">
+          {/* Left Column: Copy & Value Proposition */}
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.75, ease: "easeOut" }}>
-            <p className="mb-6 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-orange-300"><CircleDot className="h-3.5 w-3.5" /> Payment defence laboratory</p>
+            <p className="mb-5 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-orange-300">
+              <CircleDot className="h-3.5 w-3.5" /> Next-Generation Payment Defence
+            </p>
             <h1 className="max-w-3xl text-5xl font-semibold leading-[0.98] tracking-[-0.055em] text-white sm:text-6xl md:text-7xl">
               Fraud evolves.<br /><span className="text-zinc-500">So should the defence.</span>
             </h1>
-            <p className="mt-7 max-w-xl text-lg leading-relaxed text-zinc-400">Chakravyuh simulates GenAI-enabled payment fraud, detects it before authorisation, and turns every blind spot into a stronger defence.</p>
-            <div className="mt-9 flex flex-wrap gap-3">
-              <a href="#story" className="group inline-flex items-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-bold text-zinc-950 transition hover:bg-orange-300">Read the defence story <ArrowDown className="h-4 w-4 transition-transform group-hover:translate-y-1" /></a>
-              <Link href="/dashboard" className="inline-flex items-center gap-2 rounded-full border border-white/15 px-5 py-3 text-sm font-semibold text-zinc-200 transition hover:border-white/40 hover:bg-white/5">Skip to dashboard <ArrowUpRight className="h-4 w-4" /></Link>
+            <p className="mt-7 max-w-xl text-lg leading-relaxed text-zinc-300">
+              Chakravyuh simulates GenAI-enabled payment fraud, detects it in <strong className="text-orange-300 font-semibold">&lt; 8ms</strong> before authorization, and turns every blind spot into an unbreakable defence.
+            </p>
+            <div className="mt-9 flex flex-wrap gap-3.5">
+              <a
+                href="#story"
+                className="group inline-flex items-center gap-2 rounded-full bg-orange-500 px-6 py-3.5 text-sm font-bold text-zinc-950 transition hover:bg-orange-400 shadow-lg shadow-orange-500/25"
+              >
+                Read the defence story <ArrowDown className="h-4 w-4 transition-transform group-hover:translate-y-1" />
+              </a>
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-zinc-900/80 px-6 py-3.5 text-sm font-semibold text-zinc-200 transition hover:border-orange-400 hover:bg-orange-500/10"
+              >
+                Skip to dashboard <ArrowUpRight className="h-4 w-4 text-orange-300" />
+              </Link>
             </div>
-            <div className="mt-12 flex flex-wrap gap-x-8 gap-y-4 text-xs text-zinc-500"><span><b className="text-zinc-200">16</b> attack families</span><span><b className="text-zinc-200">Pre-authorisation</b> decisions</span><span><b className="text-zinc-200">Privacy-safe</b> simulation</span></div>
+            <div className="mt-12 flex flex-wrap gap-x-8 gap-y-4 text-xs text-zinc-400 font-mono">
+              <span className="flex items-center gap-1.5"><b className="text-white">16</b> Attack Families</span>
+              <span className="flex items-center gap-1.5"><b className="text-orange-300">&lt; 8ms</b> Latency Window</span>
+              <span className="flex items-center gap-1.5"><b className="text-emerald-400">Closed-Loop</b> Learning</span>
+            </div>
           </motion.div>
 
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.96 }} 
-            animate={{ opacity: 1, scale: 1 }} 
-            transition={{ duration: 0.9, delay: 0.12 }} 
-            className="relative mx-auto w-full max-w-xl"
-            onMouseEnter={() => setIsPaused(true)}
-            onMouseLeave={() => setIsPaused(false)}
-          >
-            <div className={`absolute -inset-4 rounded-[2rem] bg-gradient-to-br ${currentScenario.glowColor} blur-2xl transition-all duration-700`} />
-            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/85 p-5 shadow-2xl backdrop-blur-xl md:p-7">
-              {/* Card Header with Interactive Scenario Pills */}
-              <div className="mb-6 flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-4">
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-orange-400" />
-                  <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-400">Live Authorisation Engine</span>
+          {/* Right Column: Signature Concentric Defence Rings + Live Authorisation Cockpit */}
+          <div className="flex flex-col gap-6">
+            {/* Signature Concentric Rings Visual */}
+            <div className="relative overflow-hidden rounded-3xl border border-orange-500/20 hover:border-orange-500/40 bg-zinc-950/85 p-4 shadow-2xl backdrop-blur-xl transition-all duration-300">
+              <ChakravyuhDefenceRings />
+            </div>
+
+            {/* Live Authorisation Engine Card (Auto-cycling every 5s with progress bar) */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.96 }} 
+              animate={{ opacity: 1, scale: 1 }} 
+              transition={{ duration: 0.8 }} 
+              className="relative w-full"
+              onMouseEnter={() => setIsPaused(true)}
+              onMouseLeave={() => setIsPaused(false)}
+            >
+              <div className={`absolute -inset-2 rounded-3xl bg-gradient-to-br ${currentScenario.glowColor} blur-xl transition-all duration-700`} />
+              <div className="relative overflow-hidden rounded-3xl border border-orange-500/20 hover:border-orange-500/40 bg-zinc-950/90 p-6 shadow-2xl backdrop-blur-xl transition-all duration-300">
+                {/* Card Header with Interactive Auto-Cycling Tabs */}
+                <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 animate-pulse rounded-full bg-orange-400" />
+                    <span className="text-xs font-bold uppercase tracking-[0.16em] text-orange-300">Live Authorisation Engine</span>
+                    {isPaused && (
+                      <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-[9px] font-mono text-zinc-400">
+                        Paused
+                      </span>
+                    )}
+                  </div>
+
+                  {/* 3 Tabs with Progress Bar */}
+                  <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-zinc-900/90 p-1">
+                    {HERO_SCENARIOS.map((sc, idx) => {
+                      const isActive = activeScenarioIdx === idx;
+                      return (
+                        <button
+                          key={sc.id}
+                          onClick={() => {
+                            setActiveScenarioIdx(idx);
+                            setTimerProgress(0);
+                          }}
+                          className={`relative overflow-hidden rounded-full px-3 py-1.5 text-[11px] font-bold transition-all ${
+                            isActive
+                              ? "bg-zinc-800 text-white shadow"
+                              : "text-zinc-400 hover:text-white"
+                          }`}
+                        >
+                          {/* Active cycling progress bar filling over 5s */}
+                          {isActive && (
+                            <div
+                              className="absolute inset-0 bg-orange-500/30 transition-all"
+                              style={{ width: `${timerProgress}%` }}
+                            />
+                          )}
+                          <span className="relative z-10">
+                            {idx === 0 ? "Scam Push" : idx === 1 ? "Smurfing" : "Genuine QR"}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-zinc-900/90 p-1">
-                  {HERO_SCENARIOS.map((sc, idx) => (
-                    <button
-                      key={sc.id}
-                      onClick={() => setActiveScenarioIdx(idx)}
-                      className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition ${
-                        activeScenarioIdx === idx
-                          ? "bg-orange-500 text-zinc-950 shadow"
-                          : "text-zinc-400 hover:text-white"
-                      }`}
-                      title={sc.tag}
+
+                {/* Dynamic Transaction Display + Radial Gauge */}
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-zinc-400 font-medium">{currentScenario.rail}</span>
+                      <span className="rounded-full bg-orange-500/15 border border-orange-500/30 px-2 py-0.5 text-[10px] font-bold text-orange-300 font-mono">
+                        {currentScenario.tag}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-3xl sm:text-4xl font-bold tracking-tight text-white font-mono">
+                      {currentScenario.amount}
+                    </p>
+                    <p className="mt-1.5 text-xs text-zinc-400">{currentScenario.subtitle}</p>
+                  </div>
+
+                  {/* Radial Gauge & Risk Score */}
+                  <div className={`flex items-center gap-3 rounded-2xl border p-3 ${currentScenario.riskBg}`}>
+                    <div className="relative h-14 w-14 flex items-center justify-center">
+                      <svg className="absolute inset-0 h-full w-full -rotate-90">
+                        <circle cx="28" cy="28" r="23" stroke="#27272a" strokeWidth="3.5" fill="transparent" />
+                        <circle
+                          cx="28"
+                          cy="28"
+                          r="23"
+                          stroke={currentScenario.gaugeColor}
+                          strokeWidth="3.5"
+                          fill="transparent"
+                          strokeDasharray={2 * Math.PI * 23}
+                          strokeDashoffset={2 * Math.PI * 23 * (1 - displayedScore / 100)}
+                          strokeLinecap="round"
+                          className="transition-all duration-300"
+                        />
+                      </svg>
+                      <div className="flex flex-col items-center z-10">
+                        <span className="text-base font-black text-white font-mono leading-none">
+                          {displayedScore}
+                        </span>
+                        <span className="text-[7px] font-mono text-zinc-400 uppercase">%</span>
+                      </div>
+                    </div>
+                    <div className="text-left pr-1">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Risk Score</p>
+                      <p className={`text-xs font-bold ${currentScenario.riskColor}`}>{currentScenario.riskLevel}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="my-5 h-px bg-white/10" />
+
+                {/* Stamped Signal Rows (~80ms apart) */}
+                <div className="space-y-2">
+                  {currentScenario.signals.map((signal, index) => (
+                    <motion.div 
+                      key={`${currentScenario.id}-${signal}`} 
+                      initial={{ opacity: 0, x: -14 }} 
+                      animate={{ opacity: 1, x: 0 }} 
+                      transition={{ duration: 0.22, delay: index * 0.08 }} 
+                      className="flex items-center gap-3 rounded-xl border border-white/5 bg-zinc-900/60 p-2.5 text-xs text-zinc-200"
                     >
-                      {idx === 0 ? "Scam Push" : idx === 1 ? "Smurfing" : "Genuine"}
-                    </button>
+                      <ScanLine className={`h-4 w-4 shrink-0 ${currentScenario.riskColor}`} />
+                      <span className="font-medium">{signal}</span>
+                    </motion.div>
                   ))}
                 </div>
-              </div>
 
-              {/* Dynamic Transaction Display */}
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-zinc-500">{currentScenario.rail}</span>
-                    <span className="rounded bg-white/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-zinc-300">{currentScenario.tag}</span>
-                  </div>
-                  <motion.p 
-                    key={currentScenario.amount}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.25 }}
-                    className="mt-1.5 text-4xl font-semibold tracking-tight text-white"
-                  >
-                    {currentScenario.amount}
-                  </motion.p>
-                  <p className="mt-2 text-sm text-zinc-400">{currentScenario.subtitle}</p>
-                </div>
-                <div className={`rounded-2xl border px-3.5 py-2 text-right ${currentScenario.riskBg}`}>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Risk</p>
-                  <motion.p 
-                    key={currentScenario.riskScore}
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className={`text-2xl font-bold ${currentScenario.riskColor}`}
-                  >
-                    {currentScenario.riskScore}%
-                  </motion.p>
-                </div>
-              </div>
-
-              <div className="my-6 h-px bg-white/10" />
-
-              {/* Animated Contributing Signals */}
-              <div className="space-y-2.5">
-                {currentScenario.signals.map((signal, index) => (
+                {/* Decision Chip Snapping In */}
+                <div className="mt-5 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
                   <motion.div 
-                    key={`${currentScenario.id}-${signal}`} 
-                    initial={{ opacity: 0, x: -10 }} 
-                    animate={{ opacity: 1, x: 0 }} 
-                    transition={{ duration: 0.2, delay: index * 0.08 }} 
-                    className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.03] p-3 text-sm text-zinc-300"
+                    key={currentScenario.action}
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.3, delay: 0.3 }}
+                    className="flex flex-1 items-center justify-between rounded-xl border border-white/10 bg-zinc-900/90 p-3"
                   >
-                    <ScanLine className={`h-4 w-4 shrink-0 ${currentScenario.riskColor}`} />
-                    <span>{signal}</span>
+                    <span className="text-xs font-semibold text-zinc-400">Pre-Auth Decision</span>
+                    <span className={`rounded-full px-3 py-1 text-xs font-black tracking-wide uppercase ${currentScenario.actionBg}`}>
+                      {currentScenario.action}
+                    </span>
                   </motion.div>
-                ))}
-              </div>
-
-              {/* Recommended Action + Studio Direct Link */}
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-1 items-center justify-between rounded-xl border border-white/10 bg-zinc-900/80 p-3.5">
-                  <span className="text-xs font-semibold text-zinc-400">Decision</span>
-                  <span className={`rounded-lg px-3 py-1 text-xs font-bold ${currentScenario.actionBg}`}>
-                    {currentScenario.action}
-                  </span>
+                  <Link 
+                    href="/dashboard"
+                    className="group flex items-center justify-center gap-1.5 rounded-xl border border-orange-500/40 bg-orange-500/10 px-4 py-3 text-xs font-bold text-orange-200 transition hover:border-orange-400 hover:bg-orange-500 hover:text-zinc-950 shadow-sm"
+                  >
+                    Inspect Studio <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  </Link>
                 </div>
-                <Link 
-                  href="/dashboard"
-                  className="group flex items-center justify-center gap-1.5 rounded-xl border border-orange-500/40 bg-orange-500/10 px-4 py-3 text-xs font-bold text-orange-200 transition hover:border-orange-400 hover:bg-orange-500 hover:text-zinc-950"
-                >
-                  Inspect in Studio <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </Link>
               </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      <section id="story" className="relative px-5 pb-24 md:px-10">
-        <div className="mx-auto max-w-7xl"><div className="mb-16 max-w-2xl"><p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-300">One payment. Four acts.</p><h2 className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-white md:text-5xl">Scroll through the defence.</h2></div>
-          <div className="grid gap-5 lg:grid-cols-[0.48fr_.52fr]">
-            <div className="hidden lg:block"><div className="sticky top-32 flex h-[430px] flex-col justify-between rounded-3xl border border-white/10 bg-zinc-900/35 p-8"><BrainCircuit className="h-10 w-10 text-orange-300" /><div><p className="text-sm text-zinc-500">A single payment is observed from first signal to next-model improvement.</p><div className="mt-5 h-1 overflow-hidden rounded-full bg-zinc-800"><motion.div className="h-full bg-orange-400" animate={{ width: ["24%", "84%", "24%"] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }} /></div></div></div></div>
-            <div className="space-y-5">{storySteps.map((step, index) => <motion.article key={step.number} initial={{ opacity: 0, y: 32 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.35 }} transition={{ duration: 0.55 }} className="group rounded-3xl border border-white/10 bg-zinc-900/30 p-7 transition-colors hover:border-orange-400/35 hover:bg-zinc-900/55 md:p-9"><div className="flex items-start justify-between gap-5"><div><p className="text-xs font-bold tracking-[0.2em] text-orange-300">{step.number} / {step.eyebrow}</p><h3 className="mt-4 max-w-xl text-2xl font-semibold tracking-[-0.035em] text-white md:text-3xl">{step.title}</h3></div><span className="text-4xl font-semibold text-white/10">0{index + 1}</span></div><p className="mt-5 max-w-2xl leading-relaxed text-zinc-400">{step.copy}</p><div className="mt-6 flex flex-wrap gap-2">{step.signals.map(signal => <span key={signal} className="rounded-full border border-white/10 bg-zinc-950/70 px-3 py-1.5 text-xs text-zinc-300">{signal}</span>)}</div></motion.article>)}</div>
+            </motion.div>
           </div>
         </div>
       </section>
 
-      <section className="relative border-y border-white/10 bg-gradient-to-br from-orange-500/10 via-zinc-950 to-emerald-500/10 px-5 py-24 md:px-10"><div className="mx-auto max-w-4xl text-center"><p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-300">The operational proof</p><h2 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-white md:text-6xl">See the defence make a decision.</h2><p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-zinc-400">Open the live workspace to inspect scenarios, alter payment signals, trace attack networks and record analyst feedback.</p><Link href="/dashboard" className="mt-9 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3.5 text-sm font-bold text-zinc-950 transition hover:bg-orange-200">Open live dashboard <ArrowUpRight className="h-4 w-4" /></Link></div></section>
+      {/* FOUR ACTS WITH SCROLL SPINE */}
+      <section id="story" className="relative px-5 pb-28 pt-10 md:px-10">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-16 max-w-2xl">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-300 flex items-center gap-2">
+              <BrainCircuit className="h-4 w-4 text-orange-400" />
+              One payment. Four acts.
+            </p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-white md:text-5xl">
+              Scroll through the defence.
+            </h2>
+            <p className="mt-3 text-sm text-zinc-400 leading-relaxed">
+              Trace the end-to-end lifecycle of payment defense: from signal ingestion and multi-layer inference to human-in-the-loop validation and closed-loop retraining.
+            </p>
+          </div>
 
-      <footer className="px-5 py-12 md:px-10"><div className="mx-auto flex max-w-7xl flex-col justify-between gap-8 border-t border-white/10 pt-8 md:flex-row"><div><p className="text-sm font-bold tracking-[0.16em] text-white">CHAKRAVYUH</p><p className="mt-2 max-w-sm text-sm text-zinc-500">Synthetic payment-fraud generation and explainable detection for the Mastercard Innovation Challenge 2026.</p></div><div className="flex flex-wrap gap-6">{profileLinks.map(profile => <div key={profile.name} className="flex min-w-52 items-center gap-3"><TeamAvatar profile={profile} /><div><p className="text-sm font-semibold text-zinc-200">{profile.name}</p><p className="mb-2 text-xs text-zinc-500">{profile.role}</p><div className="flex gap-3"><a href={profile.linkedin} target="_blank" rel="noreferrer" aria-label={`${profile.name} on LinkedIn`} className="text-zinc-500 transition hover:text-[#7ab8f5]"><Linkedin className="h-4 w-4" /></a><a href={profile.github} target="_blank" rel="noreferrer" aria-label={`${profile.name} on GitHub`} className="text-zinc-500 transition hover:text-white"><Github className="h-4 w-4" /></a></div></div></div>)}</div></div></footer>
+          <div className="grid gap-8 lg:grid-cols-[0.4fr_.6fr]">
+            {/* Left Column: Interactive Scroll Spine Milestone Navigator */}
+            <div className="hidden lg:block">
+              <div className="sticky top-28 rounded-3xl border border-orange-500/20 bg-zinc-950/85 p-8 shadow-2xl backdrop-blur-xl">
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
+                  <span className="text-xs font-bold uppercase tracking-widest text-orange-300">Defence Chronology</span>
+                  <span className="text-[11px] font-mono text-zinc-400">Act {activeAct + 1} of 4</span>
+                </div>
+
+                {/* Vertical Scroll Spine Track */}
+                <div className="relative pl-6 space-y-7 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-zinc-800">
+                  {storySteps.map((step, idx) => {
+                    const isCurrent = activeAct === idx;
+                    return (
+                      <div
+                        key={step.number}
+                        className={`relative cursor-pointer transition-all ${
+                          isCurrent ? "opacity-100 translate-x-1" : "opacity-40 hover:opacity-75"
+                        }`}
+                        onClick={() => {
+                          const el = document.getElementById(`act-${idx}`);
+                          el?.scrollIntoView({ behavior: "smooth" });
+                        }}
+                      >
+                        {/* Milestone node along the spine */}
+                        <div
+                          className={`absolute -left-6 top-1 h-4 w-4 rounded-full border-2 transition-all ${
+                            isCurrent
+                              ? "border-orange-400 bg-orange-500 shadow-md shadow-orange-500/50 scale-125"
+                              : "border-zinc-700 bg-zinc-950"
+                          }`}
+                        />
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-orange-300 block mb-0.5">
+                          Act {step.number} • {step.eyebrow}
+                        </span>
+                        <p className="text-xs font-semibold text-white truncate max-w-[220px]">
+                          {step.title}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-8 pt-4 border-t border-white/10">
+                  <p className="text-xs text-zinc-400 leading-relaxed">
+                    A single payment is continuously analyzed and hardened against adversarial evasion.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Act Cards with Staggered Chip Animations */}
+            <div className="space-y-6">
+              {storySteps.map((step, index) => (
+                <motion.article 
+                  id={`act-${index}`}
+                  key={step.number} 
+                  initial={{ opacity: 0, y: 32 }} 
+                  whileInView={{ opacity: 1, y: 0 }} 
+                  onViewportEnter={() => setActiveAct(index)}
+                  viewport={{ once: false, amount: 0.35 }} 
+                  transition={{ duration: 0.55 }} 
+                  className="group relative overflow-hidden rounded-3xl border border-orange-500/20 hover:border-orange-500/40 bg-zinc-950/85 p-7 shadow-2xl backdrop-blur-xl transition-all duration-300 md:p-9"
+                >
+                  <div className="pointer-events-none absolute -right-20 -top-20 h-44 w-44 rounded-full bg-orange-500/10 blur-3xl" />
+                  <div className="flex items-start justify-between gap-5">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-300">
+                        {step.number} / {step.eyebrow}
+                      </p>
+                      <h3 className="mt-3 max-w-xl text-2xl font-bold tracking-tight text-white md:text-3xl">
+                        {step.title}
+                      </h3>
+                    </div>
+                    <span className="text-5xl font-black text-white/10 select-none">
+                      0{index + 1}
+                    </span>
+                  </div>
+                  <p className="mt-4 max-w-2xl text-sm leading-relaxed text-zinc-300">
+                    {step.copy}
+                  </p>
+                  
+                  {/* Staggered Chips Animation */}
+                  <div className="mt-6 flex flex-wrap gap-2.5">
+                    {step.signals.map((signal, sIdx) => (
+                      <motion.span 
+                        key={signal} 
+                        initial={{ opacity: 0, y: 8 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: 0.1 + sIdx * 0.08 }}
+                        className="rounded-full border border-white/10 bg-zinc-900/80 px-3.5 py-1.5 text-xs text-zinc-200 font-medium hover:border-orange-500/30 transition"
+                      >
+                        {signal}
+                      </motion.span>
+                    ))}
+                  </div>
+                </motion.article>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Operational Proof CTA Section */}
+      <section className="relative border-y border-white/10 bg-gradient-to-br from-orange-500/15 via-zinc-950 to-emerald-500/10 px-5 py-24 md:px-10">
+        <div className="mx-auto max-w-4xl text-center">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-300">
+            The operational proof
+          </p>
+          <h2 className="mt-4 text-4xl font-bold tracking-tight text-white md:text-6xl">
+            See the defence make a decision.
+          </h2>
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-zinc-300">
+            Open the live workspace to inspect scenarios, alter payment signals, trace attack networks and record analyst feedback in real time.
+          </p>
+          <Link 
+            href="/dashboard" 
+            className="mt-9 inline-flex items-center gap-2 rounded-full bg-orange-500 hover:bg-orange-400 px-8 py-4 text-sm font-bold text-zinc-950 transition shadow-xl shadow-orange-500/25 tracking-wide"
+          >
+            Open live dashboard <ArrowUpRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="px-5 py-12 md:px-10 bg-zinc-950 border-t border-white/10">
+        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-8 md:flex-row">
+          <div>
+            <p className="text-sm font-bold tracking-[0.16em] text-white">CHAKRAVYUH</p>
+            <p className="mt-2 max-w-sm text-sm text-zinc-400">
+              Synthetic payment-fraud generation and explainable detection for the Mastercard Innovation Challenge 2026.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-6">
+            {profileLinks.map(profile => (
+              <div key={profile.name} className="flex min-w-52 items-center gap-3">
+                <TeamAvatar profile={profile} />
+                <div>
+                  <p className="text-sm font-semibold text-zinc-200">{profile.name}</p>
+                  <p className="mb-2 text-xs text-zinc-500">{profile.role}</p>
+                  <div className="flex gap-3">
+                    <a href={profile.linkedin} target="_blank" rel="noreferrer" aria-label={`${profile.name} on LinkedIn`} className="text-zinc-500 transition hover:text-[#7ab8f5]">
+                      <Linkedin className="h-4 w-4" />
+                    </a>
+                    <a href={profile.github} target="_blank" rel="noreferrer" aria-label={`${profile.name} on GitHub`} className="text-zinc-500 transition hover:text-white">
+                      <Github className="h-4 w-4" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

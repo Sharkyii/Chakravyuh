@@ -81,36 +81,44 @@ def _get_session_txns(session_id: str) -> list[dict]:
     _SESSION_GRAPHS.move_to_end(session_id)
     return _SESSION_GRAPHS[session_id]
 
-def calculate_similarity(txn1: dict, txn2: dict) -> float:
-    weights = {
-        "amount": 0.25,
-        "pin_attempts": 0.15,
-        "screen_share_active": 0.20,
-        "call_active_during_txn": 0.15,
-        "ip_is_proxy": 0.10,
-        "rail": 0.15
-    }
-    scores = {}
+def calculate_similarity(txn1: dict, txn2: dict, risk1: str = "", risk2: str = "") -> float:
+    # Genuine normal transactions should NEVER be linked as a threat campaign
+    if risk1 in ["LOW", "NORMAL"] or risk2 in ["LOW", "NORMAL"]:
+        return 0.0
     
+    # Must have active fraud telemetry or elevated risk to be part of a coordinated campaign
+    has_threat1 = bool(txn1.get("call_active_during_txn")) or bool(txn1.get("screen_share_active")) or bool(txn1.get("ip_is_proxy"))
+    has_threat2 = bool(txn2.get("call_active_during_txn")) or bool(txn2.get("screen_share_active")) or bool(txn2.get("ip_is_proxy"))
+    
+    if not (has_threat1 and has_threat2):
+        return 0.0
+
+    scores = []
+    
+    # 1. Coercion Call Active Check (Strong campaign link)
+    if bool(txn1.get("call_active_during_txn")) and bool(txn2.get("call_active_during_txn")):
+        scores.append(0.90)
+        
+    # 2. Screen Share RAT Active Check (Strong campaign link)
+    if bool(txn1.get("screen_share_active")) and bool(txn2.get("screen_share_active")):
+        scores.append(0.92)
+        
+    # 3. Proxy IP Linkage
+    if bool(txn1.get("ip_is_proxy")) and bool(txn2.get("ip_is_proxy")):
+        scores.append(0.85)
+        
+    # 4. Amount Proximity
     amt1 = float(txn1.get("amount", 0.0))
     amt2 = float(txn2.get("amount", 0.0))
-    if amt1 == 0.0 and amt2 == 0.0:
-        scores["amount"] = 1.0
-    elif amt1 == 0.0 or amt2 == 0.0:
-        scores["amount"] = 0.0
-    else:
-        scores["amount"] = max(0.0, 1.0 - (abs(amt1 - amt2) / max(amt1, amt2)))
-        
-    pin1 = int(txn1.get("pin_attempts", 0))
-    pin2 = int(txn2.get("pin_attempts", 0))
-    scores["pin_attempts"] = 1.0 if pin1 == pin2 else max(0.0, 1.0 - abs(pin1 - pin2) / 3.0)
-    
-    for flag in ["screen_share_active", "call_active_during_txn", "ip_is_proxy"]:
-        scores[flag] = 1.0 if bool(txn1.get(flag, False)) == bool(txn2.get(flag, False)) else 0.0
-        
-    scores["rail"] = 1.0 if txn1.get("rail", "") == txn2.get("rail", "") else 0.0
-    
-    return sum(scores[k] * weights[k] for k in weights) / sum(weights.values())
+    if amt1 > 0 and amt2 > 0:
+        amt_sim = max(0.0, 1.0 - (abs(amt1 - amt2) / max(amt1, amt2)))
+        if amt_sim > 0.60:
+            scores.append(amt_sim * 0.88)
+
+    if not scores:
+        return 0.0
+
+    return max(scores)
 
 @app.get("/api/scenarios")
 def get_scenarios():
@@ -259,13 +267,16 @@ async def analyze(request: Request):
                 txn2 = session_txns[j]["transaction"]
                 id1 = session_txns[i]["txn_id"]
                 id2 = session_txns[j]["txn_id"]
+                r1 = session_txns[i].get("risk_level", "")
+                r2 = session_txns[j].get("risk_level", "")
                 
-                sim = calculate_similarity(txn1, txn2)
-                if sim >= 0.75:
+                sim = calculate_similarity(txn1, txn2, r1, r2)
+                if sim >= 0.70:
+                    label = f"Coercion Link ({sim*100:.0f}%)" if (bool(txn1.get("call_active_during_txn")) and bool(txn2.get("call_active_during_txn"))) else f"Campaign Link ({sim*100:.0f}%)"
                     edges.append({
                         "source": f"payer_{id1}",
                         "target": f"payer_{id2}",
-                        "label": f"Similar TTPs ({sim*100:.0f}%)",
+                        "label": label,
                         "status": "linkage" # Dashed green campaign indicator
                     })
                     campaign_alerts.append(

@@ -282,7 +282,10 @@ export default function AnalystFeedbackPage() {
                     step="0.01"
                     value={fraudScore}
                     onChange={(e) => setFraudScore(parseFloat(e.target.value))}
-                    className="w-full h-2 bg-zinc-800 rounded-full appearance-none cursor-pointer accent-orange-500"
+                    style={{
+                      background: `linear-gradient(to right, #f97316 0%, #f59e0b ${fraudScore * 100}%, #27272a ${fraudScore * 100}%, #27272a 100%)`
+                    }}
+                    className="w-full h-2 rounded-full appearance-none cursor-pointer accent-orange-500 shadow-inner transition-all"
                   />
                 </div>
               </div>
@@ -537,7 +540,10 @@ export default function AnalystFeedbackPage() {
                     step="0.05"
                     value={confidence}
                     onChange={(e) => setConfidence(parseFloat(e.target.value))}
-                    className="w-full h-2 bg-zinc-800 rounded-full appearance-none cursor-pointer accent-orange-500"
+                    style={{
+                      background: `linear-gradient(to right, #f97316 0%, #f59e0b ${confidence * 100}%, #27272a ${confidence * 100}%, #27272a 100%)`
+                    }}
+                    className="w-full h-2 rounded-full appearance-none cursor-pointer accent-orange-500 shadow-inner transition-all"
                   />
                 </div>
 

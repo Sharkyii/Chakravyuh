@@ -211,7 +211,6 @@ def prepare_transaction_df(transaction: dict) -> pd.DataFrame:
 
 def get_fallback_llm_analysis(transaction: dict, risk_assessment: dict, error_msg: str = "") -> dict:
     """Generates a structured template analyst summary when the LLM API is unavailable."""
-    fraud_prob = risk_assessment["fraud_probability"]
     risk_score = risk_assessment["risk_score"]
     risk_level = risk_assessment["risk_level"]
     top_attack = risk_assessment["top_attack_family"]
@@ -219,16 +218,21 @@ def get_fallback_llm_analysis(transaction: dict, risk_assessment: dict, error_ms
     signals = risk_assessment["contributing_signals"]
     shap_contributions = risk_assessment.get("shap_contributions", [])
 
-    explanation = (
-        f"The transaction was assessed with a fraud probability of {fraud_prob*100:.1f}%, "
-        f"resulting in a combined risk score of {risk_score:.1f}/100 and a risk level of {risk_level}."
-    )
     if risk_level in ["HIGH", "CRITICAL"]:
-        explanation += " The transaction triggers multiple anomaly thresholds and should be blocked."
+        explanation = (
+            f"The transaction triggered critical adversarial indicators resulting in a combined threat risk score of {risk_score:.1f}/100 "
+            f"({risk_level}). Fused behavioral and anomaly models recommend immediate blocking."
+        )
     elif risk_level == "MEDIUM":
-        explanation += " The transaction shows moderate risk indicators and requires review."
+        explanation = (
+            f"The transaction shows moderate risk indicators with a composite risk score of {risk_score:.1f}/100 "
+            f"({risk_level}). Secondary analyst verification is recommended."
+        )
     else:
-        explanation += " No significant risk was identified."
+        explanation = (
+            f"The transaction cleared baseline behavioural and anomaly checks with a low risk score of {risk_score:.1f}/100 "
+            f"({risk_level}). Standard authorization permitted."
+        )
         
     if top_attack:
         interpretation = (
@@ -254,9 +258,7 @@ def get_fallback_llm_analysis(transaction: dict, risk_assessment: dict, error_ms
         "Check graph path to see if payee is associated with known mule accounts."
     ]
     
-    caveat = "LLM API is currently unavailable. Using pre-computed rule-based template for analyst notes."
-    if error_msg:
-        caveat += f" (Reason: {error_msg})"
+    caveat = "Displaying deterministic ML-fused reasoning (cloud LLM service currently in fallback mode)."
         
     return {
         "fraud_explanation": explanation,

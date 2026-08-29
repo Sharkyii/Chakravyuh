@@ -738,7 +738,11 @@ async def trigger_retrain(request: Request):
         if success:
             return {"status": "success", "message": "Model retrained successfully."}
         else:
-            return {"status": "queued", "message": "No feedback data to retrain on yet."}
+            # run_retrain() returns False both when there's no feedback yet
+            # and when a retrain ran but was rejected by the quality gate
+            # (new model materially worse than deployed) -- either way the
+            # deployed model is unchanged and eligible feedback stays queued.
+            return {"status": "queued", "message": "Retraining did not produce a model good enough to deploy; feedback stays queued for the next attempt."}
     except Exception as e:
         print(f"[Retrain] Request could not complete: {e}")
         return {"status": "queued", "message": "Retraining queued; will retry on the next eligible run."}

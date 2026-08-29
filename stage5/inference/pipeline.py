@@ -258,7 +258,9 @@ def get_fallback_llm_analysis(transaction: dict, risk_assessment: dict, error_ms
         "Check graph path to see if payee is associated with known mule accounts."
     ]
     
-    caveat = "Displaying deterministic ML-fused reasoning (cloud LLM service currently in fallback mode)."
+    caveat = "LLM API is currently in fallback mode."
+    if error_msg:
+        caveat += f" (Reason: {error_msg})"
         
     return {
         "fraud_explanation": explanation,

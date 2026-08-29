@@ -18,54 +18,58 @@ export interface ActorNodeData {
 export function ActorNode({ data }: NodeProps) {
   const nodeData = data as unknown as ActorNodeData;
   const isSelected = Boolean(nodeData.isSelected);
-  const isCritical = nodeData.risk?.toLowerCase() === "critical" || nodeData.risk?.toLowerCase() === "high";
+  const risk = (nodeData.risk || "LOW").toLowerCase();
+  const isCritical = risk === "critical" || risk === "high";
+  const isWarning = risk === "medium" || risk === "warning";
   const isAttacker = nodeData.type === "attacker";
   const isPayee = nodeData.type === "payee";
 
   const getBorderColor = () => {
-    if (isSelected) return "border-orange-400 ring-2 ring-orange-500/40 shadow-[0_0_20px_rgba(249,115,22,0.3)]";
-    if (isAttacker || isCritical) return "border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.15)]";
-    if (isPayee) return "border-emerald-500/40";
-    return "border-orange-500/30";
+    if (isSelected) return "border-[#D9500B] ring-1 ring-[#D9500B]/50";
+    if (isAttacker || isCritical) return "border-[#5E2326] hover:border-[#E5484D]/70";
+    if (isWarning) return "border-[#5C4413] hover:border-[#D9A420]/70";
+    if (isPayee) return "border-[#1C5138] hover:border-[#3FBF7F]/70";
+    return "border-[#232326] hover:border-[#2E2E33]";
   };
 
   const getBadgeColor = () => {
-    if (isAttacker || isCritical) return "bg-red-950/70 text-red-300 border-red-500/40";
-    if (isPayee) return "bg-emerald-950/70 text-emerald-300 border-emerald-500/40";
-    return "bg-orange-950/70 text-orange-300 border-orange-500/40";
+    if (isAttacker || isCritical) return "bg-[#2C1214] text-[#E5484D] border-[#5E2326]";
+    if (isWarning) return "bg-[#2B2009] text-[#D9A420] border-[#5C4413]";
+    if (isPayee) return "bg-[#0E2A1D] text-[#3FBF7F] border-[#1C5138]";
+    return "bg-[#18181B] text-[#A0A0A8] border-[#232326]";
   };
 
   const getIcon = () => {
-    if (isAttacker) return <ShieldAlert className="h-3.5 w-3.5 text-red-400 shrink-0" />;
-    if (isPayee) return <Building2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />;
-    return <User className="h-3.5 w-3.5 text-orange-400 shrink-0" />;
+    if (isAttacker) return <ShieldAlert className="h-3.5 w-3.5 text-[#E5484D] shrink-0" />;
+    if (isPayee) return <Building2 className="h-3.5 w-3.5 text-[#3FBF7F] shrink-0" />;
+    return <User className="h-3.5 w-3.5 text-[#D9500B] shrink-0" />;
   };
 
   return (
     <div
-      className={`relative px-3.5 py-2.5 rounded-2xl bg-zinc-950/95 border backdrop-blur-md transition-all duration-300 min-w-[155px] cursor-pointer select-none group ${getBorderColor()}`}
+      className={`relative px-3.5 py-2.5 rounded-lg bg-[#121214] border transition-colors duration-200 min-w-[155px] cursor-pointer select-none group ${getBorderColor()}`}
     >
-      <Handle id="left" type="target" position={Position.Left} className="!w-2 !h-2 !bg-zinc-600 !border !border-white/20 !-left-1" />
-      <Handle id="top" type="target" position={Position.Top} className="!w-2 !h-2 !bg-zinc-600 !border !border-white/20 !-top-1" />
+      <Handle id="left" type="target" position={Position.Left} className="!w-1.5 !h-1.5 !bg-[#2E2E33] !border-none !-left-0.5" />
+      <Handle id="top" type="target" position={Position.Top} className="!w-1.5 !h-1.5 !bg-[#2E2E33] !border-none !-top-0.5" />
 
       <div className="flex items-center justify-between gap-2 mb-1.5">
         <div className="flex items-center gap-1.5">
           {getIcon()}
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400">
+          <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-[#A0A0A8]">
             {nodeData.type || "NODE"}
           </span>
         </div>
-        <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full border ${getBadgeColor()}`}>
+        <span className={`text-[9px] font-mono font-medium px-1.5 py-0.5 rounded-sm border ${getBadgeColor()}`}>
           {nodeData.risk || "LOW"}
         </span>
       </div>
 
-      <div className="text-xs font-bold text-white font-mono tracking-tight group-hover:text-orange-300 transition-colors">
+      <div className="text-xs font-medium text-[#EDEDEF] font-mono tracking-tight group-hover:text-white transition-colors">
         {nodeData.label}
       </div>
 
-      <Handle id="right" type="source" position={Position.Right} className="!w-2 !h-2 !bg-orange-500 !border !border-white/20 !-right-1" />
-      <Handle id="bottom" type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-orange-500 !border !border-white/20 !-bottom-1" />
+      <Handle id="right" type="source" position={Position.Right} className="!w-1.5 !h-1.5 !bg-[#D9500B] !border-none !-right-0.5" />
+      <Handle id="bottom" type="source" position={Position.Bottom} className="!w-1.5 !h-1.5 !bg-[#D9500B] !border-none !-bottom-0.5" />
     </div>
   );
 }

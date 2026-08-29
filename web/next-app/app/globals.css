@@ -2,13 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg-base: #0B0B0C;
+  --bg-sunken: #08080A;
+  --surface-1: #121214;
+  --surface-2: #18181B;
+  --border-subtle: #232326;
+  --border-strong: #2E2E33;
+  --text-primary: #EDEDEF;
+  --text-secondary: #A0A0A8;
+  --text-muted: #6E6E76;
+  --brand: #D9500B;
+  --brand-hover: #EB6018;
+  --brand-muted: #3A1D0C;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.25s ease-out forwards;
+  animation: fadeIn 0.2s ease-out forwards;
 }
 
 @keyframes edge-pulse {
@@ -34,7 +49,7 @@
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #27272a #09090b;
+  scrollbar-color: #232326 #0B0B0C;
 }
 
 *::-webkit-scrollbar {
@@ -43,12 +58,12 @@
 }
 
 *::-webkit-scrollbar-track {
-  background: #09090b;
+  background: #0B0B0C;
 }
 
 *::-webkit-scrollbar-thumb {
-  background-color: #27272a;
-  border-radius: 2px;
+  background-color: #232326;
+  border-radius: 3px;
 }
 
 *::-webkit-scrollbar-thumb:hover {

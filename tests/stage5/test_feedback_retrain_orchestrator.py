@@ -60,33 +60,43 @@ def orchestrator_env(tmp_path, monkeypatch):
     monkeypatch.setattr(orch, "MODELS_DIR", models_dir)
 
     feedback_path = data_dir / "analyst_feedback.parquet"
-    monkeypatch.setattr(
-        orch, "FeedbackStore", lambda: _StubFeedbackStore(feedback_path)
-    )
+    monkeypatch.setattr(orch, "FeedbackStore", lambda: _StubFeedbackStore(feedback_path))
     monkeypatch.setattr(orch, "RETAINED_ATTACKS_DIR", data_dir)
 
     return {"models_dir": models_dir, "data_dir": data_dir, "feedback_path": feedback_path}
 
 
 def _write_previous_model(models_dir, pr_auc: float, version: str = "stage5_xgb_v2"):
-    (models_dir / "model_metadata.json").write_text(json.dumps({
-        "model_version": version,
-        "test_metrics": {"pr_auc": pr_auc},
-    }))
+    (models_dir / "model_metadata.json").write_text(
+        json.dumps(
+            {
+                "model_version": version,
+                "test_metrics": {"pr_auc": pr_auc},
+            }
+        )
+    )
 
 
 def test_no_feedback_file_returns_false(orchestrator_env, monkeypatch):
-    monkeypatch.setattr(orch, "load_and_prepare", lambda: (_ for _ in ()).throw(
-        AssertionError("should never reach training with no feedback")
-    ))
+    monkeypatch.setattr(
+        orch,
+        "load_and_prepare",
+        lambda: (_ for _ in ()).throw(
+            AssertionError("should never reach training with no feedback")
+        ),
+    )
     assert orch.run_retrain() is False
 
 
 def test_empty_feedback_returns_false(orchestrator_env, monkeypatch):
     _write_feedback(orchestrator_env["feedback_path"], [])
-    monkeypatch.setattr(orch, "load_and_prepare", lambda: (_ for _ in ()).throw(
-        AssertionError("should never reach training with empty feedback")
-    ))
+    monkeypatch.setattr(
+        orch,
+        "load_and_prepare",
+        lambda: (_ for _ in ()).throw(
+            AssertionError("should never reach training with empty feedback")
+        ),
+    )
     assert orch.run_retrain() is False
 
 
@@ -95,9 +105,12 @@ def test_quality_gate_rejects_regression_and_keeps_old_model(orchestrator_env, m
     worse than the deployed model must not overwrite it."""
     models_dir = orchestrator_env["models_dir"]
     _write_previous_model(models_dir, pr_auc=0.999)
-    _write_feedback(orchestrator_env["feedback_path"], [
-        {"transaction_id": "t1", "analyst_verdict": "FRAUD"},
-    ])
+    _write_feedback(
+        orchestrator_env["feedback_path"],
+        [
+            {"transaction_id": "t1", "analyst_verdict": "FRAUD"},
+        ],
+    )
 
     monkeypatch.setattr(orch, "load_and_prepare", lambda: _baseline_df(1000, 10))
     monkeypatch.setattr(orch, "train_fraud_model", lambda df: _stub_train_result(pr_auc=0.46))
@@ -118,9 +131,12 @@ def test_quality_gate_allows_comparable_model(orchestrator_env, monkeypatch, tmp
     """A retrain that's not materially worse should still go live."""
     models_dir = orchestrator_env["models_dir"]
     _write_previous_model(models_dir, pr_auc=0.99)
-    _write_feedback(orchestrator_env["feedback_path"], [
-        {"transaction_id": "t1", "analyst_verdict": "FRAUD"},
-    ])
+    _write_feedback(
+        orchestrator_env["feedback_path"],
+        [
+            {"transaction_id": "t1", "analyst_verdict": "FRAUD"},
+        ],
+    )
 
     monkeypatch.setattr(orch, "load_and_prepare", lambda: _baseline_df(1000, 10))
     monkeypatch.setattr(orch, "train_fraud_model", lambda df: _stub_train_result(pr_auc=0.985))
@@ -137,9 +153,12 @@ def test_quality_gate_allows_comparable_model(orchestrator_env, monkeypatch, tmp
 def test_no_previous_model_skips_gate(orchestrator_env, monkeypatch):
     """First-ever retrain (no previous_metadata.json yet) has nothing to
     compare against -- must not crash, must still promote."""
-    _write_feedback(orchestrator_env["feedback_path"], [
-        {"transaction_id": "t1", "analyst_verdict": "FRAUD"},
-    ])
+    _write_feedback(
+        orchestrator_env["feedback_path"],
+        [
+            {"transaction_id": "t1", "analyst_verdict": "FRAUD"},
+        ],
+    )
 
     monkeypatch.setattr(orch, "load_and_prepare", lambda: _baseline_df(1000, 10))
     monkeypatch.setattr(orch, "train_fraud_model", lambda df: _stub_train_result(pr_auc=0.5))
@@ -158,17 +177,18 @@ def test_retained_attacks_downsampled_to_prevalence_cap(orchestrator_env, monkey
     the real curriculum run's ~4.3k retained rows, all fraud."""
     models_dir = orchestrator_env["models_dir"]
     _write_previous_model(models_dir, pr_auc=0.99)
-    _write_feedback(orchestrator_env["feedback_path"], [
-        {"transaction_id": "t1", "analyst_verdict": "FRAUD"},
-    ])
+    _write_feedback(
+        orchestrator_env["feedback_path"],
+        [
+            {"transaction_id": "t1", "analyst_verdict": "FRAUD"},
+        ],
+    )
 
     monkeypatch.setattr(orch, "load_and_prepare", lambda: _baseline_df(2000, 10))
 
     # Retained attacks alone (4000 rows, all fraud) would push prevalence to
     # ~66% if concatenated wholesale -- must be capped well under that.
-    retained = pd.DataFrame(
-        [{"txn_id": f"retained_{i}", "is_fraud": 1} for i in range(4000)]
-    )
+    retained = pd.DataFrame([{"txn_id": f"retained_{i}", "is_fraud": 1} for i in range(4000)])
     retained.to_parquet(orchestrator_env["data_dir"] / "gen3_retained_attacks.parquet", index=False)
 
     captured = {}

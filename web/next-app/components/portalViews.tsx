@@ -2304,7 +2304,7 @@ export function AnalystPortal() {
                           />
                           <text
                             x={cx}
-                            y={cy - 14}
+                            y={cy - 13}
                             textAnchor="middle"
                             fill={isSelected ? "#fb923c" : "#a1a1aa"}
                             fontSize="10px"
@@ -2312,6 +2312,16 @@ export function AnalystPortal() {
                             className="font-bold pointer-events-none transition-colors group-hover:fill-zinc-100"
                           >
                             {node.id}
+                          </text>
+                          <text
+                            x={cx}
+                            y={cy + 18}
+                            textAnchor="middle"
+                            fill={isSelected ? "#fed7aa" : "#71717a"}
+                            fontSize="9px"
+                            className="pointer-events-none transition-colors group-hover:fill-zinc-200"
+                          >
+                            {node.name}
                           </text>
                         </g>
                       );

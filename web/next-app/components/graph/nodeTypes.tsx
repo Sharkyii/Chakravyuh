@@ -31,14 +31,23 @@ export function ActorNode({ data }: NodeProps) {
       <div
         className="rounded-full flex items-center justify-center transition-all duration-300"
         style={{
-          width: isSelected ? 32 : 26,
-          height: isSelected ? 32 : 26,
+          width: isSelected ? 34 : 28,
+          height: isSelected ? 34 : 28,
           background: "#09090b",
           border: `${isSelected ? 3 : 2}px solid ${isSelected ? "#ff5f00" : stroke}`,
         }}
-      />
+      >
+        <div
+          className="rounded-full"
+          style={{
+            width: 6,
+            height: 6,
+            background: isSelected ? "#ff5f00" : stroke,
+          }}
+        />
+      </div>
       <span
-        className="text-[8px] font-bold whitespace-nowrap transition-colors duration-300 group-hover:text-white"
+        className="text-[11px] font-bold whitespace-nowrap transition-colors duration-300 group-hover:text-white"
         style={{ color: isSelected ? "#ffffff" : "#a1a1aa" }}
       >
         {nodeData.label}

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Chakravyuh — Payment Fraud Defence Lab",
-  description: "GenAI payment-fraud simulation and decision-time defence.",
+  title: "Chakravyuh — Analyst Portal",
+  description: "GenAI payment fraud detection — closed-loop demo",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

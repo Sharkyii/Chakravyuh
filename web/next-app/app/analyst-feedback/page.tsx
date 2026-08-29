@@ -253,7 +253,7 @@ export default function AnalystFeedbackPage() {
                     onChange={(e) => setFraudScore(parseFloat(e.target.value))}
                     className="flex-1"
                   />
-                  <span className="text-2xl font-bold text-orange-400 w-16 text-right">
+                  <span className="text-2xl font-bold text-blue-400 w-16 text-right">
                     {(fraudScore * 100).toFixed(0)}%
                   </span>
                 </div>
@@ -263,7 +263,7 @@ export default function AnalystFeedbackPage() {
             {/* SHAP Features */}
             <div className="rounded-sm border border-zinc-800/80 bg-[#141518] p-5">
               <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <Zap className="h-4 w-4 text-orange-400" />
+                <Zap className="h-4 w-4 text-blue-400" />
                 Top Fraud Signals (SHAP Explanability)
               </h3>
               <div className="space-y-3">
@@ -276,7 +276,7 @@ export default function AnalystFeedbackPage() {
                     <div className="text-right">
                       <div className="w-16 h-2 bg-zinc-800 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-orange-600"
+                          className="h-full bg-blue-600"
                           style={{ width: `${feature.contribution * 100}%` }}
                         />
                       </div>
@@ -292,7 +292,7 @@ export default function AnalystFeedbackPage() {
               <button
                 onClick={handleAnalyze}
                 disabled={loading}
-                className="w-full py-3 rounded-sm bg-orange-600 hover:bg-orange-500 disabled:bg-zinc-700 text-white font-bold flex items-center justify-center gap-2 transition"
+                className="w-full py-3 rounded-sm bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-700 text-white font-bold flex items-center justify-center gap-2 transition"
               >
                 {loading ? (
                   <>
@@ -310,7 +310,7 @@ export default function AnalystFeedbackPage() {
 
             {/* Claude Analysis Result */}
             {analysisResult && (
-              <div className="rounded-sm border border-orange-500/30 bg-[#141518] p-5">
+              <div className="rounded-sm border border-blue-500/30 bg-[#141518] p-5">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-white flex items-center gap-2">
                     <span className="px-2 py-1 rounded text-xs font-bold bg-orange-600 text-white">
@@ -386,7 +386,7 @@ export default function AnalystFeedbackPage() {
                     <span className="font-bold text-emerald-400">{feedbackStatus.legitimate_confirmed}</span>
                   </div>
                   {feedbackStatus.should_retrain && (
-                    <div className="mt-3 p-3 rounded-sm bg-orange-600/20 border border-orange-500/30">
+                    <div className="mt-3 p-3 rounded-sm bg-blue-600/20 border border-orange-500/30">
                       {retrainOutcome === "success" ? (
                         <div className="flex items-center gap-2 text-emerald-400 font-semibold">
                           <CheckCircle className="h-4 w-4 shrink-0" />
@@ -404,7 +404,7 @@ export default function AnalystFeedbackPage() {
                           <button
                             onClick={handleTriggerRetrain}
                             disabled={retraining}
-                            className="w-full py-2 rounded-sm bg-orange-600 hover:bg-orange-500 disabled:bg-zinc-700 text-white font-bold flex items-center justify-center gap-2 transition text-xs"
+                            className="w-full py-2 rounded-sm bg-orange-600 hover:bg-blue-600 disabled:bg-zinc-700 text-white font-bold flex items-center justify-center gap-2 transition text-xs"
                           >
                             {retraining ? (
                               <>
@@ -430,13 +430,13 @@ export default function AnalystFeedbackPage() {
             {modelHistory.length > 0 && (
               <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 backdrop-blur-md">
                 <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-orange-400" /> Model Evolution
+                  <TrendingUp className="h-4 w-4 text-blue-400" /> Model Evolution
                 </h3>
                 <div className="space-y-4">
                   {modelHistory.map((meta: any, idx: number) => (
                     <div key={idx} className="p-3 rounded-sm bg-zinc-950/50 border border-zinc-700/50">
-                      <p className="text-xs font-bold text-orange-300 mb-2">{meta.label} <span className="text-[11px] text-zinc-500 font-mono font-normal">({meta.version})</span></p>
-                      <div className="grid grid-cols-2 gap-2 text-[11px]">
+                      <p className="text-xs font-bold text-blue-300 mb-2">{meta.label} <span className="text-[10px] text-zinc-500 font-mono font-normal">({meta.version})</span></p>
+                      <div className="grid grid-cols-2 gap-2 text-[10px]">
                         <div>
                           <span className="text-zinc-500">PR-AUC</span>
                           <p className="text-white font-semibold">{(meta.pr_auc * 100).toFixed(2)}%</p>
@@ -564,8 +564,8 @@ export default function AnalystFeedbackPage() {
           <h3 className="text-lg font-bold text-white mb-4">How This Works</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="flex gap-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm bg-orange-600/20 border border-orange-500/30">
-                <span className="font-bold text-orange-400 text-sm">1</span>
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm bg-blue-600/20 border border-orange-500/30">
+                <span className="font-bold text-blue-400 text-sm">1</span>
               </div>
               <div>
                 <p className="font-semibold text-white text-sm">Claude Analyzes</p>
@@ -582,8 +582,8 @@ export default function AnalystFeedbackPage() {
               </div>
             </div>
             <div className="flex gap-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm bg-orange-500/20 border border-orange-500/30">
-                <span className="font-bold text-orange-400 text-sm">3</span>
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm bg-blue-500/20 border border-blue-500/30">
+                <span className="font-bold text-blue-400 text-sm">3</span>
               </div>
               <div>
                 <p className="font-semibold text-white text-sm">Model Improves</p>

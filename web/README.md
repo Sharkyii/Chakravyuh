@@ -1,42 +1,43 @@
 # Chakravyuh Web Portal (Next.js & FastAPI)
 
-A premium cybersecurity-themed analyst portal to ingest payment records, visualize model scores, configure dynamic GenAI prompts, monitor closed-loop ML diagnostics, and inspect the G01-G13 attack lifecycle.
+The live demo: an analyst portal for scoring transactions, watching the fraud/detector
+closed loop, and exploring the attack catalogue — all in the browser.
 
-## Architectural Structure
+## How it's put together
 
-- **FastAPI Backend (`web/api.py`)**: Runs on port `8000`. Acts as the real-time inference server, invoking the trained fraud models, preprocessing parameters, and wrapping prompt calls to the Gemini API.
-- **Next.js Frontend (`web/next-app/`)**: Runs on port `3000`. Interactive visual portal built with React, Tailwind CSS, and Lucide icons.
+- **FastAPI backend (`web/api.py`)** — port `8000`. Loads the trained model, scores
+  transactions, and optionally calls the Gemini API for the written analyst note.
+- **Next.js frontend (`web/next-app/`)** — port `3000`. The actual portal UI.
 
 ---
 
-## Getting Started
+## Running it locally
 
-### 1. Start the Backend API Server
-Make sure you are at the project root directory:
+Start the backend (from the project root):
 ```bash
 uv run uvicorn web.api:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-### 2. Start the Frontend Dashboard
-Launch the development server:
+Then, in a separate terminal, start the frontend:
 ```bash
-# In a separate terminal session
-# Run from within the web/next-app directory:
+cd web/next-app
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) in your web browser.
 
-### 3. Portal Credentials
-Use the following security credentials to bypass the login gateway:
-* **Username:** `admin`
-* **Password:** `chakravyuh2026`
+Open [http://localhost:3000](http://localhost:3000). There's no login — the entry
+screen is a decorative boot animation, not real authentication (there's nothing to
+sign in as).
 
 ---
 
-## Features
+## What's in the portal
 
-- **Analyst Login Screen**: Mock cybersecurity gatekeeper protecting model diagnostics.
-- **Risk Scoring Studio**: Visual gauge metrics mapping risk scores, top classifier predictions, active device anomalies (calls, proxy, screen-shares), and Gemini AI insights.
-- **GenAI Settings Modals**: Input a custom Google Gemini Key directly in the UI settings panel. Automatically falls back to a simulated rule-based local generator if no key is entered.
-- **Closed-Loop Intelligence**: Radial progress rings charting PR-AUC and Recalls, live feature importances, and adaptive config parameters.
-- **Attack Connection Graph**: Visual network flow of the 13 attack families categorized across 5 stages (Access -> Probing -> Execution -> Evasion -> Exfiltration). Click any node to view target rails, observabilities, novelty, and difficulty ratings.
+- **Risk Scoring Studio** — score a transaction and see the model's confidence,
+  which features drove the decision (SHAP), and an optional GenAI-written summary.
+- **Closed-Loop Intelligence** — the detector's actual precision/recall numbers,
+  and what happened when it was retrained on harder attacks.
+- **Attack Connection Graph** — click through the attack catalogue and see how each
+  one moves through a payment's lifecycle.
+
+GenAI notes are optional. Add your own key in the settings panel, or leave it blank
+— the portal falls back to a plain template automatically.

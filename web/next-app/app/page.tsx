@@ -2635,7 +2635,7 @@ export default function AnalystPortal() {
                       </span>
                     </div>
                     <p className="text-xs text-zinc-400 mt-1 leading-relaxed max-w-3xl">
-                      <strong className="text-zinc-200">1. Attack Family Catalog:</strong> Choose from 13 generator families (e.g., Scam-induced Push, Mule Network, Credential Takeover) and set attack intensity.
+                      <strong className="text-zinc-200">1. Attack Family Catalog:</strong> Choose from 16 generator families (e.g., Scam-induced Push, Mule Network, Credential Takeover) and set attack intensity.
                       <br />
                       <strong className="text-zinc-200">2. Live Campaign Flood:</strong> Injects synthetic transactions into the scoring pipeline one by one to stress-test real-time detection and graph hop propagation.
                     </p>

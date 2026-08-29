@@ -21,6 +21,9 @@ test_runner.py
 run_tests.py
 scratch_tmp/
 
+# Local run logs -- not meant to be version-controlled
+*.log
+
 # Model artifacts are small enough to be tracked
 # stage5/models/*.pkl
 

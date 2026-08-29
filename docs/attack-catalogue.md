@@ -55,9 +55,14 @@ Attack rows are injected into the existing legitimate payment world instead of c
 
 This stage remains synthetic and controlled: it does not create phishing infrastructure, malware, deepfakes, real third-party attacks, or operational tooling. It only generates fictional payment events in the same canonical schema as legitimate traffic.
 
-## Generator merge map — 58 entries → 13 generators
+## Generator merge map — 58 entries → 16 generators
 
 **This is the section Phase 2 reads.** Catalogue rows are for the deck; generators are for the code. Two attacks producing the same data signature are one generator.
+
+G14–G16 were added after the original 58-entry freeze (no corresponding catalogue
+rows — they target structural signatures identified directly from the generator
+code and public fraud-detection references, not from a deck entry). See
+`src/attacks/generators.py` for the grounding notes on each.
 
 | # | Generator | Catalogue entries covered | Distinguishing data signature |
 |---|---|---|---|
@@ -74,6 +79,9 @@ This stage remains synthetic and controlled: it does not create phishing infrast
 | G11 | `subthreshold_fragmentation` | UPI-P2P-LITESPLIT-01, WALLET-CARDLOAD-01 | Uniform amounts just under a limit — ₹1,000 UPI Lite per-txn cap / ₹5,000 wallet cap[^d3]; rapid load-drain cycle; two-hop funnel |
 | G12 | `agentic_injection` | AGENT-PROMPTINJECT-01, AGENT-DELEGATED-01, AGENT-AGENT-01, UPI-MANDATE-AGENT-01 | `is_agent_initiated`, beneficiary ≠ seller of record, VPA not in biller directory |
 | G13 | `insider_abuse` | KYB-INSIDER-01, BANK-NEFT-INSIDER-01, CARD-CP-REFUNDABUSE-01, ADVMODEL-POISON-01 | No external anomaly; approval velocity and access-pattern signals only |
+| G14 | `device_fan_out` | *(none — added post-freeze)* | One device, 4–6 distinct cards, 2-hour window, each to a different merchant; per-device card clustering rather than per-account velocity |
+| G15 | `balance_drain_exit` | *(none — added post-freeze)* | Large inbound transfer immediately followed by an 85–95% payout to a newly-added beneficiary within 5 minutes (PaySim's receive-then-drain signature) |
+| G16 | `tpap_account_switch` | *(none — added post-freeze)* | One UPI handle drained across 3–4 linked bank accounts in 20–40 minutes, rotating TPAP app/account almost every transaction — invisible to any single bank's own fraud system |
 
 **Not simulatable, deck-only:** CARD-CNP-TOKENRACE-01, CARD-CP-CLONESYNTH-01, UPI-P2P-QRREPLACE-01, UPI-P2M-REFUNDRING-01, BANK-RTGS-FORGEDINV-01, UPI-COLLECT-MANDATEBLUR-01 (HISTORICAL). These lack a distinct in-log signature or depend on physical-world events the payment log never sees. Keep them in the taxonomy; do not build generators.
 

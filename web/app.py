@@ -208,7 +208,7 @@ with tab_loop:
 # --- Tab 3: Attack catalogue ---------------------------------------------
 
 with tab_catalogue:
-    st.subheader("13 generators, from a 58-entry catalogue")
+    st.subheader("16 generators, from a 58-entry catalogue")
     st.write("Full catalogue: `docs/attack-catalogue.md`. Merge map summary:")
 
     catalogue_rows = [
@@ -225,6 +225,9 @@ with tab_catalogue:
         ("G11", "subthreshold_fragmentation", "UPI Lite / Wallet", "Uniform amounts just under a limit"),
         ("G12", "agentic_injection", "UPI mandate / Agentic", "is_agent_initiated, beneficiary != seller of record"),
         ("G13", "insider_abuse", "Merchant KYB / Bank", "No external anomaly; approval-velocity signals only"),
+        ("G14", "device_fan_out", "Card CNP / Card CP", "One device, 4-6 distinct cards, 2-hour window"),
+        ("G15", "balance_drain_exit", "UPI P2P / IMPS", "Large inbound transfer, 85-95% payout within 5 minutes"),
+        ("G16", "tpap_account_switch", "UPI P2P", "One VPA, 3-4 linked accounts, rapid TPAP/account rotation"),
     ]
     st.table(pd.DataFrame(catalogue_rows, columns=["ID", "Generator", "Primary rail(s)", "Data signature"]))
 

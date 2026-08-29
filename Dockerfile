@@ -15,6 +15,7 @@ COPY src ./src
 COPY stage5 ./stage5
 COPY web ./web
 COPY data/generated/stage5/baseline/stage2 ./data/generated/stage5/baseline/stage2
+COPY data/generated/stage5/combined ./data/generated/stage5/combined
 
 ENV PATH="/app/.venv/bin:$PATH"
 

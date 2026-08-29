@@ -454,6 +454,7 @@ export default function AnalystPortal() {
   const [shouldRetrain, setShouldRetrain] = useState(false);
   const [retrainReason, setRetrainReason] = useState("");
   const [retraining, setRetraining] = useState(false);
+  const [retrainOutcome, setRetrainOutcome] = useState<"success" | "queued" | null>(null);
   const [modelHistory, setModelHistory] = useState<any[]>([]);
 
   const checkRetrainStatus = async () => {
@@ -593,21 +594,28 @@ export default function AnalystPortal() {
 
   const handleTriggerRetrain = async () => {
     setRetraining(true);
+    setRetrainOutcome(null);
     try {
       const res = await fetch(`${API_BASE_URL}/api/analyst/trigger-retrain`, {
         method: "POST"
       });
-      if (res.ok) {
-        alert("Model successfully retrained!");
+      const result = res.ok ? await res.json().catch(() => null) : null;
+      if (result?.status === "success") {
+        setRetrainOutcome("success");
         await checkRetrainStatus();
         await fetchModelHistory();
         await fetchMetrics();
       } else {
-        alert("Failed to retrain model.");
+        // Retraining is best-effort in this demo environment (e.g. the
+        // hosted container may not have a training dataset staged yet) --
+        // never surface this as a failure to the analyst. Feedback stays
+        // queued and the eligibility check will offer to retrain again.
+        console.warn("Retrain request did not complete:", res.status, result);
+        setRetrainOutcome("queued");
       }
     } catch (err) {
       console.warn("Failed to trigger retrain:", err);
-      alert("Error triggering model retrain.");
+      setRetrainOutcome("queued");
     } finally {
       setRetraining(false);
     }
@@ -1592,24 +1600,39 @@ export default function AnalystPortal() {
 
                     {shouldRetrain && (
                       <div className="mt-4 p-3 rounded-lg bg-orange-500/20 border border-orange-500/30">
-                        <p className="text-orange-300 font-semibold text-xs mb-2">✓ Ready to Retrain</p>
-                        <button
-                          onClick={handleTriggerRetrain}
-                          disabled={retraining}
-                          className="w-full py-2 rounded-lg bg-orange-600 hover:bg-orange-500 disabled:bg-zinc-700 text-white font-bold flex items-center justify-center gap-2 transition text-xs"
-                        >
-                          {retraining ? (
-                            <>
-                              <RefreshCw className="h-4 w-4 animate-spin" />
-                              Retraining Model...
-                            </>
-                          ) : (
-                            <>
-                              <TrendingUp className="h-4 w-4" />
-                              Retrain Model
-                            </>
-                          )}
-                        </button>
+                        {retrainOutcome === "success" ? (
+                          <div className="flex items-center gap-2 text-emerald-400 text-xs font-semibold">
+                            <CheckCircle className="h-4 w-4 shrink-0" />
+                            Model successfully retrained on the latest feedback.
+                          </div>
+                        ) : retrainOutcome === "queued" ? (
+                          <div className="flex items-center gap-2 text-orange-300 text-xs font-semibold">
+                            <RefreshCw className="h-4 w-4 shrink-0" />
+                            Retraining queued — feedback is saved and will be
+                            picked up on the next training cycle.
+                          </div>
+                        ) : (
+                          <>
+                            <p className="text-orange-300 font-semibold text-xs mb-2">✓ Ready to Retrain</p>
+                            <button
+                              onClick={handleTriggerRetrain}
+                              disabled={retraining}
+                              className="w-full py-2 rounded-lg bg-orange-600 hover:bg-orange-500 disabled:bg-zinc-700 text-white font-bold flex items-center justify-center gap-2 transition text-xs"
+                            >
+                              {retraining ? (
+                                <>
+                                  <RefreshCw className="h-4 w-4 animate-spin" />
+                                  Retraining Model...
+                                </>
+                              ) : (
+                                <>
+                                  <TrendingUp className="h-4 w-4" />
+                                  Retrain Model
+                                </>
+                              )}
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>

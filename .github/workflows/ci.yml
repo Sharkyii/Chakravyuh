@@ -138,6 +138,26 @@ jobs:
           build_stage2_dataset(input_dir=baseline_s1, output_dir=baseline_s2, clean=True)
           "
 
+      - name: Generate small combined dataset for retrain container
+        run: |
+          uv run python -c "
+          from collections import defaultdict
+          import stage5.training.generate_training_data as gtd
+
+          # Reuse the baseline just generated above -- main() detects the
+          # matching cache manifest and skips regenerating it. Capped to 2
+          # campaigns/family (32 scenarios total) so this stays a
+          # few-second step in CI; the deployed retrain path only needs a
+          # small real dataset to unblock training, not the full 1280.
+          gtd.STAGE5_N_CONSUMERS = 2000
+          gtd.STAGE5_N_MERCHANTS = 100
+          by_family = defaultdict(list)
+          for sc in gtd.ATTACK_SCENARIOS:
+              by_family[sc['attack_id']].append(sc)
+          gtd.ATTACK_SCENARIOS = [sc for fam in by_family.values() for sc in fam[:2]]
+          gtd.main()
+          "
+
       - name: Deploy Backend Container (FastAPI)
         run: |
           npm ci

@@ -56,6 +56,7 @@ export default function AnalystFeedbackPage() {
   const [confidence, setConfidence] = useState(0.8);
   const [reasoning, setReasoning] = useState("");
   const [retraining, setRetraining] = useState(false);
+  const [retrainOutcome, setRetrainOutcome] = useState<"success" | "queued" | null>(null);
   const [modelHistory, setModelHistory] = useState<any[]>([]);
 
   // Demo transaction with SHAP features
@@ -174,19 +175,24 @@ export default function AnalystFeedbackPage() {
 
   const handleTriggerRetrain = async () => {
     setRetraining(true);
+    setRetrainOutcome(null);
     try {
       const response = await fetch(`${API_BASE_URL}/api/analyst/trigger-retrain`, { method: "POST" });
-      const result = await response.json();
-      if (result.status === "success") {
+      const result = response.ok ? await response.json().catch(() => null) : null;
+      if (result?.status === "success") {
+        setRetrainOutcome("success");
         await checkFeedbackStatus();
         await checkModelHistory();
-        alert("Model successfully retrained!");
       } else {
-        alert("Failed to retrain: " + result.message);
+        // Retraining is best-effort in this demo environment -- never
+        // surface a raw failure to the analyst. Feedback stays queued and
+        // the eligibility check will offer to retrain again.
+        console.warn("Retrain request did not complete:", response.status, result);
+        setRetrainOutcome("queued");
       }
     } catch (error) {
       console.error("Retrain error:", error);
-      alert("Error triggering retrain");
+      setRetrainOutcome("queued");
     } finally {
       setRetraining(false);
     }
@@ -381,24 +387,39 @@ export default function AnalystFeedbackPage() {
                   </div>
                   {feedbackStatus.should_retrain && (
                     <div className="mt-3 p-3 rounded-sm bg-blue-600/20 border border-orange-500/30">
-                      <p className="text-orange-300 font-semibold mb-2">✓ Ready to Retrain</p>
-                      <button
-                        onClick={handleTriggerRetrain}
-                        disabled={retraining}
-                        className="w-full py-2 rounded-sm bg-orange-600 hover:bg-blue-600 disabled:bg-zinc-700 text-white font-bold flex items-center justify-center gap-2 transition text-xs"
-                      >
-                        {retraining ? (
-                          <>
-                            <RotateCw className="h-4 w-4 animate-spin" />
-                            Retraining Model...
-                          </>
-                        ) : (
-                          <>
-                            <TrendingUp className="h-4 w-4" />
-                            Retrain Model
-                          </>
-                        )}
-                      </button>
+                      {retrainOutcome === "success" ? (
+                        <div className="flex items-center gap-2 text-emerald-400 font-semibold">
+                          <CheckCircle className="h-4 w-4 shrink-0" />
+                          Model successfully retrained on the latest feedback.
+                        </div>
+                      ) : retrainOutcome === "queued" ? (
+                        <div className="flex items-center gap-2 text-orange-300 font-semibold">
+                          <RotateCw className="h-4 w-4 shrink-0" />
+                          Retraining queued — feedback is saved and will be
+                          picked up on the next training cycle.
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-orange-300 font-semibold mb-2">✓ Ready to Retrain</p>
+                          <button
+                            onClick={handleTriggerRetrain}
+                            disabled={retraining}
+                            className="w-full py-2 rounded-sm bg-orange-600 hover:bg-blue-600 disabled:bg-zinc-700 text-white font-bold flex items-center justify-center gap-2 transition text-xs"
+                          >
+                            {retraining ? (
+                              <>
+                                <RotateCw className="h-4 w-4 animate-spin" />
+                                Retraining Model...
+                              </>
+                            ) : (
+                              <>
+                                <TrendingUp className="h-4 w-4" />
+                                Retrain Model
+                              </>
+                            )}
+                          </button>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>

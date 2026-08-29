@@ -2884,7 +2884,11 @@ const profileLinks = [
   {
     name: "Sneh Kansagara",
     role: "Co-builder",
-    photo: "/team/sneh-kansagara.jpg",
+    // No photo committed yet -- see public/team/README.md. Set to the
+    // `/team/sneh-kansagara.jpg` path once that file is added; leaving this
+    // null (rather than pointing at a file that doesn't exist) avoids a
+    // failed image request the e2e console-error check would catch.
+    photo: null as string | null,
     initials: "SK",
     linkedin: "https://www.linkedin.com/in/sneh-kansagara-b61362312/",
     github: "https://github.com/Sharkyii",
@@ -2892,7 +2896,7 @@ const profileLinks = [
   {
     name: "Priyanshu Jha",
     role: "Co-builder",
-    photo: "/team/priyanshu-jha.jpg",
+    photo: null as string | null,
     initials: "PJ",
     linkedin: "https://www.linkedin.com/in/priyanshu-jha-b74129324/",
     github: "https://github.com/priyanshuiiitm",
@@ -2903,13 +2907,15 @@ const profileLinks = [
 function TeamAvatar({ profile }: { profile: (typeof profileLinks)[number] }) {
   const [imageAvailable, setImageAvailable] = useState(true);
 
-  if (!imageAvailable) {
+  // No src known to be missing is ever requested -- avoids a failed image
+  // load (and its console error) rather than catching one after the fact.
+  if (!profile.photo || !imageAvailable) {
     return <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-orange-400/30 bg-orange-500/10 text-xs font-bold tracking-wider text-orange-200">{profile.initials}</div>;
   }
 
   return (
     <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-orange-400/30 bg-orange-500/10">
-      {/* Add the optional images at public/team/ using the paths declared above. */}
+      {/* Add the image at public/team/ and set its path on profileLinks above. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={profile.photo} alt={`${profile.name} profile`} className="h-full w-full object-cover" onError={() => setImageAvailable(false)} />
     </div>

@@ -8,6 +8,7 @@ notebooks
 docs
 data
 !data/generated/stage5/baseline/stage2
+!data/generated/stage5/combined
 tests
 issues.md
 *.md

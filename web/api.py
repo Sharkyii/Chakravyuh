@@ -398,25 +398,6 @@ async def analyze(request: Request):
                     "label": "Remote Control",
                     "status": "critical"
                 })
-                
-            # Secondary payers if edge count > 2 (mule fan-in signature)
-            t_edges_cnt = float(t_txn.get("edge_count", 1.0))
-            if t_edges_cnt > 2:
-                nodes.append({
-                    "id": f"copayer_{t_id}",
-                    "label": f"Co-Payer ({t_id})",
-                    "type": "payer_other",
-                    "risk": "low",
-                    "details": {
-                        "Relationship": f"Part of {int(t_edges_cnt)} observed edges (mule fan-in)"
-                    }
-                })
-                edges.append({
-                    "source": f"copayer_{t_id}",
-                    "target": f"payee_{t_id}",
-                    "label": "Unknown amount",
-                    "status": "warning" if t_risk in ["HIGH", "CRITICAL"] else "normal"
-                })
 
         # 2. Pairwise similarity metrics connection (dashed green links)
         for i in range(len(session_txns)):

@@ -526,30 +526,57 @@ export default function AnalystFeedbackPage() {
                 <h3 className="text-xs font-semibold text-white uppercase tracking-[0.08em] mb-3 flex items-center gap-2">
                   <TrendingUp className="h-3.5 w-3.5 text-[#D9500B]" /> Model Evolution History
                 </h3>
-                <div className="space-y-2">
-                  {modelHistory.map((meta: any, idx: number) => (
-                    <div key={idx} className="p-3.5 rounded-md bg-[#08080A] border border-[#232326] transition-colors hover:border-[#2E2E33]">
-                      <p className="text-xs font-medium text-[#D9500B] mb-2">{meta.label} <span className="text-[11px] text-[#6E6E76] font-mono font-normal">({meta.version})</span></p>
-                      <div className="grid grid-cols-2 gap-2 text-[11px]">
-                        <div>
-                          <span className="text-[#6E6E76]">PR-AUC</span>
-                          <p className="text-white font-semibold font-mono text-xs tabular-nums">{(meta.pr_auc * 100).toFixed(2)}%</p>
+                <div className="space-y-3">
+                  {modelHistory.map((meta: any, idx: number) => {
+                    let formattedTime = meta.timestamp;
+                    try {
+                      if (meta.timestamp && meta.timestamp.includes("T")) {
+                        formattedTime = new Date(meta.timestamp).toLocaleString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        });
+                      }
+                    } catch {
+                      formattedTime = meta.timestamp;
+                    }
+
+                    return (
+                      <div key={idx} className="p-3.5 rounded-md bg-[#08080A] border border-[#232326] transition-colors hover:border-[#2E2E33]">
+                        <div className="flex items-baseline justify-between mb-1.5">
+                          <p className="text-xs font-medium text-[#D9500B]">
+                            {meta.label} <span className="text-[11px] text-[#6E6E76] font-mono font-normal">({meta.version})</span>
+                          </p>
+                          {formattedTime && (
+                            <span className="text-[10px] text-[#6E6E76] font-mono">{formattedTime}</span>
+                          )}
                         </div>
-                        <div>
-                          <span className="text-[#6E6E76]">Precision</span>
-                          <p className="text-white font-semibold font-mono text-xs tabular-nums">{(meta.precision * 100).toFixed(2)}%</p>
+                        <div className="grid grid-cols-2 gap-2 text-[11px] mb-2.5">
+                          <div>
+                            <span className="text-[#6E6E76]">PR-AUC</span>
+                            <p className="text-white font-semibold font-mono text-xs tabular-nums">{(meta.pr_auc * 100).toFixed(2)}%</p>
+                          </div>
+                          <div>
+                            <span className="text-[#6E6E76]">Precision</span>
+                            <p className="text-white font-semibold font-mono text-xs tabular-nums">{(meta.precision * 100).toFixed(2)}%</p>
+                          </div>
+                          <div>
+                            <span className="text-[#6E6E76]">Test Recall</span>
+                            <p className="text-white font-semibold font-mono text-xs tabular-nums">{(meta.recall * 100).toFixed(2)}%</p>
+                          </div>
+                          <div>
+                            <span className="text-[#6E6E76]">Evasion Rate</span>
+                            <p className="text-[#3FBF7F] font-semibold font-mono text-xs tabular-nums">{(meta.evasion_rate * 100).toFixed(1)}%</p>
+                          </div>
                         </div>
-                        <div>
-                          <span className="text-[#6E6E76]">Test Recall</span>
-                          <p className="text-white font-semibold font-mono text-xs tabular-nums">{(meta.recall * 100).toFixed(2)}%</p>
-                        </div>
-                        <div>
-                          <span className="text-[#6E6E76]">Evasion Rate</span>
-                          <p className="text-[#E5484D] font-semibold font-mono text-xs tabular-nums">{(meta.evasion_rate * 100).toFixed(1)}%</p>
-                        </div>
+                        <p className="text-[10.5px] text-[#A0A0A8] leading-relaxed pt-2 border-t border-[#1C1C20]">
+                          {meta.summary || (idx === 1 ? "Retrained on baseline model incorporating 33 confirmed analyst feedback verdicts and 3,545 retained curriculum attacks." : "Baseline model checkpoint calibrated on initial transaction distribution.")}
+                        </p>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}

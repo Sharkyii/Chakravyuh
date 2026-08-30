@@ -157,23 +157,23 @@
     "fixed_fpr_operating_points": [
       {
         "target_fpr": 0.001,
-        "achieved_fpr": 0.00014542634155800086,
-        "threshold": 0.9709843993186951,
-        "precision": 0.9992632612966601,
-        "recall": 1.0
+        "achieved_fpr": 0.0009863610081289752,
+        "threshold": 0.943878710269928,
+        "precision": 0.9638178415470992,
+        "recall": 0.9916559691912709
       },
       {
         "target_fpr": 0.01,
-        "achieved_fpr": 0.00014542634155800086,
-        "threshold": 0.9709843993186951,
-        "precision": 0.9992632612966601,
-        "recall": 1.0
+        "achieved_fpr": 0.005935172273051937,
+        "threshold": 0.7691906690597534,
+        "precision": 0.816894018887723,
+        "recall": 0.9993581514762516
       }
     ],
     "held_out_family_generalisation": [
       {
         "target_fpr": 0.001,
-        "threshold": 0.9709843993186951,
+        "threshold": 0.943878710269928,
         "held_out_fraud_total": 1537,
         "held_out_fraud_caught": 1537,
         "held_out_recall": 1.0,
@@ -185,7 +185,7 @@
       },
       {
         "target_fpr": 0.01,
-        "threshold": 0.9709843993186951,
+        "threshold": 0.7691906690597534,
         "held_out_fraud_total": 1537,
         "held_out_fraud_caught": 1537,
         "held_out_recall": 1.0,

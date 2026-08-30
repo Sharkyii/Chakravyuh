@@ -443,6 +443,22 @@ export function AnalystPortal() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const uniqueTxnCount = useMemo(() => {
+    const rawNodes = scoreResult?.network_graph?.nodes ?? [];
+    const txnSet = new Set<string>();
+    rawNodes.forEach((node: any) => {
+      const match = node.id.match(/TXN_\d+/i);
+      if (match) txnSet.add(match[0].toUpperCase());
+    });
+    return Math.max(1, txnSet.size);
+  }, [scoreResult?.network_graph]);
+
+  const dynamicGraphHeight = useMemo(() => {
+    if (graphViewMode === "lifecycle") return 440;
+    if (!scoreResult?.network_graph || scoreResult.network_graph.nodes.length === 0) return 320;
+    return Math.max(220, uniqueTxnCount * 140 + 60);
+  }, [graphViewMode, scoreResult?.network_graph, uniqueTxnCount]);
+
   // Transaction Linkage: Structured Column-Lane Layout
   // Positions each transaction cluster in its own horizontal row.
   // Attackers in Col 1 (x=40), Payers in Col 2 (x=280), Payees in Col 3 (x=520).
@@ -2276,8 +2292,14 @@ export function AnalystPortal() {
                 </div>
               </div>
 
-              {/* SVG Grid */}
-              <div className="flex-1 relative border border-[#232326] bg-[#08080A] rounded-md overflow-hidden min-h-[440px]">
+              {/* SVG Grid / ReactFlow Canvas Container with Dynamic Height */}
+              <div
+                className="relative border border-[#232326] bg-[#08080A] rounded-md overflow-hidden transition-[height,min-height] duration-300 ease-out"
+                style={{
+                  minHeight: graphViewMode === "lifecycle" ? "440px" : `${dynamicGraphHeight}px`,
+                  height: graphViewMode === "lifecycle" ? "440px" : `${dynamicGraphHeight}px`,
+                }}
+              >
                 {graphViewMode === "lifecycle" && (
                   <div className="story-grid pointer-events-none absolute inset-0 opacity-20" />
                 )}
@@ -2450,14 +2472,14 @@ export function AnalystPortal() {
                   </svg>
                 ) : (
                   !scoreResult?.network_graph || scoreResult.network_graph.nodes.length === 0 ? (
-                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center min-h-[440px]">
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center min-h-[300px] h-full">
                       <Network className="h-10 w-10 text-[#2E2E33] mb-2.5" />
                       <span className="text-xs text-[#A0A0A8]">
                         Run a risk assessment in Tab 1 to generate and inspect real-time transaction graphs.
                       </span>
                     </div>
                   ) : (
-                    <div className="w-full h-[440px]">
+                    <div className="w-full h-full transition-[height] duration-300 ease-out" style={{ height: `${dynamicGraphHeight}px` }}>
                       <ReactFlow
                         nodes={transactionFlowNodes}
                         edges={transactionFlowEdges}
@@ -2483,8 +2505,9 @@ export function AnalystPortal() {
                           }
                         }}
                         fitView
+                        fitViewOptions={{ padding: 0.15 }}
                         proOptions={{ hideAttribution: true }}
-                        className="w-full h-full min-h-[350px]"
+                        className="w-full h-full"
                       >
                         <Background color="#232326" gap={24} />
                         <Controls className="bg-[#121214] border-[#232326] fill-[#A0A0A8]" />
@@ -2888,22 +2911,11 @@ export function AnalystPortal() {
                   disabled={isPlaygroundSimulating}
                   className="w-full bg-[#08080A] border border-[#232326] rounded-md px-3 py-2 text-xs font-mono text-[#EDEDEF] outline-none focus:border-[#D9500B] transition-colors cursor-pointer text-ellipsis overflow-hidden"
                 >
-                  <option value="scam_induced_push">Phone Call Pressured Transfer (Scam-induced Push)</option>
+                  <option value="scam_induced_push">Phone Call Pressured Transfer (Scam-Induced Push)</option>
                   <option value="mule_network">Multi-Account Fund Forwarding (Mule Network)</option>
-                  <option value="card_testing_probe">Micro-Amount Acquiring Test (Card Testing)</option>
-                  <option value="adversarial_evasion">Model evasion / Distributed velocity (Adversarial Evasion)</option>
-                  <option value="first_party_dispute">Chargeback abuse / Refund fraud (First-party Dispute)</option>
-                  <option value="stealth_mandate">AutoPay dark-pattern mandate abuse (Stealth Mandate)</option>
-                  <option value="synthetic_merchant">Fictitious seller cashout (Synthetic Merchant)</option>
-                  <option value="transaction_laundering">Declared MCC classification mismatch (Laundering)</option>
-                  <option value="credential_takeover">Device change with anomalous takeover (Credential Takeover)</option>
-                  <option value="synthetic_identity_bustout">Clean-profile limit build & exit (Synthetic ID Bustout)</option>
-                  <option value="subthreshold_fragmentation">AFA regulation limit bypass (Fragmentation)</option>
-                  <option value="agentic_injection">Prompt injection VPA extraction (Agentic Injection)</option>
-                  <option value="insider_abuse">Internal ledger adjustment bypass (Insider Abuse)</option>
-                  <option value="device_fan_out">Single credential device fan-out (Velocity Probe)</option>
-                  <option value="balance_drain_exit">Final liquidation / Account sweep (Exit Drain)</option>
-                  <option value="tpap_account_switch">Cross-TPAP credential rotation (Account Switch)</option>
+                  <option value="card_testing_probe">Stolen Card Verification (Card Testing Micro-Probe)</option>
+                  <option value="adversarial_evasion">Hidden Detection-Evasive Payment (Adversarial Evasion)</option>
+                  <option value="credential_takeover">Device Change & Account Takeover (Credential Takeover)</option>
                 </select>
               </div>
 

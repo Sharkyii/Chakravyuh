@@ -59,13 +59,12 @@ class AnalystVerdictOutput:
 def get_analyst_model() -> AnalystModel:
     """
     Determine which model to use.
-    Environment: ANALYST_MODEL (claude|gemini)
+    Environment: ANALYST_MODEL (gemini|claude)
     """
-    choice = os.getenv("ANALYST_MODEL", "claude").lower()
-
-    if choice == "gemini":
-        return AnalystModel.GEMINI_2_0
-    return AnalystModel.CLAUDE_SONNET_5
+    choice = os.getenv("ANALYST_MODEL", "gemini").lower()
+    if choice == "claude":
+        return AnalystModel.CLAUDE_SONNET_5
+    return AnalystModel.GEMINI_2_0
 
 
 def analyze_transaction(
@@ -107,16 +106,16 @@ def analyze_transaction(
 
     model = model_override or get_analyst_model()
 
-    # Build context
-    features_text = "\n".join([
-        f"  • {f.name}: {f.value:.3f} ({f.direction}, contribution: {f.contribution:+.3f})"
+    features_text = "\n".join(
+        f"- {f.name}: {f.value} (SHAP importance: +{f.contribution:.2f}, {f.direction})"
         for f in shap_features
-    ])
+    )
 
-    prompt = f"""You are an expert payment fraud analyst reviewing a transaction flagged by an ML model.
+    prompt = f"""You are a payment fraud analyst. Analyze this transaction and decide if it's FRAUD or LEGITIMATE.
 
 TRANSACTION DETAILS:
-- Amount: {transaction.amount:.2f} {transaction.channel}
+- Amount: INR {transaction.amount:,.2f}
+- Channel: {transaction.channel}
 - Payer → Payee: {transaction.payer_id} → {transaction.payee_id}
 - Timestamp: {transaction.timestamp}
 - Auth Method: {transaction.auth_method}
@@ -132,12 +131,12 @@ TASK:
 
 OUTPUT (JSON only):
 {{
-  "verdict": "FRAUD or LEGITIMATE or UNSURE",
+  "verdict": "FRAUD or LEGITIMATE",
   "confidence": 0.85,
-  "reasoning": "1-2 sentences",
+  "reasoning": "Clear 1-2 sentence explanation of the risk.",
   "key_signals": ["signal1", "signal2"],
   "patterns": ["pattern: description"],
-  "suggested_threshold": 0.45
+  "suggested_threshold": 0.50
 }}
 """
 
@@ -152,6 +151,18 @@ OUTPUT (JSON only):
     except Exception as e:
         print(f"⚠️ LLM analysis fallback triggered: {e}")
         result = _generate_fallback_verdict(fraud_score, shap_features, transaction)
+
+    # If LLM returned empty or incomplete fields, fill from deterministic synthesis
+    if not result.reasoning or result.verdict == "UNSURE" or not result.key_signals or not result.patterns:
+        fallback = _generate_fallback_verdict(fraud_score, shap_features, transaction)
+        if not result.reasoning:
+            result.reasoning = fallback.reasoning
+        if result.verdict == "UNSURE":
+            result.verdict = fallback.verdict
+        if not result.key_signals:
+            result.key_signals = fallback.key_signals
+        if not result.patterns:
+            result.patterns = fallback.patterns
 
     # Log the usage
     if not skip_budget_check:

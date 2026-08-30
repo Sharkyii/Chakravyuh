@@ -766,12 +766,11 @@ def analyze_transaction(transaction: dict, api_key: str | None = None) -> dict:
         ]
         
         evidence_lines = [
-            f"Fraud Probability: {fraud_probability*100:.2f}%",
+            f"Composite Fused Risk Score: {risk_score:.1f}/100 ({risk_level})",
+            f"Recommended Decision: {action}",
             f"Predicted Attack Family: {top_attack_family or 'unavailable'} (Classifier Confidence: {top_attack_probability*100:.2f}%)",
-            f"Calculated Risk Score: {risk_score:.1f}/100",
-            f"Recommended Action: {action}",
-            f"Risk Level: {risk_level}",
-            "Active Risk Signals:",
+            f"Base Tabular Statistical Probability: {fraud_probability*100:.2f}%",
+            "Active Behavioral & Threat Telemetry Signals:",
         ]
         for signal in contributing_signals:
             evidence_lines.append(f"  - {signal}")
@@ -786,20 +785,23 @@ def analyze_transaction(transaction: dict, api_key: str | None = None) -> dict:
 
 
         prompt = (
-            "You are Chakravyuh GenAI Analyst, a specialized AI assistant for Mastercard instant payment fraud detection.\n"
-            "Analyze the following transaction context and ML-derived evidence to generate a structured risk explanation. "
-            "Do NOT invent any facts or override the model's predictions. Your goal is to interpret the model's findings "
-            "for a human analyst.\n\n"
+            "You are Chakravyuh GenAI Analyst, a specialized AI assistant for Mastercard instant payment fraud defense.\n"
+            "Analyze the following transaction context and ML-derived multi-layered evidence to generate a structured risk explanation.\n"
+            "SYSTEM ARCHITECTURE CONTEXT:\n"
+            "Chakravyuh uses a Defense-in-Depth architecture combining Tabular ML, Graph Topology, and Real-Time Device Telemetry. "
+            "In sophisticated social engineering / coercion attacks, users are pressured on their own devices, so standard tabular metrics "
+            "can appear deceptively normal while real-time device telemetry (e.g. active voice call, screen sharing RAT) catches the threat. "
+            "Highlight how this multi-modal fusion protects against evasive threats.\n\n"
             "### TRANSACTION CONTEXT\n"
             + "\n".join(context_lines) + "\n\n"
-            "### MACHINE LEARNING EVIDENCE\n"
+            "### MACHINE LEARNING & TELEMETRY EVIDENCE\n"
             + "\n".join(evidence_lines) + "\n\n"
             "Please output a JSON object containing the following keys:\n"
-            "1. 'fraud_explanation': a concise paragraph explaining why this transaction was flagged (or cleared), summarizing the risk.\n"
-            "2. 'attack_family_interpretation': a detailed interpretation of the predicted attack family (e.g. how the signals align with that type of fraud).\n"
+            "1. 'fraud_explanation': concise professional paragraph explaining why this transaction was flagged (or approved) based on fused risk.\n"
+            "2. 'attack_family_interpretation': detailed interpretation of the predicted attack family and how telemetry signatures align with it.\n"
             "3. 'key_evidence': a list of the 2-4 most critical data points supporting this assessment.\n"
             "4. 'investigation_steps': a list of 3-4 actionable next steps for a human fraud analyst to verify this incident.\n"
-            "5. 'uncertainty_caveats': any limitations, model confidence warnings, or potential false-positive/negative scenarios.\n\n"
+            "5. 'uncertainty_caveats': operational triage nuance (e.g. verifying whether remote tools/calls were payer-authorized support vs malicious coercion).\n\n"
             "Ensure the output is valid JSON matching the schema and contains no markdown block wrapper."
         )
         

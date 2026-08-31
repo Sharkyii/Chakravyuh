@@ -1,7 +1,11 @@
 # Mastercard Innovation Challenge 2026 - Master Project Brief
 
 **AI Defense Lab for Payment Security** · Global Fintech Fest 2026, Mumbai
-Status as of **13 August 2026** · Day 4 of 19
+
+Written 13 August 2026, early in the build, to record the challenge brief and the
+research reasoning behind this project's design. Kept for that reasoning; the
+day-by-day timeline and mid-build punch list that originally followed it have been
+removed now that the build is complete (superseded by `SOLUTION_WALKTHROUGH.md`).
 
 ---
 
@@ -141,9 +145,7 @@ Five runs were planned. Here is what came back.
 | 4 - inversion pass | Standalone novelty run | Present as a section, not a dedicated pass |
 | 5 - evidence pass | Verified citations per attack | **Effectively did not happen.** Citations gesture at source categories, not verified specifics |
 
-**Output:** 58 catalogue entries, 15 expanded cards, a coverage matrix across rails × phases and rails × GenAI capability, an inversion section, a confidence assessment.
-
-**One document in the batch is not ours** - a generic research-plan template recommending climate adaptation in agriculture. A tool ran without the prompt attached. Discard; keep it out of the repo.
+**Output:** 58 catalogue entries, 15 expanded cards, a coverage matrix across rails × phases and rails × GenAI capability, an inversion section, a confidence assessment. The 58 entries were since collapsed to 16 trained attack families (see `docs/attack-catalogue.md`); regulatory/rail parameters cited across them are independently sourced and dated in `docs/research/d3-regulatory-limits.md`.
 
 ### Coverage achieved
 
@@ -151,28 +153,7 @@ Rails × phases matrix is populated with documented gaps. Genuinely sparse and c
 
 ---
 
-## 5. Known defects - fix before building
-
-### D1 - Catalogue contradicts Run 1 on collect
-Four entries treat P2P collect as live: `COLLECTFLOOD-01`, `VOICECLONE-01`, `MASSPERS-01`, `MANDATEBLUR-01`. Expanded Card 7's entire attack chain is a P2P collect flow. **Rewrite Card 7 as merchant-collect impersonation; label the rest historical.** A judge who knows UPI catches this immediately.
-
-### D2 - Wrong statistic in the headline card
-Card 1 claims ₹1,750+ crore lost to digital arrest in Jan–Apr 2024. The correct I4C figure is **₹120.30 crore**; ~₹1,776 crore was total cyber fraud losses across all categories in that window. If a larger number is wanted, the nine-month 2024 digital-arrest figure was ₹1,616 crore across 63,481 complaints. **Audit every other number the same way** - one wrong statistic costs more credibility than three missing attacks.
-
-### D3 - Stale rail parameters
-`LITESPLIT-01` is built on "sub-₹200" transactions and a "₹2,000 wallet cap" - both outdated. Verify against current NPCI/RBI pages before hardcoding: UPI Lite per-transaction and balance limits, minimum-KYC PPI caps, UPI AutoPay AFA thresholds by category, P2M daily limits.
-
-### D4 - Unmerged pretexts
-`DIGITALARREST-01`, `KYCEXPIRY-01`, `SE-DEEPFAKEBANK-01`, `ROMANCE-01`, `JOBSCAM-01` have effectively identical observable signals - victim authorises correctly from their own device, funds land in a young mule with fan-in. **One attack, five pretexts.** Keep all five rows for the deck's diversity score; the simulator gets one generator with a `pretext` parameter.
-
-### D5 - Evidence pass incomplete
-Assume more unverified claims. Every citation in the walkthrough deck must resolve to a real, dated source.
-
-**Net effect on the build:** 58 catalogue entries should collapse to roughly **12–15 distinct generators**.
-
----
-
-## 6. Architecture
+## 5. Architecture
 
 ```
 attack catalogue (frozen)
@@ -226,45 +207,7 @@ Seven tables - `transactions`, `parties`, `merchants`, `mandates`, `disputes`, `
 
 ---
 
-## 7. Plan and timeline
-
-**Today is 13 August. Submission closes 31 August, 11:59 PM IST. 18 days remain.**
-
-| Dates | Phase | Output |
-|---|---|---|
-| 13–14 Aug | **Defect fixes + freeze prep** | D1–D5 resolved; every number sourced; catalogue collapsed to 12–15 generators |
-| 15–17 Aug | **Base generator** | Party/device/merchant populations; legitimate traffic with credible marginals |
-| **17 Aug** | **CATALOGUE FREEZE** | Whatever exists is what gets built |
-| 18–21 Aug | **Attack injectors** | 12–15 generators, each emitting attack + lookalike + campaign structure + labels |
-| 20 Aug | ⚠️ **Registration closes** | All team members registered on Kaggle |
-| 22–24 Aug | **Detector + evaluation harness** | GBM baseline, then graph/sequence layer; harness reporting precision @ FPR |
-| 25 Aug | **Close the loop** | One documented iteration: detector misses → new attack variant → detector improves |
-| 25–29 Aug | **Web prototype** | Presentable UI demonstrating the closed loop live |
-| 27–30 Aug | **Walkthrough deck** | Attacks, generation, detection results, feasibility |
-| 30 Aug | **Buffer + dry run** | Full reproducibility check from a clean clone |
-| **31 Aug** | **SUBMIT** | Do not aim for the deadline; aim for the 30th |
-| 5 Sep | Results | |
-| 8–11 Sep | GFF 2026, Mumbai | Shortlisted teams present |
-
-### Effort split
-
-Roughly **20% research, 50% build, 30% presentation**. Research is currently ~80% done and build is 0% done, which is the normal way this goes wrong. From here, everything produced should be code, not documents.
-
-The prototype and deck are two of three required artifacts and consume a third of the calendar. Teams that treat them as an afterthought lose on completeness, not on modelling.
-
-### Risks
-
-| Risk | Mitigation |
-|---|---|
-| Research creep past the freeze date | Hard stop 17 Aug. Catalogue may grow only if code finishes early |
-| Prototype rushed in the final 48h | Start it 25 Aug at the latest, in parallel with the deck |
-| Circular evaluation (train and test on own attacks) | Lookalike populations; temporal splits; hold out one attack family entirely to test generalisation to unseen attacks |
-| Unverified claims in the deck | Every number resolves to a dated source before it goes in a slide |
-| Reproducibility failure at judging | Clean-clone run on 30 Aug; pinned dependencies; seeded randomness |
-
----
-
-## 8. Where the marks actually are
+## 6. Where the marks actually are
 
 **Diversity of attacks** - the coverage matrix, presented as a matrix. Show the gaps and explain which are structural.
 
@@ -275,14 +218,3 @@ The prototype and deck are two of three required artifacts and consume a third o
 **Novelty** - two places. First, the inversion attacks that keep every conventional signal normal. Second, the intent-detection framing: conventional models assume the attacker is not the customer, and in a scam-induced payment everything is genuine - real customer, real device, real location, correct PIN. The only anomaly is intent, which appears in no standard column. Detecting it needs the session and coercion fields nobody puts in a transaction table.
 
 **Real-world feasibility** - grounding in actual rail mechanics, correct current limits and regulations, sub-second pre-auth budget for UPI, and an honest account of what a live deployment would cost in false positives.
-
----
-
-## 9. Immediate next actions
-
-1. Fix D1–D5. Two hours, protects the whole submission.
-2. Confirm all team members are registered before 20 August.
-3. Stand up the repo skeleton with the seven-table schema.
-4. Build the legitimate base generator - parties, devices, normal traffic - before any attack code.
-
-Fidelity of the background is what makes the foreground believable. It is also the piece every team skips.

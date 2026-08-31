@@ -85,7 +85,7 @@ ATTACK_FAMILIES = (
     {"attack_id": "tpap_account_switch", "seed": 116, "intensity": "MEDIUM"},
 )
 
-# Splits -- temporal, matching docs/master-project-brief.md section 6 rule 2
+# Splits -- temporal, matching docs/master-project-brief.md section 5 rule 2
 # ("split temporally, never randomly"). Windows are derived from
 # src.dataset.splits.split_windows() over the simulation calendar, not by
 # shuffling campaign/party ids.

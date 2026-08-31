@@ -1,12 +1,14 @@
 import os
 import sys
 import json
+import math
+import time
 import numpy as np
 import joblib
 from pathlib import Path
+from collections import OrderedDict, deque
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from collections import OrderedDict
 from starlette.concurrency import run_in_threadpool
 
 # Setup project root
@@ -80,6 +82,77 @@ def _get_session_txns(session_id: str) -> list[dict]:
         _SESSION_COUNTERS[session_id] = 0
     _SESSION_GRAPHS.move_to_end(session_id)
     return _SESSION_GRAPHS[session_id]
+
+# Rate limiting for /api/analyze -- documented in Known Limitations item 7 as
+# a model-extraction exposure (unthrottled queries let an attacker binary-search
+# the decision boundary via prediction access alone). Deliberately scoped to
+# /api/analyze only, not applied globally: other endpoints are either read-only
+# polling (/api/metrics, /api/scenarios) or already budget-gated (/api/analyst/review
+# via get_cost_limiter()), so throttling them risks breaking normal demo use for
+# no extraction-relevant benefit.
+#
+# In-process sliding window, per client IP (Cloudflare's CF-Connecting-IP header,
+# since request.client.host behind the Worker/container proxy is not the real
+# caller). Known limitation of this approach, left honest rather than hidden:
+# it resets on container restart and does not share state across multiple
+# container instances -- sufficient to stop scripted single-source scraping at
+# this deployment's scale (one container, sleepAfter=10m), not a substitute for
+# a shared store (Redis, Cloudflare Rate Limiting Rules) in a multi-instance
+# production deployment.
+RATE_LIMIT_WINDOW_S = float(os.environ.get("ANALYZE_RATE_LIMIT_WINDOW_S", 60))
+RATE_LIMIT_MAX_REQUESTS = int(os.environ.get("ANALYZE_RATE_LIMIT_MAX", 30))
+_RATE_LIMIT_MAX_TRACKED_CLIENTS = 5000  # bound memory; evict oldest-seen client on overflow
+_RATE_LIMIT_BUCKETS: "OrderedDict[str, deque]" = OrderedDict()
+
+
+def _client_ip(request: Request) -> str:
+    # Defensive getattr, matching the existing session_id lookup in analyze():
+    # test callers pass a minimal MockRequest with only .json(), no .headers/.client.
+    #
+    # Trust boundary, stated explicitly rather than left implicit: this trusts
+    # CF-Connecting-IP as-is, which is only safe because Cloudflare's edge sets
+    # (and overwrites any client-supplied value for) that header on every request
+    # that reaches this container via the deployed backend-worker route -- the
+    # container has no other public ingress in that deployment. It is NOT safe
+    # against a caller who reaches this endpoint without going through
+    # Cloudflare's edge, e.g. local `docker compose` dev (api on localhost:8000
+    # with no proxy in front) or a future deployment that exposes the container
+    # directly: either lets a caller set an arbitrary CF-Connecting-IP per
+    # request and bypass the per-IP budget entirely. A cryptographically
+    # verified header (Cloudflare's signed request headers, or a shared secret
+    # the Worker injects and the container checks) is the correct production
+    # fix; not implemented here.
+    headers = getattr(request, "headers", {}) or {}
+    client = getattr(request, "client", None)
+    return headers.get("cf-connecting-ip") or (client.host if client else "unknown")
+
+
+def enforce_rate_limit(request: Request, now: float | None = None) -> None:
+    """Raises HTTPException(429) if the caller has exceeded the request budget
+    for the current sliding window. `now` is injectable for deterministic tests."""
+    ip = _client_ip(request)
+    now = time.monotonic() if now is None else now
+
+    if ip not in _RATE_LIMIT_BUCKETS:
+        if len(_RATE_LIMIT_BUCKETS) >= _RATE_LIMIT_MAX_TRACKED_CLIENTS:
+            _RATE_LIMIT_BUCKETS.popitem(last=False)  # evict least-recently-seen client
+        _RATE_LIMIT_BUCKETS[ip] = deque()
+    _RATE_LIMIT_BUCKETS.move_to_end(ip)
+
+    bucket = _RATE_LIMIT_BUCKETS[ip]
+    while bucket and now - bucket[0] >= RATE_LIMIT_WINDOW_S:
+        bucket.popleft()
+
+    if len(bucket) >= RATE_LIMIT_MAX_REQUESTS:
+        retry_after = max(1, math.ceil(RATE_LIMIT_WINDOW_S - (now - bucket[0])))
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit exceeded: max {RATE_LIMIT_MAX_REQUESTS} requests per {int(RATE_LIMIT_WINDOW_S)}s.",
+            headers={"Retry-After": str(retry_after)},
+        )
+
+    bucket.append(now)
+
 
 def calculate_similarity(txn1: dict, txn2: dict, risk1: str = "", risk2: str = "") -> float:
     # Genuine normal transactions should NEVER be linked as a threat campaign
@@ -292,6 +365,7 @@ async def explain_connection(request: Request):
 
 @app.post("/api/analyze")
 async def analyze(request: Request):
+    enforce_rate_limit(request)
     data = await request.json()
     txn = data.get("transaction")
     api_key = data.get("api_key")

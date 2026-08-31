@@ -90,3 +90,19 @@ def test_cf_connecting_ip_preferred_over_client_host():
 def test_falls_back_to_client_host_without_cf_header():
     request = make_request(ip="10.0.0.7")
     assert _client_ip(request) == "10.0.0.7"
+
+
+def test_retry_after_matches_actual_wait_needed():
+    """A client that waits exactly Retry-After seconds must be let back in --
+    catches the truncate-vs-round-up mismatch between the eviction check
+    (>=) and the reported Retry-After (must be a ceiling, not a floor)."""
+    request = make_request("10.0.0.8")
+    start = 100.0
+    for i in range(RATE_LIMIT_MAX_REQUESTS):
+        enforce_rate_limit(request, now=start + i * 0.01)  # fills the window fast
+
+    with pytest.raises(HTTPException) as exc_info:
+        enforce_rate_limit(request, now=start + 0.2)
+
+    retry_after = float(exc_info.value.headers["Retry-After"])
+    enforce_rate_limit(request, now=start + 0.2 + retry_after)  # no exception

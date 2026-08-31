@@ -1,11 +1,12 @@
 import os
 import sys
 import json
+import math
 import time
 import numpy as np
 import joblib
 from pathlib import Path
-from collections import OrderedDict, defaultdict, deque
+from collections import OrderedDict, deque
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.concurrency import run_in_threadpool
@@ -107,6 +108,20 @@ _RATE_LIMIT_BUCKETS: "OrderedDict[str, deque]" = OrderedDict()
 def _client_ip(request: Request) -> str:
     # Defensive getattr, matching the existing session_id lookup in analyze():
     # test callers pass a minimal MockRequest with only .json(), no .headers/.client.
+    #
+    # Trust boundary, stated explicitly rather than left implicit: this trusts
+    # CF-Connecting-IP as-is, which is only safe because Cloudflare's edge sets
+    # (and overwrites any client-supplied value for) that header on every request
+    # that reaches this container via the deployed backend-worker route -- the
+    # container has no other public ingress in that deployment. It is NOT safe
+    # against a caller who reaches this endpoint without going through
+    # Cloudflare's edge, e.g. local `docker compose` dev (api on localhost:8000
+    # with no proxy in front) or a future deployment that exposes the container
+    # directly: either lets a caller set an arbitrary CF-Connecting-IP per
+    # request and bypass the per-IP budget entirely. A cryptographically
+    # verified header (Cloudflare's signed request headers, or a shared secret
+    # the Worker injects and the container checks) is the correct production
+    # fix; not implemented here.
     headers = getattr(request, "headers", {}) or {}
     client = getattr(request, "client", None)
     return headers.get("cf-connecting-ip") or (client.host if client else "unknown")
@@ -125,11 +140,11 @@ def enforce_rate_limit(request: Request, now: float | None = None) -> None:
     _RATE_LIMIT_BUCKETS.move_to_end(ip)
 
     bucket = _RATE_LIMIT_BUCKETS[ip]
-    while bucket and now - bucket[0] > RATE_LIMIT_WINDOW_S:
+    while bucket and now - bucket[0] >= RATE_LIMIT_WINDOW_S:
         bucket.popleft()
 
     if len(bucket) >= RATE_LIMIT_MAX_REQUESTS:
-        retry_after = max(1, int(RATE_LIMIT_WINDOW_S - (now - bucket[0])))
+        retry_after = max(1, math.ceil(RATE_LIMIT_WINDOW_S - (now - bucket[0])))
         raise HTTPException(
             status_code=429,
             detail=f"Rate limit exceeded: max {RATE_LIMIT_MAX_REQUESTS} requests per {int(RATE_LIMIT_WINDOW_S)}s.",

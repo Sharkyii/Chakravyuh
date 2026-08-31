@@ -211,7 +211,6 @@ def prepare_transaction_df(transaction: dict) -> pd.DataFrame:
 
 def get_fallback_llm_analysis(transaction: dict, risk_assessment: dict, error_msg: str = "") -> dict:
     """Generates a structured template analyst summary when the LLM API is unavailable."""
-    fraud_prob = risk_assessment["fraud_probability"]
     risk_score = risk_assessment["risk_score"]
     risk_level = risk_assessment["risk_level"]
     top_attack = risk_assessment["top_attack_family"]
@@ -219,16 +218,21 @@ def get_fallback_llm_analysis(transaction: dict, risk_assessment: dict, error_ms
     signals = risk_assessment["contributing_signals"]
     shap_contributions = risk_assessment.get("shap_contributions", [])
 
-    explanation = (
-        f"The transaction was assessed with a fraud probability of {fraud_prob*100:.1f}%, "
-        f"resulting in a combined risk score of {risk_score:.1f}/100 and a risk level of {risk_level}."
-    )
     if risk_level in ["HIGH", "CRITICAL"]:
-        explanation += " The transaction triggers multiple anomaly thresholds and should be blocked."
+        explanation = (
+            f"The transaction triggered critical adversarial indicators resulting in a combined threat risk score of {risk_score:.1f}/100 "
+            f"({risk_level}). Fused behavioral and anomaly models recommend immediate blocking."
+        )
     elif risk_level == "MEDIUM":
-        explanation += " The transaction shows moderate risk indicators and requires review."
+        explanation = (
+            f"The transaction shows moderate risk indicators with a composite risk score of {risk_score:.1f}/100 "
+            f"({risk_level}). Secondary analyst verification is recommended."
+        )
     else:
-        explanation += " No significant risk was identified."
+        explanation = (
+            f"The transaction cleared baseline behavioural and anomaly checks with a low risk score of {risk_score:.1f}/100 "
+            f"({risk_level}). Standard authorization permitted."
+        )
         
     if top_attack:
         interpretation = (
@@ -254,7 +258,7 @@ def get_fallback_llm_analysis(transaction: dict, risk_assessment: dict, error_ms
         "Check graph path to see if payee is associated with known mule accounts."
     ]
     
-    caveat = "LLM API is currently unavailable. Using pre-computed rule-based template for analyst notes."
+    caveat = "LLM API is currently in fallback mode."
     if error_msg:
         caveat += f" (Reason: {error_msg})"
         
@@ -762,12 +766,11 @@ def analyze_transaction(transaction: dict, api_key: str | None = None) -> dict:
         ]
         
         evidence_lines = [
-            f"Fraud Probability: {fraud_probability*100:.2f}%",
+            f"Composite Fused Risk Score: {risk_score:.1f}/100 ({risk_level})",
+            f"Recommended Decision: {action}",
             f"Predicted Attack Family: {top_attack_family or 'unavailable'} (Classifier Confidence: {top_attack_probability*100:.2f}%)",
-            f"Calculated Risk Score: {risk_score:.1f}/100",
-            f"Recommended Action: {action}",
-            f"Risk Level: {risk_level}",
-            "Active Risk Signals:",
+            f"Base Tabular Statistical Probability: {fraud_probability*100:.2f}%",
+            "Active Behavioral & Threat Telemetry Signals:",
         ]
         for signal in contributing_signals:
             evidence_lines.append(f"  - {signal}")
@@ -782,20 +785,23 @@ def analyze_transaction(transaction: dict, api_key: str | None = None) -> dict:
 
 
         prompt = (
-            "You are Chakravyuh GenAI Analyst, a specialized AI assistant for Mastercard instant payment fraud detection.\n"
-            "Analyze the following transaction context and ML-derived evidence to generate a structured risk explanation. "
-            "Do NOT invent any facts or override the model's predictions. Your goal is to interpret the model's findings "
-            "for a human analyst.\n\n"
+            "You are Chakravyuh GenAI Analyst, a specialized AI assistant for Mastercard instant payment fraud defense.\n"
+            "Analyze the following transaction context and ML-derived multi-layered evidence to generate a structured risk explanation.\n"
+            "SYSTEM ARCHITECTURE CONTEXT:\n"
+            "Chakravyuh uses a Defense-in-Depth architecture combining Tabular ML, Graph Topology, and Real-Time Device Telemetry. "
+            "In sophisticated social engineering / coercion attacks, users are pressured on their own devices, so standard tabular metrics "
+            "can appear deceptively normal while real-time device telemetry (e.g. active voice call, screen sharing RAT) catches the threat. "
+            "Highlight how this multi-modal fusion protects against evasive threats.\n\n"
             "### TRANSACTION CONTEXT\n"
             + "\n".join(context_lines) + "\n\n"
-            "### MACHINE LEARNING EVIDENCE\n"
+            "### MACHINE LEARNING & TELEMETRY EVIDENCE\n"
             + "\n".join(evidence_lines) + "\n\n"
             "Please output a JSON object containing the following keys:\n"
-            "1. 'fraud_explanation': a concise paragraph explaining why this transaction was flagged (or cleared), summarizing the risk.\n"
-            "2. 'attack_family_interpretation': a detailed interpretation of the predicted attack family (e.g. how the signals align with that type of fraud).\n"
+            "1. 'fraud_explanation': concise professional paragraph explaining why this transaction was flagged (or approved) based on fused risk.\n"
+            "2. 'attack_family_interpretation': detailed interpretation of the predicted attack family and how telemetry signatures align with it.\n"
             "3. 'key_evidence': a list of the 2-4 most critical data points supporting this assessment.\n"
             "4. 'investigation_steps': a list of 3-4 actionable next steps for a human fraud analyst to verify this incident.\n"
-            "5. 'uncertainty_caveats': any limitations, model confidence warnings, or potential false-positive/negative scenarios.\n\n"
+            "5. 'uncertainty_caveats': operational triage nuance (e.g. verifying whether remote tools/calls were payer-authorized support vs malicious coercion).\n\n"
             "Ensure the output is valid JSON matching the schema and contains no markdown block wrapper."
         )
         

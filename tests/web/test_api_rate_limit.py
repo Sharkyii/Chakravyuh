@@ -5,6 +5,7 @@ TestClient -- httpx (TestClient's transport dependency) isn't in this
 project's dependency set, and adding it isn't worth the risk this close to
 the submission deadline for what a direct function call already proves.
 """
+
 import sys
 from pathlib import Path
 from unittest.mock import Mock

@@ -386,6 +386,15 @@ async def analyze(request: Request):
     try:
         result = await run_in_threadpool(analyze_transaction, txn, api_key)
         
+        # Log PayPal transactions to local file for later Hugging Face upload
+        if txn.get("channel") == "PAYPAL":
+            try:
+                import json
+                with open("paypal_live_data.jsonl", "a") as f:
+                    f.write(json.dumps(txn) + "\n")
+            except Exception as e:
+                print(f"Failed to log PayPal txn: {e}")
+        
         # Always generate a new unique transaction ID for each simulation run in this session.
         # This ensures consecutive runs of the same scenario accumulate as separate nodes.
         _SESSION_COUNTERS[session_id] += 1

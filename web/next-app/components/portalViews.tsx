@@ -959,6 +959,12 @@ export function AnalystPortal() {
         {/* Right side navigation actions */}
         <div className="flex items-center gap-2.5">
           <Link
+            href="/paypal-checkout"
+            className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-md border border-[#2E2E33] bg-[#003087] text-[#EDEDEF] hover:bg-[#002266] transition-colors text-xs font-medium shadow-sm"
+          >
+            PayPal Checkout
+          </Link>
+          <Link
             href="/analyst-feedback"
             className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-md border border-[#2E2E33] bg-[#18181B] text-[#EDEDEF] hover:border-[#D9500B]/60 hover:text-white transition-colors text-xs font-medium shadow-sm"
           >
